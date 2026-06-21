@@ -17,11 +17,6 @@ final enum class io.github.nomemmurrakh.documents/MergeStrategy : kotlin/Enum<io
     final fun values(): kotlin/Array<io.github.nomemmurrakh.documents/MergeStrategy> // io.github.nomemmurrakh.documents/MergeStrategy.values|values#static(){}[0]
 }
 
-abstract interface <#A: kotlin/Any?> io.github.nomemmurrakh.documents/Codec { // io.github.nomemmurrakh.documents/Codec|null[0]
-    abstract fun decode(kotlin/ByteArray, kotlinx.serialization/KSerializer<#A>): #A // io.github.nomemmurrakh.documents/Codec.decode|decode(kotlin.ByteArray;kotlinx.serialization.KSerializer<1:0>){}[0]
-    abstract fun encode(#A): kotlin/ByteArray // io.github.nomemmurrakh.documents/Codec.encode|encode(1:0){}[0]
-}
-
 abstract interface <#A: kotlin/Any?> io.github.nomemmurrakh.documents/Document { // io.github.nomemmurrakh.documents/Document|null[0]
     abstract fun delete() // io.github.nomemmurrakh.documents/Document.delete|delete(){}[0]
     abstract fun exists(): kotlin/Boolean // io.github.nomemmurrakh.documents/Document.exists|exists(){}[0]
@@ -41,13 +36,6 @@ abstract interface io.github.nomemmurrakh.documents/Documents { // io.github.nom
     }
 }
 
-final class <#A: kotlin/Any?> io.github.nomemmurrakh.documents/KotlinxCodec : io.github.nomemmurrakh.documents/Codec<#A> { // io.github.nomemmurrakh.documents/KotlinxCodec|null[0]
-    constructor <init>(kotlinx.serialization/KSerializer<#A>, kotlinx.serialization.json/Json = ...) // io.github.nomemmurrakh.documents/KotlinxCodec.<init>|<init>(kotlinx.serialization.KSerializer<1:0>;kotlinx.serialization.json.Json){}[0]
-
-    final fun decode(kotlin/ByteArray, kotlinx.serialization/KSerializer<#A>): #A // io.github.nomemmurrakh.documents/KotlinxCodec.decode|decode(kotlin.ByteArray;kotlinx.serialization.KSerializer<1:0>){}[0]
-    final fun encode(#A): kotlin/ByteArray // io.github.nomemmurrakh.documents/KotlinxCodec.encode|encode(1:0){}[0]
-}
-
 final class io.github.nomemmurrakh.documents/DocumentDecodingException : kotlin/RuntimeException { // io.github.nomemmurrakh.documents/DocumentDecodingException|null[0]
     final val documentKey // io.github.nomemmurrakh.documents/DocumentDecodingException.documentKey|{}documentKey[0]
         final fun <get-documentKey>(): kotlin/String // io.github.nomemmurrakh.documents/DocumentDecodingException.documentKey.<get-documentKey>|<get-documentKey>(){}[0]
@@ -59,9 +47,6 @@ final class io.github.nomemmurrakh.documents/DocumentsConfig { // io.github.nome
     final var dispatcher // io.github.nomemmurrakh.documents/DocumentsConfig.dispatcher|{}dispatcher[0]
         final fun <get-dispatcher>(): kotlinx.coroutines/CoroutineDispatcher // io.github.nomemmurrakh.documents/DocumentsConfig.dispatcher.<get-dispatcher>|<get-dispatcher>(){}[0]
         final fun <set-dispatcher>(kotlinx.coroutines/CoroutineDispatcher) // io.github.nomemmurrakh.documents/DocumentsConfig.dispatcher.<set-dispatcher>|<set-dispatcher>(kotlinx.coroutines.CoroutineDispatcher){}[0]
-    final var json // io.github.nomemmurrakh.documents/DocumentsConfig.json|{}json[0]
-        final fun <get-json>(): kotlinx.serialization.json/Json // io.github.nomemmurrakh.documents/DocumentsConfig.json.<get-json>|<get-json>(){}[0]
-        final fun <set-json>(kotlinx.serialization.json/Json) // io.github.nomemmurrakh.documents/DocumentsConfig.json.<set-json>|<set-json>(kotlinx.serialization.json.Json){}[0]
     final var multiProcess // io.github.nomemmurrakh.documents/DocumentsConfig.multiProcess|{}multiProcess[0]
         final fun <get-multiProcess>(): kotlin/Boolean // io.github.nomemmurrakh.documents/DocumentsConfig.multiProcess.<get-multiProcess>|<get-multiProcess>(){}[0]
         final fun <set-multiProcess>(kotlin/Boolean) // io.github.nomemmurrakh.documents/DocumentsConfig.multiProcess.<set-multiProcess>|<set-multiProcess>(kotlin.Boolean){}[0]

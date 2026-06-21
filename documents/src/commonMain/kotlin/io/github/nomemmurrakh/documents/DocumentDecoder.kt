@@ -4,34 +4,36 @@ import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
+
+private const val CBOR_NULL: Byte = 0xF6.toByte()
 
 @OptIn(ExperimentalSerializationApi::class)
 internal class DocumentDecoder(
     private val documentKey: String,
     private val storage: Storage,
-    private val json: Json,
+    private val cbor: Cbor,
 ) : AbstractDecoder() {
 
-    override val serializersModule: SerializersModule = json.serializersModule
+    override val serializersModule: SerializersModule = cbor.serializersModule
 
     override fun decodeElementIndex(descriptor: SerialDescriptor): Int = CompositeDecoder.DECODE_DONE
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder =
-        FieldCompositeDecoder(documentKey, storage, json)
+        FieldCompositeDecoder(documentKey, storage, cbor)
 
     private class FieldCompositeDecoder(
         private val documentKey: String,
         private val storage: Storage,
-        private val json: Json,
+        private val cbor: Cbor,
     ) : CompositeDecoder {
 
-        override val serializersModule: SerializersModule = json.serializersModule
+        override val serializersModule: SerializersModule = cbor.serializersModule
 
         private var nextIndex = 0
 
@@ -46,13 +48,17 @@ internal class DocumentDecoder(
                     field,
                     cause = null,
                 )
-            return decode(field, deserializer, raw.decodeToString())
+            return decode(field, deserializer, raw)
         }
 
-        private fun <T> decode(field: String, deserializer: DeserializationStrategy<T>, text: String): T =
+        private fun <T> decode(field: String, deserializer: DeserializationStrategy<T>, bytes: ByteArray): T =
             try {
-                json.decodeFromString(deserializer, text)
+                cbor.decodeFromByteArray(deserializer, bytes)
             } catch (cause: SerializationException) {
+                throw DocumentDecodingException(documentKey, field, cause)
+            } catch (cause: IllegalStateException) {
+                throw DocumentDecodingException(documentKey, field, cause)
+            } catch (cause: IllegalArgumentException) {
                 throw DocumentDecodingException(documentKey, field, cause)
             }
 
@@ -108,9 +114,8 @@ internal class DocumentDecoder(
             previousValue: T?,
         ): T? {
             val raw = bytes(descriptor, index) ?: return null
-            val text = raw.decodeToString()
-            if (text == "null") return null
-            return decode(descriptor.getElementName(index), deserializer, text)
+            if (raw.size == 1 && raw[0] == CBOR_NULL) return null
+            return decode(descriptor.getElementName(index), deserializer, raw)
         }
 
         override fun decodeInlineElement(descriptor: SerialDescriptor, index: Int): Decoder {

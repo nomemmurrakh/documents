@@ -4,9 +4,9 @@ A document-oriented, typed, reactive Kotlin Multiplatform storage library backed
 
 ## Benchmarks
 
-Documents decomposes a value into one `{doc}::{field}` key per field and runs a JSON
+Documents decomposes a value into one `{doc}::{field}` key per field and runs a CBOR
 encode/decode per field. These microbenchmarks measure that overhead against using raw MMKV
-directly — encoding the same 5-field value once and calling MMKV's byte API.
+directly — encoding the same 5-field value once with CBOR and calling MMKV's byte API.
 
 The numbers are captured on-device (Documents vs raw MMKV is not a JVM-host benchmark — MMKV is
 mmap-backed and needs a real device/simulator). They are device- and OS-specific and are not run
@@ -50,6 +50,9 @@ _Device: Samsung Galaxy A53 (SM-A536E) · Android 16 · debug build · median of
 absolute numbers are inflated by the debuggable test build; read them relatively. The `delete` row
 measures set + delete._
 
+> **Note:** these numbers were measured with the previous JSON encoding and predate the switch to
+> CBOR ([ADR-0015](docs/0015-cbor-internal-format.md)). They will be re-run on device and updated.
+
 ### iOS
 
 A `kotlin.time.TimeSource`-based timing harness (warmup + measured iterations; median / p95),
@@ -72,3 +75,6 @@ Results print to test output as `BENCH <name> median=<n>ns p95=<n>ns`.
 _Device: iPhone 17 Pro simulator · iOS 26.1 · median of 20k iterations. The `delete` row measures
 set + delete. Absolute timings are not comparable to the Android table (different build flavor and
 hardware); compare Documents vs raw MMKV within each platform._
+
+> **Note:** these numbers were measured with the previous JSON encoding and predate the switch to
+> CBOR ([ADR-0015](docs/0015-cbor-internal-format.md)). They will be re-run on device and updated.

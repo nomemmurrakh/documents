@@ -15,8 +15,7 @@ A `Documents` instance is the root handle, scoped to a named MMKV instance.
 ```kotlin
 val store = Documents.create("app") {
     // optional configuration block; works with zero config
-    json = Json { ignoreUnknownKeys = true } // default if omitted
-    multiProcess = false                      // default
+    multiProcess = false // default
 }
 ```
 
@@ -25,8 +24,8 @@ val store = Documents.create("app") {
 - MMKV is initialized automatically (Android via `androidx.startup`; iOS via `initializeMMKV`
   with the in-process sandbox path on first use). Consumers never call `MMKV.initialize` or pass a
   `Context` — see ADR-0012 (and ADR-0013 for the iOS CocoaPods binding).
-- The default `Codec` is `KotlinxCodec`, constructed **per field type** from that field's
-  `KSerializer` and the store's `json` (see ADR-0006). Custom codecs implement `Codec<T>`.
+- Field values are serialized with a single internal CBOR format (see ADR-0015); the on-disk
+  format is not configurable and is not a public extension point in v1.
 
 ## 2. Declaring a document
 
@@ -115,16 +114,11 @@ class Settings(store: Documents) {
   collection, then the new value each time that field changes. A field's declared default is
   not recoverable from a `KProperty` at runtime, so the caller supplies it — see ADR-0010.
 
-## 6. Custom serialization
+## 6. Serialization
 
-```kotlin
-interface Codec<T> {
-    fun encode(value: T): ByteArray
-    fun decode(bytes: ByteArray, deserializer: KSerializer<T>): T
-}
-```
-
-Default: `KotlinxCodec`. Users may supply their own per-store or per-document codec.
+Serialization is internal. Each field value is encoded to bytes with a single internal CBOR
+format and stored under its decomposed key. The on-disk format is not configurable and is not
+a public extension point in v1 — see ADR-0015.
 
 ## 7. Testability
 
@@ -149,7 +143,9 @@ val store = Documents.inMemory()
 
 - `get()` returns `null` for absent documents — never throws for "missing".
 - Deserialization failure throws `DocumentDecodingException` naming the document key,
-  field, and underlying cause (never a bare `SerializationException`).
+  field, and underlying cause (never a bare low-level decode exception — a corrupt CBOR field
+  may surface from the format as `SerializationException`, `IllegalStateException`, or
+  `IllegalArgumentException`; all are wrapped).
 - Using a non-`@Serializable` `T` is a compile-time error where possible, otherwise a
   clear runtime `IllegalArgumentException` at `document()` time.
 
@@ -173,6 +169,5 @@ Document<T>
   .fieldFlow(prop, default): Flow<V>
 
 MergeStrategy { REPLACE, UPDATE }
-Codec<T> { encode, decode }
 DocumentDecodingException
 ```

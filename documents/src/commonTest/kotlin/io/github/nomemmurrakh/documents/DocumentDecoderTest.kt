@@ -1,12 +1,15 @@
 package io.github.nomemmurrakh.documents
 
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
+@OptIn(ExperimentalSerializationApi::class)
 class DocumentDecoderTest {
 
     @Serializable
@@ -25,13 +28,17 @@ class DocumentDecoderTest {
         val address: Address = Address("Unknown", 0),
     )
 
-    private val json = Json
+    private val cbor = DefaultCbor
 
     private fun store(): Storage = InMemoryStorage()
 
+    private fun <T> seed(storage: Storage, field: String, serializer: KSerializer<T>, value: T) {
+        storage.putBytes(Keys.field("user", field), cbor.encodeToByteArray(serializer, value))
+    }
+
     private fun roundTrip(doc: String, value: User, storage: Storage): User {
-        encodeDocument(doc, value, User.serializer(), storage, json)
-        return decodeDocument(doc, User.serializer(), storage, json)
+        encodeDocument(doc, value, User.serializer(), storage, cbor)
+        return decodeDocument(doc, User.serializer(), storage, cbor)
     }
 
     @Test
@@ -44,11 +51,11 @@ class DocumentDecoderTest {
     @Test
     fun missingOptionalFieldUsesDefault() {
         val storage = store()
-        storage.putBytes(Keys.field("user", "id"), "\"7\"".encodeToByteArray())
-        storage.putBytes(Keys.field("user", "age"), "5".encodeToByteArray())
-        storage.putBytes(Keys.field("user", "active"), "true".encodeToByteArray())
+        seed(storage, "id", String.serializer(), "7")
+        seed(storage, "age", Int.serializer(), 5)
+        seed(storage, "active", Boolean.serializer(), true)
 
-        val decoded = decodeDocument("user", User.serializer(), storage, json)
+        val decoded = decodeDocument("user", User.serializer(), storage, cbor)
 
         assertEquals(Theme.SYSTEM, decoded.theme)
         assertEquals(Address("Unknown", 0), decoded.address)
@@ -57,20 +64,20 @@ class DocumentDecoderTest {
     @Test
     fun missingNullableFieldDecodesToDefaultNull() {
         val storage = store()
-        storage.putBytes(Keys.field("user", "id"), "\"7\"".encodeToByteArray())
-        storage.putBytes(Keys.field("user", "age"), "5".encodeToByteArray())
-        storage.putBytes(Keys.field("user", "active"), "true".encodeToByteArray())
+        seed(storage, "id", String.serializer(), "7")
+        seed(storage, "age", Int.serializer(), 5)
+        seed(storage, "active", Boolean.serializer(), true)
 
-        assertNull(decodeDocument("user", User.serializer(), storage, json).nickname)
+        assertNull(decodeDocument("user", User.serializer(), storage, cbor).nickname)
     }
 
     @Test
     fun explicitlyStoredNullNullableFieldDecodesToNull() {
         val storage = store()
         val user = User("1", 1, true, Theme.DARK, nickname = null, address = Address("A", 1))
-        encodeDocument("user", user, User.serializer(), storage, json)
+        encodeDocument("user", user, User.serializer(), storage, cbor)
 
-        val decoded = decodeDocument("user", User.serializer(), storage, json)
+        val decoded = decodeDocument("user", User.serializer(), storage, cbor)
 
         assertNull(decoded.nickname)
         assertEquals(user, decoded)
@@ -79,11 +86,11 @@ class DocumentDecoderTest {
     @Test
     fun partialUpdateThenDecodeMergesPersistedAndDefaults() {
         val storage = store()
-        encodeDocument("user", User("1", 20, true, Theme.DARK, "n", Address("C", 9)), User.serializer(), storage, json)
+        encodeDocument("user", User("1", 20, true, Theme.DARK, "n", Address("C", 9)), User.serializer(), storage, cbor)
 
-        storage.putBytes(Keys.field("user", "age"), "21".encodeToByteArray())
+        seed(storage, "age", Int.serializer(), 21)
 
-        val decoded = decodeDocument("user", User.serializer(), storage, json)
+        val decoded = decodeDocument("user", User.serializer(), storage, cbor)
 
         assertEquals(21, decoded.age)
         assertEquals(Theme.DARK, decoded.theme)
@@ -94,19 +101,19 @@ class DocumentDecoderTest {
     fun unknownStoredKeysAreIgnored() {
         val storage = store()
         val user = User("1", 1, true, Theme.LIGHT, null, Address("A", 1))
-        encodeDocument("user", user, User.serializer(), storage, json)
-        storage.putBytes(Keys.field("user", "legacyField"), "\"stale\"".encodeToByteArray())
+        encodeDocument("user", user, User.serializer(), storage, cbor)
+        seed(storage, "legacyField", String.serializer(), "stale")
 
-        assertEquals(user, decodeDocument("user", User.serializer(), storage, json))
+        assertEquals(user, decodeDocument("user", User.serializer(), storage, cbor))
     }
 
     @Test
     fun missingRequiredFieldFails() {
         val storage = store()
-        storage.putBytes(Keys.field("user", "id"), "\"7\"".encodeToByteArray())
+        seed(storage, "id", String.serializer(), "7")
 
         val failure = assertFailsWith<DocumentDecodingException> {
-            decodeDocument("user", User.serializer(), storage, json)
+            decodeDocument("user", User.serializer(), storage, cbor)
         }
 
         assertEquals("user", failure.documentKey)

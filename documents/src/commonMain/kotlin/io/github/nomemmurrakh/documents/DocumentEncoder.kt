@@ -1,38 +1,40 @@
 package io.github.nomemmurrakh.documents
 
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationStrategy
+import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 
 @OptIn(ExperimentalSerializationApi::class)
 internal class DocumentEncoder(
     private val documentKey: String,
     private val storage: Storage,
-    private val json: Json,
+    private val cbor: Cbor,
 ) : AbstractEncoder() {
 
-    override val serializersModule: SerializersModule = json.serializersModule
+    override val serializersModule: SerializersModule = cbor.serializersModule
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder =
-        FieldCompositeEncoder(documentKey, storage, json)
+        FieldCompositeEncoder(documentKey, storage, cbor)
 
     private class FieldCompositeEncoder(
         private val documentKey: String,
         private val storage: Storage,
-        private val json: Json,
+        private val cbor: Cbor,
     ) : CompositeEncoder {
 
-        override val serializersModule: SerializersModule = json.serializersModule
+        override val serializersModule: SerializersModule = cbor.serializersModule
 
         private fun <T> put(descriptor: SerialDescriptor, index: Int, serializer: SerializationStrategy<T>, value: T) {
             val key = Keys.field(documentKey, descriptor.getElementName(index))
-            storage.putBytes(key, json.encodeToString(serializer, value).encodeToByteArray())
+            storage.putBytes(key, cbor.encodeToByteArray(serializer, value))
         }
 
         override fun encodeBooleanElement(descriptor: SerialDescriptor, index: Int, value: Boolean): Unit =
@@ -69,6 +71,7 @@ internal class DocumentEncoder(
             value: T,
         ): Unit = put(descriptor, index, serializer, value)
 
+        @Suppress("UNCHECKED_CAST")
         override fun <T : Any> encodeNullableSerializableElement(
             descriptor: SerialDescriptor,
             index: Int,
@@ -76,8 +79,8 @@ internal class DocumentEncoder(
             value: T?,
         ) {
             val key = Keys.field(documentKey, descriptor.getElementName(index))
-            val encoded = if (value == null) "null" else json.encodeToString(serializer, value)
-            storage.putBytes(key, encoded.encodeToByteArray())
+            val nullableSerializer = (serializer as KSerializer<T>).nullable
+            storage.putBytes(key, cbor.encodeToByteArray(nullableSerializer, value))
         }
 
         override fun encodeInlineElement(descriptor: SerialDescriptor, index: Int): Encoder {

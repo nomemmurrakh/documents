@@ -7,8 +7,9 @@ import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.allocArrayOf
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.usePinned
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.serializer
 import platform.Foundation.NSData
 import platform.Foundation.NSDate
@@ -32,10 +33,10 @@ private val sample = Profile(42L, "Ada Lovelace", "ada@example.com", 36, true)
 private const val WARMUP = 2_000
 private const val MEASURE = 20_000
 
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class, ExperimentalSerializationApi::class)
 class DocumentsBenchmark {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val cbor = Cbor { ignoreUnknownKeys = true }
     private val profileSerializer = serializer<Profile>()
 
     private fun store(): Documents {
@@ -48,7 +49,7 @@ class DocumentsBenchmark {
         return requireNotNull(MMKV.mmkvWithID("bench-raw-${NSDate().timeIntervalSince1970}"))
     }
 
-    private fun encode(value: Profile): String = json.encodeToString(profileSerializer, value)
+    private fun encode(value: Profile): ByteArray = cbor.encodeToByteArray(profileSerializer, value)
 
     private fun report(name: String, block: () -> Unit) {
         repeat(WARMUP) { block() }
@@ -74,7 +75,7 @@ class DocumentsBenchmark {
     fun rawMmkvSet() {
         val mmkv = rawMmkv()
         report("rawMmkv.set") {
-            mmkv.setData(encode(sample).encodeToByteArray().toNSData(), forKey = "profile")
+            mmkv.setData(encode(sample).toNSData(), forKey = "profile")
         }
     }
 
@@ -88,10 +89,10 @@ class DocumentsBenchmark {
     @Test
     fun rawMmkvGet() {
         val mmkv = rawMmkv()
-        mmkv.setData(encode(sample).encodeToByteArray().toNSData(), forKey = "profile")
+        mmkv.setData(encode(sample).toNSData(), forKey = "profile")
         report("rawMmkv.get") {
             val bytes = requireNotNull(mmkv.getDataForKey("profile")).toByteArray()
-            json.decodeFromString(profileSerializer, bytes.decodeToString())
+            cbor.decodeFromByteArray(profileSerializer, bytes)
         }
     }
 

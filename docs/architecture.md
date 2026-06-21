@@ -19,8 +19,8 @@
 │   SerialDescriptor field-walker                │
 │   key construction: {doc}::{field}             │
 ├─────────────────────────────────────────────┤
-│ Codec layer (commonMain)                      │
-│   Codec<T> -> kotlinx.serialization (default)  │
+│ Serialization (commonMain)                    │
+│   internal CBOR (kotlinx.serialization)        │
 ├─────────────────────────────────────────────┤
 │ Reactivity (commonMain)                       │
 │   MutableSharedFlow change bus                 │
@@ -88,12 +88,14 @@ handling absent keys (defaults / nullable) gracefully.
 
 This is the one genuinely unfamiliar piece — budget design time for the encoder/decoder.
 
-## 5. Codec abstraction
+## 5. Serialization
 
-`Codec<T>` sits between the field-walker and `Storage`. The default `KotlinxCodec`
-serializes each *field value* (not the whole object) to bytes. A field whose type is itself
-a `@Serializable` object is stored as a serialized sub-blob under its single field key in
-v1 (nested decomposition is a possible later optimization, not a v1 goal).
+A single internal CBOR format sits between the field-walker and `Storage`, serializing each
+*field value* (not the whole object) directly to bytes (`encodeToByteArray`/
+`decodeFromByteArray` — no text intermediate). A field whose type is itself a `@Serializable`
+object is stored as a serialized sub-blob under its single field key in v1 (nested
+decomposition is a possible later optimization, not a v1 goal). The format is internal and not
+a public extension point — see ADR-0015 (which supersedes the earlier `Codec<T>` abstraction).
 
 ## 6. Reactivity
 

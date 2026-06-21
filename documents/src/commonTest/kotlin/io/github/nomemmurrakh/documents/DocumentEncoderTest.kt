@@ -1,14 +1,16 @@
 package io.github.nomemmurrakh.documents
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalSerializationApi::class)
 class DocumentEncoderTest {
 
     @Serializable
@@ -27,11 +29,11 @@ class DocumentEncoderTest {
         val address: Address,
     )
 
-    private val json = Json
+    private val cbor = DefaultCbor
 
     private fun <T> decodeField(storage: Storage, doc: String, field: String, serializer: KSerializer<T>): T {
         val bytes = storage.getBytes(Keys.field(doc, field))!!
-        return json.decodeFromString(serializer, bytes.decodeToString())
+        return cbor.decodeFromByteArray(serializer, bytes)
     }
 
     @Test
@@ -39,7 +41,7 @@ class DocumentEncoderTest {
         val storage: Storage = InMemoryStorage()
         val user = User("1", 30, true, Theme.DARK, "km", Address("Lahore", 54000))
 
-        encodeDocument("user", user, User.serializer(), storage, json)
+        encodeDocument("user", user, User.serializer(), storage, cbor)
 
         assertEquals(
             listOf("user::active", "user::address", "user::age", "user::id", "user::nickname", "user::theme"),
@@ -52,7 +54,7 @@ class DocumentEncoderTest {
         val storage: Storage = InMemoryStorage()
         val user = User("42", 30, true, Theme.DARK, "km", Address("Lahore", 54000))
 
-        encodeDocument("user", user, User.serializer(), storage, json)
+        encodeDocument("user", user, User.serializer(), storage, cbor)
 
         assertEquals("42", decodeField(storage, "user", "id", String.serializer()))
         assertEquals(30, decodeField(storage, "user", "age", Int.serializer()))
@@ -63,14 +65,14 @@ class DocumentEncoderTest {
     }
 
     @Test
-    fun nullableNullFieldIsStoredAsJsonNull() {
+    fun nullableNullFieldIsStoredAsCborNull() {
         val storage: Storage = InMemoryStorage()
         val user = User("1", 0, false, Theme.SYSTEM, null, Address("X", 1))
 
-        encodeDocument("user", user, User.serializer(), storage, json)
+        encodeDocument("user", user, User.serializer(), storage, cbor)
 
         assertTrue(storage.contains("user::nickname"))
-        assertEquals("null", storage.getBytes("user::nickname")!!.decodeToString())
+        assertNull(cbor.decodeFromByteArray(String.serializer().nullable, storage.getBytes("user::nickname")!!))
     }
 
     @Test
@@ -78,10 +80,12 @@ class DocumentEncoderTest {
         val storage: Storage = InMemoryStorage()
         val user = User("1", 0, false, Theme.SYSTEM, null, Address("Lahore", 54000))
 
-        encodeDocument("user", user, User.serializer(), storage, json)
+        encodeDocument("user", user, User.serializer(), storage, cbor)
 
-        val blob = storage.getBytes("user::address")!!.decodeToString()
-        assertEquals("""{"city":"Lahore","zip":54000}""", blob)
+        assertEquals(
+            Address("Lahore", 54000),
+            cbor.decodeFromByteArray(Address.serializer(), storage.getBytes("user::address")!!),
+        )
         assertNull(storage.getBytes("user::address::city"))
     }
 
@@ -89,8 +93,8 @@ class DocumentEncoderTest {
     fun keysAreScopedToDocumentKey() {
         val storage: Storage = InMemoryStorage()
 
-        encodeDocument("user", User("1", 1, true, Theme.LIGHT, null, Address("A", 1)), User.serializer(), storage, json)
-        encodeDocument("post", User("2", 2, false, Theme.DARK, null, Address("B", 2)), User.serializer(), storage, json)
+        encodeDocument("user", User("1", 1, true, Theme.LIGHT, null, Address("A", 1)), User.serializer(), storage, cbor)
+        encodeDocument("post", User("2", 2, false, Theme.DARK, null, Address("B", 2)), User.serializer(), storage, cbor)
 
         assertEquals(6, storage.keys("user::").size)
         assertEquals(6, storage.keys("post::").size)

@@ -4,8 +4,9 @@ import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.tencent.mmkv.MMKV
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.serializer
 import org.junit.runner.RunWith
 import kotlin.test.BeforeTest
@@ -26,10 +27,11 @@ private val sample = Profile(42L, "Ada Lovelace", "ada@example.com", 36, true)
 private const val WARMUP = 2_000
 private const val MEASURE = 20_000
 
+@OptIn(ExperimentalSerializationApi::class)
 @RunWith(AndroidJUnit4::class)
 class DocumentsBenchmark {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val cbor = Cbor { ignoreUnknownKeys = true }
     private val profileSerializer = serializer<Profile>()
 
     @BeforeTest
@@ -41,7 +43,7 @@ class DocumentsBenchmark {
 
     private fun rawMmkv(): MMKV = MMKV.mmkvWithID("bench-raw-${System.nanoTime()}")
 
-    private fun encode(value: Profile): String = json.encodeToString(profileSerializer, value)
+    private fun encode(value: Profile): ByteArray = cbor.encodeToByteArray(profileSerializer, value)
 
     private fun report(name: String, block: () -> Unit) {
         repeat(WARMUP) { block() }
@@ -81,7 +83,7 @@ class DocumentsBenchmark {
         val mmkv = rawMmkv()
         mmkv.encode("profile", encode(sample))
         report("rawMmkv.get") {
-            json.decodeFromString(profileSerializer, mmkv.decodeString("profile")!!)
+            cbor.decodeFromByteArray(profileSerializer, mmkv.decodeBytes("profile")!!)
         }
     }
 

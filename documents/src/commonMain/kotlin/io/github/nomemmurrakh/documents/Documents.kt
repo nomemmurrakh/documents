@@ -2,17 +2,15 @@ package io.github.nomemmurrakh.documents
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.serializer
 
 /**
  * Configuration for a [Documents] store, populated in the [Documents.create] block.
  */
 public class DocumentsConfig internal constructor() {
-
-    /** The JSON format used to encode and decode field values. */
-    public var json: Json = DefaultJson
 
     /** Whether the backing storage is shared across processes. Defaults to `false`. */
     public var multiProcess: Boolean = false
@@ -40,6 +38,7 @@ public interface Documents {
      */
     public fun <T> document(key: String, serializer: KSerializer<T>): Document<T>
 
+    @OptIn(ExperimentalSerializationApi::class)
     public companion object {
 
         /**
@@ -48,14 +47,14 @@ public interface Documents {
         public fun create(name: String, block: DocumentsConfig.() -> Unit = {}): Documents {
             ensureInitialized()
             val config = DocumentsConfig().apply(block)
-            return DocumentsImpl(platformStorage(name, config.multiProcess), config.json, config.dispatcher)
+            return DocumentsImpl(platformStorage(name, config.multiProcess), DefaultCbor, config.dispatcher)
         }
 
         /**
          * Creates a non-persistent, in-memory store. Intended for tests.
          */
         public fun inMemory(): Documents =
-            DocumentsImpl(InMemoryStorage(), DefaultJson, Dispatchers.Default)
+            DocumentsImpl(InMemoryStorage(), DefaultCbor, Dispatchers.Default)
     }
 }
 
@@ -67,15 +66,17 @@ public interface Documents {
 public inline fun <reified T> Documents.document(key: String): Document<T> =
     document(key, serializer())
 
-internal val DefaultJson: Json = Json { ignoreUnknownKeys = true }
+@OptIn(ExperimentalSerializationApi::class)
+internal val DefaultCbor: Cbor = Cbor { ignoreUnknownKeys = true }
 
 internal expect fun ensureInitialized()
 
 internal expect fun platformStorage(name: String, multiProcess: Boolean): Storage
 
+@OptIn(ExperimentalSerializationApi::class)
 internal class DocumentsImpl(
     private val storage: Storage,
-    private val json: Json,
+    private val cbor: Cbor,
     private val dispatcher: CoroutineDispatcher,
 ) : Documents {
 
@@ -83,6 +84,6 @@ internal class DocumentsImpl(
 
     override fun <T> document(key: String, serializer: KSerializer<T>): Document<T> {
         Keys.prefix(key)
-        return DocumentImpl(key, serializer, storage, json, changes, dispatcher)
+        return DocumentImpl(key, serializer, storage, cbor, changes, dispatcher)
     }
 }

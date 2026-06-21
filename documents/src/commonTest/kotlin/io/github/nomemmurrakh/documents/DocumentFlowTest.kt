@@ -7,12 +7,13 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalSerializationApi::class)
 class DocumentFlowTest {
 
     @Serializable
@@ -24,7 +25,7 @@ class DocumentFlowTest {
         bus: ChangeBus,
         dispatcher: CoroutineDispatcher,
     ): Document<User> =
-        DocumentImpl(key, User.serializer(), storage, DefaultJson, bus, dispatcher)
+        DocumentImpl(key, User.serializer(), storage, DefaultCbor, bus, dispatcher)
 
     @Test
     fun flowEmitsTheCurrentValueOnCollection() = runTest {

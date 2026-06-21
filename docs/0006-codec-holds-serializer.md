@@ -1,7 +1,11 @@
 # ADR-0006: KotlinxCodec is per-type and holds its KSerializer
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0015
 **Date:** 2026-06-16
+
+> **Superseded (2026-06-21):** `Codec<T>` and `KotlinxCodec<T>` were removed when the on-disk
+> format moved to a single internal CBOR instance with no public format extension point. See
+> ADR-0015. The reasoning below is retained for history.
 
 ## Context
 

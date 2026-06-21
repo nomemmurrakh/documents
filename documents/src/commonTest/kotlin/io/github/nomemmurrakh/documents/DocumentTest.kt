@@ -1,6 +1,8 @@
 package io.github.nomemmurrakh.documents
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -9,6 +11,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalSerializationApi::class)
 class DocumentTest {
 
     @Serializable
@@ -85,9 +88,12 @@ class DocumentTest {
     @Test
     fun setReplaceDeletesStaleKeysNotInNewValue() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("user", User.serializer(), storage, DefaultJson)
+        val doc = DocumentImpl("user", User.serializer(), storage, DefaultCbor)
         doc.set(User("1", 1, true))
-        storage.putBytes(Keys.field("user", "legacyField"), "\"stale\"".encodeToByteArray())
+        storage.putBytes(
+            Keys.field("user", "legacyField"),
+            DefaultCbor.encodeToByteArray(String.serializer(), "stale"),
+        )
 
         doc.set(User("2", 2, false))
 
@@ -151,7 +157,7 @@ class DocumentTest {
     @Test
     fun updateLeavesNoStaleKeyForOverwrittenField() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultJson)
+        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
         doc.set(Prefs(theme = Theme.DARK, fontScale = 200, nickname = "old"))
 
         doc.set(MergeStrategy.UPDATE) { copy(nickname = null) }
@@ -162,9 +168,9 @@ class DocumentTest {
     @Test
     fun corruptFieldBytesThrowDocumentDecodingExceptionNamingKeyAndField() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("user", User.serializer(), storage, DefaultJson)
+        val doc = DocumentImpl("user", User.serializer(), storage, DefaultCbor)
         doc.set(User("1", 30, true))
-        storage.putBytes(Keys.field("user", "age"), "not-an-int".encodeToByteArray())
+        storage.putBytes(Keys.field("user", "age"), byteArrayOf(0x1A))
 
         val failure = assertFailsWith<DocumentDecodingException> { doc.get() }
 
@@ -176,7 +182,7 @@ class DocumentTest {
     @Test
     fun missingRequiredFieldOnPresentDocumentThrowsDocumentDecodingException() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("user", User.serializer(), storage, DefaultJson)
+        val doc = DocumentImpl("user", User.serializer(), storage, DefaultCbor)
         doc.set(User("1", 30, true))
         storage.remove(Keys.field("user", "age"))
 
@@ -196,7 +202,7 @@ class DocumentTest {
     @Test
     fun updateAcquiresTheWriteLockReentrantlyWithoutDeadlock() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultJson)
+        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
         doc.set(Prefs(theme = Theme.DARK, fontScale = 100, nickname = "x"))
 
         doc.set(MergeStrategy.UPDATE) { copy(fontScale = 150) }
@@ -207,7 +213,7 @@ class DocumentTest {
     @Test
     fun multiFieldUpdateCommitsAllFieldsTogether() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultJson)
+        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
         doc.set(Prefs(theme = Theme.LIGHT, fontScale = 100, nickname = "old"))
 
         doc.set(MergeStrategy.UPDATE) { copy(theme = Theme.DARK, fontScale = 200, nickname = "new") }

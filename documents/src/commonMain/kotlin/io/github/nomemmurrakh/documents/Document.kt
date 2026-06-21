@@ -15,9 +15,10 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.cbor.Cbor
 
 /**
  * A typed, document-oriented view over a single key in storage.
@@ -76,11 +77,12 @@ public interface Document<T> {
     public fun stateFlow(scope: CoroutineScope): StateFlow<T?>
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 internal class DocumentImpl<T>(
     private val key: String,
     private val serializer: KSerializer<T>,
     private val storage: Storage,
-    private val json: Json,
+    private val cbor: Cbor,
     private val changes: ChangeBus = ChangeBus(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : Document<T> {
@@ -89,12 +91,12 @@ internal class DocumentImpl<T>(
 
     override fun get(): T? = lock.withLock {
         if (!exists()) return null
-        decodeDocument(key, serializer, storage, json)
+        decodeDocument(key, serializer, storage, cbor)
     }
 
     override fun set(value: T): Unit = lock.withLock {
         clear()
-        encodeDocument(key, value, serializer, storage, json)
+        encodeDocument(key, value, serializer, storage, cbor)
         changes.emit(key)
     }
 
@@ -124,17 +126,19 @@ internal class DocumentImpl<T>(
 
     internal fun <V> readField(fieldName: String, default: V, serializer: KSerializer<V>): V = lock.withLock {
         val raw = storage.getBytes(Keys.field(key, fieldName)) ?: return default
-        val text = raw.decodeToString()
         try {
-            json.decodeFromString(serializer, text)
+            cbor.decodeFromByteArray(serializer, raw)
         } catch (cause: SerializationException) {
+            throw DocumentDecodingException(key, fieldName, cause)
+        } catch (cause: IllegalStateException) {
+            throw DocumentDecodingException(key, fieldName, cause)
+        } catch (cause: IllegalArgumentException) {
             throw DocumentDecodingException(key, fieldName, cause)
         }
     }
 
     internal fun <V> writeField(fieldName: String, value: V, serializer: KSerializer<V>): Unit = lock.withLock {
-        val text = json.encodeToString(serializer, value)
-        storage.putBytes(Keys.field(key, fieldName), text.encodeToByteArray())
+        storage.putBytes(Keys.field(key, fieldName), cbor.encodeToByteArray(serializer, value))
         changes.emit(key)
     }
 
@@ -147,7 +151,7 @@ internal class DocumentImpl<T>(
             .conflate()
             .flowOn(dispatcher)
 
-    private fun defaults(): T = decodeDocument(key, serializer, EmptyStorage, json)
+    private fun defaults(): T = decodeDocument(key, serializer, EmptyStorage, cbor)
 
     override fun exists(): Boolean = lock.withLock {
         storage.keys(Keys.prefix(key)).isNotEmpty()

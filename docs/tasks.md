@@ -127,3 +127,23 @@ independent. The iOS `Storage` impl is `internal`, so the published common ABI m
 - [x] **T10.6** *(depends on T10.4)* Confirm the zero-touch contract holds identically on iOS and
       the public ABI is unchanged (iOS impl is `internal`). Acceptance: `checkLegacyAbi` green and
       the published common klib API is unmoved.
+
+## Phase 11 — Binary format & codec cleanup (pre-v0.1.0 tag)
+
+Settle the on-disk format before tagging, while changing it is still a code change and not a data
+migration. Decision recorded in ADR-0015 (supersedes ADR-0006).
+
+- [x] **T11.1** Switch the on-disk format from JSON to a single internal CBOR instance
+      (`Cbor { ignoreUnknownKeys = true }`), encoding field values straight to bytes
+      (`encodeToByteArray`/`decodeFromByteArray`, no UTF-8 text hop). Replace the hand-rolled
+      `"null"` text sentinel with CBOR's native null via the nullable serializer. Touches
+      `DocumentEncoder`, `DocumentDecoder`, `DocumentSerialization`, `Document`, `Documents`, and
+      the catalog/build (`kotlinx-serialization-cbor` in, `-json` out). Acceptance: `:documents:check`
+      green (existing round-trip/null/decoding tests pass against CBOR).
+- [x] **T11.2** Remove the unused format abstraction: delete `Codec<T>`, `KotlinxCodec<T>`, and the
+      public `DocumentsConfig.json` property; delete `KotlinxCodecTest`. Acceptance: public ABI is a
+      pure shrink; regenerate `documents/api/documents.klib.api` via `updateLegacyAbi` and
+      `checkLegacyAbi` is green.
+- [x] **T11.3** Make the benchmark raw-MMKV baseline encode with CBOR too (apples-to-apples), so
+      both sides of the comparison use the library's format. Acceptance: benchmark sources compile;
+      README numbers re-run on device as a follow-up (needs hardware).
