@@ -39,6 +39,26 @@ Clean code on top, MMKV all the way down.
 Because libraries should be elegant — so the code people write with them can be elegant too.
 That's the entire point of this one. ✨
 
+## What to use it for
+
+`Documents` is the persistence layer you reach for when you'd otherwise wire up
+`SharedPreferences`, `NSUserDefaults`, Jetpack `DataStore`, raw `MMKV`, or a hand-rolled
+key-value wrapper — one typed, reactive API that works the same on Android and iOS:
+
+- **App settings & preferences** — theme, locale, feature flags, onboarding state. The classic
+  `SharedPreferences` / `NSUserDefaults` job, but typed and observable.
+- **Session & user state** — the signed-in user, auth tokens, the active profile. Put them in a
+  named collection so logout is a single `clear`.
+- **Caches & drafts** — last-synced payloads, an in-progress form, the "continue where you left
+  off" blob. A separate collection keeps them apart from durable settings.
+- **Reactive UI state** — anything Compose or SwiftUI should re-render when it changes: collect a
+  `flow()` and the screen follows the store.
+- **Shared KMP persistence** — one storage API in `commonMain`, so Android and iOS read and write
+  the same documents through the same code.
+
+It is **not** a relational database — if you need queries, joins, or large collections of rows,
+reach for SQLite/Room/SQLDelight. `Documents` is for typed objects you address by key.
+
 ## How it feels
 
 Open as many documents as you like with `Documents.document<T>(key)` — they all live in one
