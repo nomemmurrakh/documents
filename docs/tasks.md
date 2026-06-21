@@ -86,7 +86,11 @@ have tests before moving on. This is also the source for `good first issue` labe
 
 ## Phase 9 — Benchmarks (v1.x, optional for first tag)
 
-- [ ] **T9.1** Microbenchmark write/read vs raw MMKV; record in README.
+- [x] **T9.1** Microbenchmark write/read vs raw MMKV; record in README. On-device, one shared
+      `TimeSource.Monotonic` timing loop on both platforms (`androidDeviceTest` + `iosTest`), not CI
+      — Jetpack Microbenchmark was tried and dropped, see ADR-0014. Cases: `set(REPLACE)`, `get`, `set(UPDATE)`, `delete`,
+      field-delegate write, each vs raw MMKV. Results table in `README.md` (fill in after running on
+      device). No public ABI change (benchmarks are test-source-only); `checkLegacyAbi` unmoved.
 
 ## Phase 10 — iOS storage (v1.0; ships with Android)
 

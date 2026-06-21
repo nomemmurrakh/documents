@@ -24,7 +24,8 @@ The minimum that delivers the product thesis.
 
 ## v1.x — Hardening
 
-- Benchmarks vs raw MMKV / DataStore / SharedPreferences published in README
+- Benchmarks vs raw MMKV published in README (DONE — on-device, ADR-0014); vs DataStore /
+  SharedPreferences still to come
 - More merge strategies if demand appears (e.g. `MERGE_DEEP`)
 
 ## v2.0 — Migrations & security
