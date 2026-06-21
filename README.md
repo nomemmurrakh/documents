@@ -14,7 +14,7 @@ data class GameSave(val level: Int = 1, val coins: Int = 0, val unlockedBoss: Bo
 val save = Documents.document<GameSave>("slot-1")   // one call, you have a document
 
 save.set(GameSave(level = 1, coins = 0))
-save.set(MergeStrategy.UPDATE) { copy(coins = coins + 50, level = level + 1) }
+save.set { copy(coins = coins + 50, level = level + 1) }
 save.flow().collect { hud.render(it) }   // the HUD reacts to every write
 ```
 
@@ -53,7 +53,7 @@ val save = Documents.document<GameSave>("slot-1")
 save.set(GameSave(level = 5, coins = 120))   // write the whole document
 val current: GameSave? = save.get()          // read it back (null if never written)
 
-save.set(MergeStrategy.UPDATE) {             // partial update, copy-style
+save.set {                                   // partial update, copy-style
     copy(coins = coins + 50)                 // bumps coins, leaves level untouched
 }
 ```
@@ -84,7 +84,6 @@ Call `Documents.document(...)` and go.
 
 ```kotlin
 import io.github.nomemmurrakh.documents.Documents
-import io.github.nomemmurrakh.documents.MergeStrategy
 import io.github.nomemmurrakh.documents.document
 import kotlinx.serialization.Serializable
 
@@ -101,7 +100,7 @@ data class GameSave(
 val save = Documents.document<GameSave>("slot-1")
 
 save.set(GameSave(level = 3, coins = 75, player = Player("Mara", hp = 80)))
-save.set(MergeStrategy.UPDATE) { copy(coins = coins + 50) }
+save.set { copy(coins = coins + 50) }
 
 println(save.get())     // GameSave(level=3, coins=125, player=Player(name=Mara, hp=80))
 save.delete()
@@ -146,19 +145,16 @@ A document `key` can't contain the reserved separator `::` — try it and you'll
 ```kotlin
 save.get(): GameSave?                       // current value, or null if absent
 save.set(value)                             // replace the whole document
-save.set(MergeStrategy.UPDATE) { ... }      // build over the current value (or defaults)
-save.set(MergeStrategy.REPLACE) { ... }     // build over the type's defaults
+save.set { ... }                            // update: build over the current value (or defaults)
 save.delete()                               // remove the document and all its field keys
 save.exists(): Boolean                      // true if any field key is stored
 ```
 
-The builder `set(strategy) { ... }` is a `T.() -> T` — return a `copy()`, not a mutated receiver.
-The whole read-modify-write runs under the document's write lock, so multi-field updates are
-**atomic**.
-
-- **`UPDATE`** → start from the persisted value (or defaults if absent), leaving untouched fields
-  exactly as they were.
-- **`REPLACE`** → start from the type's defaults, ignoring whatever's on disk.
+The overloads carry the intent: `set(value)` **replaces** (a whole object is given), `set { }`
+**updates** (the builder runs over the current value). The update builder is a `T.() -> T` —
+return a `copy()`, not a mutated receiver — and starts from the persisted value, or the type's
+defaults when the document is absent, leaving untouched fields exactly as they were. The whole
+read-modify-write runs under the document's write lock, so multi-field updates are **atomic**.
 
 ### React to changes
 

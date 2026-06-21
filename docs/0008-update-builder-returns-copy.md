@@ -1,7 +1,13 @@
 # ADR-0008: The UPDATE builder returns a new `T` via `copy()`, not a mutated receiver
 
-**Status:** Accepted
+**Status:** Accepted (builder shape amended by [ADR-0017](0017-drop-merge-strategy.md))
 **Date:** 2026-06-21
+
+> **Note.** The core decision here — the builder is `T.() -> T` and returns a `copy()` rather
+> than mutating the receiver — still holds. The `strategy: MergeStrategy` parameter shown in the
+> signatures below was later removed: the update builder is now just `set(builder: T.() -> T)`,
+> always running over the current value, and `REPLACE`-via-builder was dropped as redundant with
+> the `set(value)` overload. See ADR-0017.
 
 ## Context
 

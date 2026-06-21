@@ -66,8 +66,8 @@ val current: User? = user.get()
 // Write — replaces the whole document
 user.set(User(id = "1", name = "Khuram", email = "k@nomem.dev"))
 
-// Partial write via merge strategy + builder
-user.set(MergeStrategy.UPDATE) {
+// Partial update via builder
+user.set {
     // receiver is the current document; return the new value via copy() (see ADR-0008)
     copy(name = "Khuram M.")
 }
@@ -79,19 +79,14 @@ val present: Boolean = user.exists()
 user.delete()
 ```
 
-### Merge strategies
+### Update vs. replace
 
-```kotlin
-enum class MergeStrategy {
-    REPLACE, // overwrite all fields (default for set(value))
-    UPDATE,  // apply only the fields touched in the builder, keep the rest
-}
-```
+The two overloads carry the intent; there is no strategy enum (see ADR-0017).
 
-`set(strategy) { }` builds the new value from the existing one; the builder's receiver is the
-current value and it returns the new value (idiomatically via `copy()`, see ADR-0008). On
-`UPDATE`, untouched fields retain their persisted value. On a missing document, `UPDATE` starts
-from defaults.
+- `set(value)` **replaces** the whole document — a complete object is supplied.
+- `set { }` **updates** it — the builder runs over the current value (or the type's defaults
+  when the document is absent) and returns the new value, idiomatically via `copy()` (ADR-0008).
+  Untouched fields retain their persisted value.
 
 ## 4. Reactivity
 
@@ -175,8 +170,8 @@ Collection
 
 Document<T>
   .get(): T?
-  .set(value: T)
-  .set(strategy: MergeStrategy, builder: T.() -> T)       // receiver = current; returns new (copy)
+  .set(value: T)                                          // replace whole document
+  .set(builder: T.() -> T)                                // update; receiver = current, returns new (copy)
   .delete()
   .exists(): Boolean
   .flow(): Flow<T?>
@@ -184,6 +179,5 @@ Document<T>
   .field(prop, default): ReadWriteProperty<Any?, V>
   .fieldFlow(prop, default): Flow<V>
 
-MergeStrategy { REPLACE, UPDATE }
 DocumentDecodingException
 ```

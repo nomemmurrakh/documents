@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   roadmap, task breakdown, test plan).
 
 ### Changed
+- **Dropped `MergeStrategy`** (ADR-0017). The overloads now carry the intent: `set(value)`
+  replaces the whole document, `set { }` updates it (builder over the current value, or defaults
+  when absent). **Breaking API change** (pre-1.0): `set(MergeStrategy.UPDATE) { }` becomes
+  `set { }`; `set(MergeStrategy.REPLACE) { }` must be rewritten as a whole-object `set(value)`.
 - **Reworked the entry point** (ADR-0016). `Documents` is now an entry-point object, not the
   per-file handle. Open a document on the default store with `Documents.document<T>(key)`, or open
   a named `Collection` (its own MMKV file) with `Documents.collection(name)` then

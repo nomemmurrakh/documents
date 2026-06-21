@@ -13,7 +13,7 @@ data class User(val id: String, val name: String, val theme: Theme = Theme.SYSTE
 val user = Documents.document<User>("user")
 
 user.set(User(id = "1", name = "Khuram"))
-user.set(MergeStrategy.UPDATE) { copy(name = "Khuram M.") }
+user.set { copy(name = "Khuram M.") }
 
 user.flow().collect { println(it) }   // reactive, emits on every change
 val current: User? = user.get()
@@ -29,7 +29,7 @@ middle: a typed, document-shaped, reactive API on top of MMKV's memory-mapped sp
 
 - **Typed documents** — persist any `@Serializable` object, zero per-type boilerplate.
 - **Reactive** — `flow()`, `stateFlow()`, and field-level `fieldFlow()`.
-- **Partial updates** — `set(MergeStrategy.UPDATE) { }` writes only changed fields.
+- **Partial updates** — `set { }` writes only changed fields.
 - **Field delegates** — `var theme by doc.field(SettingsData::theme, default = …)`.
 - **Fast** — field decomposition over MMKV; the abstraction adds no extra I/O.
 - **Multiplatform** — public API in `commonMain`; storage is the only platform piece.

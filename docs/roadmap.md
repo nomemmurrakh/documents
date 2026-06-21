@@ -12,7 +12,7 @@ Versioning follows SemVer. Breaking changes only in major releases; deprecation 
 The minimum that delivers the product thesis.
 
 - `Documents.document<T>(key)` (default store) + `Documents.collection(name)` (named file), zero-config defaults (ADR-0016)
-- `Document<T>`: `get`, `set`, `set(UPDATE) {}`, `delete`, `exists`
+- `Document<T>`: `get`, `set(value)`, `set { }` (update), `delete`, `exists`
 - Field decomposition + `SerialDescriptor` encoder/decoder
 - Single internal CBOR format (ADR-0015)
 - `flow()` / `stateFlow()` via the SharedFlow change bus

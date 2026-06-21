@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.nomemmurrakh.documents.Documents
-import io.github.nomemmurrakh.documents.MergeStrategy
 import io.github.nomemmurrakh.documents.document
 import kotlinx.serialization.Serializable
 
@@ -36,10 +35,10 @@ fun SettingsScreen() {
     ) {
         Text("theme = ${settings?.theme ?: "system"}", style = MaterialTheme.typography.titleLarge)
         Text("launches = ${settings?.launchCount ?: 0}")
-        Button(onClick = { doc.set(MergeStrategy.UPDATE) { copy(theme = "dark") } }) {
+        Button(onClick = { doc.set { copy(theme = "dark") } }) {
             Text("Use dark theme")
         }
-        Button(onClick = { doc.set(MergeStrategy.UPDATE) { copy(launchCount = launchCount + 1) } }) {
+        Button(onClick = { doc.set { copy(launchCount = launchCount + 1) } }) {
             Text("Increment launches")
         }
     }

@@ -100,7 +100,7 @@ class DocumentsBenchmark {
     fun documentsSetUpdateSingleField() {
         val doc = store().document<Profile>("profile")
         doc.set(sample)
-        report("documents.set(UPDATE)") { doc.set(MergeStrategy.UPDATE) { copy(age = age + 1) } }
+        report("documents.set(update)") { doc.set { copy(age = age + 1) } }
     }
 
     @Test

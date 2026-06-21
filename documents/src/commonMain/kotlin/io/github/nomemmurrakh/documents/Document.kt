@@ -44,13 +44,14 @@ public interface Document<T> {
     public fun set(value: T)
 
     /**
-     * Writes the result of [builder] applied to a baseline chosen by [strategy].
+     * Updates the document by applying [builder] to the current value, preserving untouched
+     * fields. The baseline is the current value, or the type's defaults when the document is
+     * absent. The read-modify-write runs under the document's write lock.
      *
-     * With [MergeStrategy.UPDATE] the baseline is the current value (or defaults when absent),
-     * so untouched fields are preserved; with [MergeStrategy.REPLACE] it is the type's defaults.
-     * The read-modify-write runs under the document's write lock.
+     * Return the new value from the builder, idiomatically via `copy()`:
+     * `set { copy(name = "…") }`.
      */
-    public fun set(strategy: MergeStrategy, builder: T.() -> T)
+    public fun set(builder: T.() -> T)
 
     /**
      * Removes the document and all of its field keys. A subsequent [get] returns `null`.
@@ -100,11 +101,8 @@ internal class DocumentImpl<T>(
         changes.emit(key)
     }
 
-    override fun set(strategy: MergeStrategy, builder: T.() -> T): Unit = lock.withLock {
-        val base = when (strategy) {
-            MergeStrategy.REPLACE -> defaults()
-            MergeStrategy.UPDATE -> get() ?: defaults()
-        }
+    override fun set(builder: T.() -> T): Unit = lock.withLock {
+        val base = get() ?: defaults()
         set(base.builder())
     }
 

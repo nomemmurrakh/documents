@@ -118,7 +118,7 @@ class DocumentTest {
         val doc = store().document<User>("user")
         doc.set(User("1", 30, true, Theme.DARK, "km", Address("Lahore", 54000)))
 
-        doc.set(MergeStrategy.UPDATE) { copy(age = 31) }
+        doc.set { copy(age = 31) }
 
         assertEquals(
             User("1", 31, true, Theme.DARK, "km", Address("Lahore", 54000)),
@@ -130,7 +130,7 @@ class DocumentTest {
     fun updateOnMissingDocumentStartsFromDefaults() {
         val doc = store().document<Prefs>("prefs")
 
-        doc.set(MergeStrategy.UPDATE) { copy(fontScale = 125) }
+        doc.set { copy(fontScale = 125) }
 
         assertEquals(Prefs(theme = Theme.SYSTEM, fontScale = 125, nickname = null), doc.get())
     }
@@ -139,19 +139,9 @@ class DocumentTest {
     fun updateOnMissingPersistsOnlyFromDefaultBaseline() {
         val doc = store().document<Prefs>("prefs")
 
-        doc.set(MergeStrategy.UPDATE) { copy(nickname = "km") }
+        doc.set { copy(nickname = "km") }
 
         assertEquals(Prefs(theme = Theme.SYSTEM, fontScale = 100, nickname = "km"), doc.get())
-    }
-
-    @Test
-    fun replaceBuilderStartsFromDefaultsIgnoringPersisted() {
-        val doc = store().document<Prefs>("prefs")
-        doc.set(Prefs(theme = Theme.DARK, fontScale = 200, nickname = "old"))
-
-        doc.set(MergeStrategy.REPLACE) { copy(fontScale = 110) }
-
-        assertEquals(Prefs(theme = Theme.SYSTEM, fontScale = 110, nickname = null), doc.get())
     }
 
     @Test
@@ -160,7 +150,7 @@ class DocumentTest {
         val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
         doc.set(Prefs(theme = Theme.DARK, fontScale = 200, nickname = "old"))
 
-        doc.set(MergeStrategy.UPDATE) { copy(nickname = null) }
+        doc.set { copy(nickname = null) }
 
         assertEquals(Prefs(theme = Theme.DARK, fontScale = 200, nickname = null), doc.get())
     }
@@ -205,7 +195,7 @@ class DocumentTest {
         val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
         doc.set(Prefs(theme = Theme.DARK, fontScale = 100, nickname = "x"))
 
-        doc.set(MergeStrategy.UPDATE) { copy(fontScale = 150) }
+        doc.set { copy(fontScale = 150) }
 
         assertEquals(Prefs(theme = Theme.DARK, fontScale = 150, nickname = "x"), doc.get())
     }
@@ -216,7 +206,7 @@ class DocumentTest {
         val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
         doc.set(Prefs(theme = Theme.LIGHT, fontScale = 100, nickname = "old"))
 
-        doc.set(MergeStrategy.UPDATE) { copy(theme = Theme.DARK, fontScale = 200, nickname = "new") }
+        doc.set { copy(theme = Theme.DARK, fontScale = 200, nickname = "new") }
 
         assertEquals(Prefs(theme = Theme.DARK, fontScale = 200, nickname = "new"), doc.get())
     }

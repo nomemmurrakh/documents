@@ -6,24 +6,13 @@
 // - Show declarations: true
 
 // Library unique name: <com.nomemmurrakh:documents>
-final enum class io.github.nomemmurrakh.documents/MergeStrategy : kotlin/Enum<io.github.nomemmurrakh.documents/MergeStrategy> { // io.github.nomemmurrakh.documents/MergeStrategy|null[0]
-    enum entry REPLACE // io.github.nomemmurrakh.documents/MergeStrategy.REPLACE|null[0]
-    enum entry UPDATE // io.github.nomemmurrakh.documents/MergeStrategy.UPDATE|null[0]
-
-    final val entries // io.github.nomemmurrakh.documents/MergeStrategy.entries|#static{}entries[0]
-        final fun <get-entries>(): kotlin.enums/EnumEntries<io.github.nomemmurrakh.documents/MergeStrategy> // io.github.nomemmurrakh.documents/MergeStrategy.entries.<get-entries>|<get-entries>#static(){}[0]
-
-    final fun valueOf(kotlin/String): io.github.nomemmurrakh.documents/MergeStrategy // io.github.nomemmurrakh.documents/MergeStrategy.valueOf|valueOf#static(kotlin.String){}[0]
-    final fun values(): kotlin/Array<io.github.nomemmurrakh.documents/MergeStrategy> // io.github.nomemmurrakh.documents/MergeStrategy.values|values#static(){}[0]
-}
-
 abstract interface <#A: kotlin/Any?> io.github.nomemmurrakh.documents/Document { // io.github.nomemmurrakh.documents/Document|null[0]
     abstract fun delete() // io.github.nomemmurrakh.documents/Document.delete|delete(){}[0]
     abstract fun exists(): kotlin/Boolean // io.github.nomemmurrakh.documents/Document.exists|exists(){}[0]
     abstract fun flow(): kotlinx.coroutines.flow/Flow<#A?> // io.github.nomemmurrakh.documents/Document.flow|flow(){}[0]
     abstract fun get(): #A? // io.github.nomemmurrakh.documents/Document.get|get(){}[0]
     abstract fun set(#A) // io.github.nomemmurrakh.documents/Document.set|set(1:0){}[0]
-    abstract fun set(io.github.nomemmurrakh.documents/MergeStrategy, kotlin/Function1<#A, #A>) // io.github.nomemmurrakh.documents/Document.set|set(io.github.nomemmurrakh.documents.MergeStrategy;kotlin.Function1<1:0,1:0>){}[0]
+    abstract fun set(kotlin/Function1<#A, #A>) // io.github.nomemmurrakh.documents/Document.set|set(kotlin.Function1<1:0,1:0>){}[0]
     abstract fun stateFlow(kotlinx.coroutines/CoroutineScope): kotlinx.coroutines.flow/StateFlow<#A?> // io.github.nomemmurrakh.documents/Document.stateFlow|stateFlow(kotlinx.coroutines.CoroutineScope){}[0]
 }
 
