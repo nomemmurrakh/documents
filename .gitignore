@@ -1,0 +1,35 @@
+# Gradle
+.gradle
+build
+captures
+.externalNativeBuild
+.cxx
+
+# Kotlin
+.kotlin
+
+# IDE
+*.iml
+.idea
+
+# OS
+.DS_Store
+
+# Android / local config (may contain SDK paths or secrets)
+local.properties
+
+# Apple / Xcode / CocoaPods
+xcuserdata
+*.xcworkspace
+Pods
+*.podspec
+DerivedData
+
+# Signing & secrets — never commit private keys or credentials
+*.gpg
+*.jks
+*.keystore
+*.p12
+*.pem
+keystore.properties
+secring.gpg
