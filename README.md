@@ -50,8 +50,10 @@ _Device: Samsung Galaxy A53 (SM-A536E) · Android 16 · debug build · median of
 absolute numbers are inflated by the debuggable test build; read them relatively. The `delete` row
 measures set + delete._
 
-> **Note:** these numbers were measured with the previous JSON encoding and predate the switch to
-> CBOR ([ADR-0015](docs/0015-cbor-internal-format.md)). They will be re-run on device and updated.
+> **⚠️ TODO — stale benchmark numbers.** The table above was measured with the previous JSON
+> encoding and predates the switch to CBOR ([ADR-0015](docs/0015-cbor-internal-format.md)). Informal
+> post-CBOR re-runs were taken on a device that was simultaneously in use (playing video), so they
+> are unreliable. **Re-run on an otherwise-idle device and replace these numbers.**
 
 ### iOS
 
@@ -76,5 +78,7 @@ _Device: iPhone 17 Pro simulator · iOS 26.1 · median of 20k iterations. The `d
 set + delete. Absolute timings are not comparable to the Android table (different build flavor and
 hardware); compare Documents vs raw MMKV within each platform._
 
-> **Note:** these numbers were measured with the previous JSON encoding and predate the switch to
-> CBOR ([ADR-0015](docs/0015-cbor-internal-format.md)). They will be re-run on device and updated.
+> **⚠️ TODO — stale benchmark numbers.** The table above was measured with the previous JSON
+> encoding and predates the switch to CBOR ([ADR-0015](docs/0015-cbor-internal-format.md)). It was
+> also taken on the simulator (host CPU), not real hardware. **Re-run on a physical device and
+> replace these numbers.**

@@ -91,6 +91,11 @@ have tests before moving on. This is also the source for `good first issue` labe
       — Jetpack Microbenchmark was tried and dropped, see ADR-0014. Cases: `set(REPLACE)`, `get`, `set(UPDATE)`, `delete`,
       field-delegate write, each vs raw MMKV. Results table in `README.md` (fill in after running on
       device). No public ABI change (benchmarks are test-source-only); `checkLegacyAbi` unmoved.
+- [ ] **T9.2** *(follow-up)* Refresh the README benchmark tables with post-CBOR numbers
+      ([ADR-0015](0015-cbor-internal-format.md)). The published tables are **stale** — measured under
+      the old JSON encoding. Re-measure on an **otherwise-idle** device (Android: the informal CBOR
+      re-run was on a device in active use; iOS: previous numbers are simulator-only — use real
+      hardware) and replace both tables. Drop the stale-numbers warning notes once done.
 
 ## Phase 10 — iOS storage (v1.0; ships with Android)
 
