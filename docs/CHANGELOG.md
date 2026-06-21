@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   roadmap, task breakdown, test plan).
 
 ### Changed
+- **Reworked the entry point** (ADR-0016). `Documents` is now an entry-point object, not the
+  per-file handle. Open a document on the default store with `Documents.document<T>(key)`, or open
+  a named `Collection` (its own MMKV file) with `Documents.collection(name)` then
+  `collection.document<T>(key)`. `Documents.inMemory()` now returns a `Collection`. **Breaking
+  API change** (pre-1.0): `Documents.create(name).document(key)` is replaced by the above.
+- `DocumentsConfig` is split into `DocumentConfig` (`dispatcher`) for the default store and
+  `CollectionConfig` (`multiProcess`, `dispatcher`) for collections (ADR-0016).
 - **On-disk format is now CBOR (binary) instead of JSON** (ADR-0015). Field values are encoded
   straight to bytes with no UTF-8 text intermediate. **Breaking storage-format change:** data
   written by an earlier JSON build will not decode; no migration is provided (pre-1.0).

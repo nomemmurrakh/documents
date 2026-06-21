@@ -11,10 +11,10 @@ Versioning follows SemVer. Breaking changes only in major releases; deprecation 
 
 The minimum that delivers the product thesis.
 
-- `Documents.create` + zero-config defaults
+- `Documents.document<T>(key)` (default store) + `Documents.collection(name)` (named file), zero-config defaults (ADR-0016)
 - `Document<T>`: `get`, `set`, `set(UPDATE) {}`, `delete`, `exists`
 - Field decomposition + `SerialDescriptor` encoder/decoder
-- `Codec<T>` with `KotlinxCodec` default
+- Single internal CBOR format (ADR-0015)
 - `flow()` / `stateFlow()` via the SharedFlow change bus
 - Field delegates: `field(prop, default)`, `fieldFlow(prop)`
 - `InMemoryStorage` + `Documents.inMemory()` for tests

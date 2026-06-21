@@ -27,8 +27,7 @@ data class Settings(val theme: String = "system", val launchCount: Int = 0)
 
 @Composable
 fun SettingsScreen() {
-    val store = remember { Documents.create("sample") }
-    val doc = remember { store.document<Settings>("settings") }
+    val doc = remember { Documents.document<Settings>("settings") }
     val settings by doc.flow().collectAsStateWithLifecycle(initialValue = doc.get())
 
     Column(

@@ -39,7 +39,7 @@ class DocumentsBenchmark {
         MMKV.initialize(ApplicationProvider.getApplicationContext())
     }
 
-    private fun store(): Documents = Documents.create("bench-${System.nanoTime()}")
+    private fun store(): Collection = Documents.collection("bench-${System.nanoTime()}")
 
     private fun rawMmkv(): MMKV = MMKV.mmkvWithID("bench-raw-${System.nanoTime()}")
 

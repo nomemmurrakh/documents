@@ -8,19 +8,31 @@
 
 ---
 
-## 1. Creating a store
+## 1. Opening documents
 
-A `Documents` instance is the root handle, scoped to a named MMKV instance.
+`Documents` is the entry point. Open a document directly on the default store, or open a named
+`Collection` when a set of documents needs its own MMKV file. See ADR-0016.
 
 ```kotlin
-val store = Documents.create("app") {
+// Default store — the common case.
+val doc = Documents.document<User>("user") {
     // optional configuration block; works with zero config
+    dispatcher = Dispatchers.Default // default
+}
+
+// A separate MMKV file, for a distinct lifecycle/access pattern.
+val cache = Documents.collection("cache") {
     multiProcess = false // default
 }
+val draft = cache.document<Draft>("draft")
 ```
 
-- `create(name)` with no block must work and use sensible defaults.
-- `name` maps to the underlying MMKV instance id.
+- `document<T>(key)` with no block must work and use sensible defaults; it opens (get-or-open,
+  not "create anew") the document under `key` in the default store.
+- `collection(name)` maps `name` to the underlying MMKV instance id; open a collection only for a
+  wipe-on-logout cache, per-user scoping, multi-process sharing, or an encryption boundary.
+- The default store's config exposes `dispatcher` only; a collection's config exposes
+  `multiProcess` and `dispatcher`.
 - MMKV is initialized automatically (Android via `androidx.startup`; iOS via `initializeMMKV`
   with the in-process sandbox path on first use). Consumers never call `MMKV.initialize` or pass a
   `Context` — see ADR-0012 (and ADR-0013 for the iOS CocoaPods binding).
@@ -99,8 +111,8 @@ val state: StateFlow<User?> = user.stateFlow(scope)
 Property-level ergonomics for settings-style usage.
 
 ```kotlin
-class Settings(store: Documents) {
-    private val doc = store.document<SettingsData>("settings")
+class Settings {
+    private val doc = Documents.document<SettingsData>("settings")
 
     var theme: Theme by doc.field(SettingsData::theme, default = Theme.SYSTEM)
     val themeFlow: Flow<Theme> = doc.fieldFlow(SettingsData::theme, default = Theme.SYSTEM)
@@ -125,9 +137,10 @@ a public extension point in v1 — see ADR-0015.
 ```kotlin
 // In-memory backend — no real MMKV instance needed in unit tests
 val store = Documents.inMemory()
+val doc = store.document<SettingsData>("settings")
 ```
 
-`inMemory()` returns a `Documents` with identical semantics backed by an in-memory map.
+`inMemory()` returns a `Collection` with identical semantics backed by an in-memory map.
 
 ## 8. Threading & dispatchers
 
@@ -153,8 +166,11 @@ val store = Documents.inMemory()
 
 ```
 Documents
-  .create(name, block?): Documents
-  .inMemory(): Documents
+  .document<T>(key, block?): Document<T>      // default store; block configures dispatcher
+  .collection(name, block?): Collection       // named MMKV file; block configures multiProcess, dispatcher
+  .inMemory(): Collection
+
+Collection
   .document<T>(key): Document<T>
 
 Document<T>

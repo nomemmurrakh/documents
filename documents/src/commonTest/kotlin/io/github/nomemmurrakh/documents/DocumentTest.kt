@@ -37,7 +37,7 @@ class DocumentTest {
         val nickname: String? = null,
     )
 
-    private fun store(): Documents = Documents.inMemory()
+    private fun store(): Collection = Documents.inMemory()
 
     @Test
     fun setThenGetRoundTripsUnchanged() {

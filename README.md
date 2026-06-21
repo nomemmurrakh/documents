@@ -1,65 +1,84 @@
 # Documents
 
-A document-oriented, typed, reactive Kotlin Multiplatform storage library backed by
-[MMKV](https://github.com/Tencent/MMKV).
+**Typed, reactive documents on top of MMKV — fast *and* a joy to write.**
 
-## Why
-
-MMKV is exceptionally fast — memory-mapped, protobuf-backed, faster than just about anything
-else on the platform. But it gives you nothing to write *against*: raw keys, primitives only.
-Persisting a typed object means hand-rolling serialization and key management every single time.
-
-The more elegant alternatives — typed, reactive, ergonomic — give up that performance to get
-there. So you're forced to choose: fast, or pleasant to use.
-
-`Documents` refuses the trade. It puts an elegant, idiomatic Kotlin API — typed documents,
-property delegates, a copy-style update DSL, coroutines and `Flow` — directly on top of MMKV,
-adding only CPU cost for serialization, never extra I/O. You write code that reads cleanly, and
-it still runs on MMKV underneath.
-
-Libraries should be elegant, so that the code people write with them can be elegant too. That is
-the whole point of this one.
-
-## What it is
-
-You define a plain `@Serializable` data class and treat it as a document:
+A document-oriented Kotlin Multiplatform storage library backed by
+[MMKV](https://github.com/Tencent/MMKV). Define a data class, treat it as a document, and get
+typed reads, copy-style updates, and `Flow` reactivity — all riding on the fastest key-value
+engine on mobile.
 
 ```kotlin
 @Serializable
-data class Settings(
-    val theme: String = "system",
-    val launchCount: Int = 0,
-)
+data class GameSave(val level: Int = 1, val coins: Int = 0, val unlockedBoss: Boolean = false)
 
-val store = Documents.create("app")
-val settings = store.document<Settings>("settings")
+val save = Documents.document<GameSave>("slot-1")   // one call, you have a document
 
-settings.set(Settings(theme = "dark"))          // write the whole document
-val current: Settings? = settings.get()         // read it back (null if never written)
+save.set(GameSave(level = 1, coins = 0))
+save.set(MergeStrategy.UPDATE) { copy(coins = coins + 50, level = level + 1) }
+save.flow().collect { hud.render(it) }   // the HUD reacts to every write
+```
 
-settings.set(MergeStrategy.UPDATE) {            // copy-style partial update
-    copy(launchCount = launchCount + 1)
+That's the whole story. No schema, no DAO, no `MMKV.initialize`, no serialization plumbing.
+
+---
+
+## Why this exists
+
+MMKV is *ridiculously* fast — memory-mapped, protobuf-backed, faster than just about anything
+else on the platform. But it hands you a bare cupboard: raw keys, primitives only. Want to store
+a typed object? Roll your own serialization and key management. Every. Single. Time.
+
+The pleasant alternatives — typed, reactive, ergonomic — buy that comfort by giving the speed
+back. So you're stuck picking a side: **fast**, or **nice to use**.
+
+`Documents` refuses to pick. It drops an elegant, idiomatic Kotlin API — typed documents,
+property delegates, a `copy()`-style update DSL, coroutines and `Flow` — straight onto MMKV. The
+abstraction costs you a little CPU for serialization and **never a single extra byte of I/O**.
+Clean code on top, MMKV all the way down.
+
+Because libraries should be elegant — so the code people write with them can be elegant too.
+That's the entire point of this one. ✨
+
+## How it feels
+
+Open as many documents as you like with `Documents.document<T>(key)` — they all live in one
+default MMKV file. Every document is quietly decomposed into **one storage key per top-level
+field** (`{doc}::{field}`), so touching one field writes one key — nothing more. Values go through
+[kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization) into a compact internal
+**CBOR** format. Zero per-type boilerplate, zero schema to babysit.
+
+```kotlin
+val save = Documents.document<GameSave>("slot-1")
+
+save.set(GameSave(level = 5, coins = 120))   // write the whole document
+val current: GameSave? = save.get()          // read it back (null if never written)
+
+save.set(MergeStrategy.UPDATE) {             // partial update, copy-style
+    copy(coins = coins + 50)                 // bumps coins, leaves level untouched
 }
 ```
 
-Each document is decomposed into **one storage key per top-level field** (`{doc}::{field}`), so a
-single-field update touches only that field's key. Values are serialized with
-[kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization) to a compact internal
-**CBOR** format — there is no per-type boilerplate and no schema to maintain.
-
-## Installation
-
-> Coordinates: `com.nomemmurrakh:documents`. Published to Maven Central.
+Need a separate file — a wipe-on-logout cache, per-user data, a multi-process or encrypted store?
+Open a named **collection** and pull documents from it:
 
 ```kotlin
-// build.gradle.kts (a KMP module's commonMain, or an Android module)
+val cache = Documents.collection("cache")     // its own MMKV file
+val draft = cache.document<Draft>("draft")
+```
+
+## Install
+
+> 📦 `com.nomemmurrakh:documents` — on Maven Central.
+
+```kotlin
+// build.gradle.kts — a KMP module's commonMain, or an Android module
 dependencies {
     implementation("com.nomemmurrakh:documents:0.1.0")
 }
 ```
 
-The library initializes MMKV for you — you never call `MMKV.initialize`. Just call
-`Documents.create(...)` and start using it.
+No setup ceremony: the library initializes MMKV for you, so you never touch `MMKV.initialize`.
+Call `Documents.document(...)` and go.
 
 ## Quick start
 
@@ -70,132 +89,150 @@ import io.github.nomemmurrakh.documents.document
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Profile(val name: String = "", val age: Int = 0)
+data class Player(val name: String = "", val hp: Int = 100)
 
-val store = Documents.create("profiles")
-val profile = store.document<Profile>("me")
+@Serializable
+data class GameSave(
+    val level: Int = 1,
+    val coins: Int = 0,
+    val player: Player = Player(),   // nested @Serializable — stored as one sub-blob
+)
 
-profile.set(Profile(name = "Sam", age = 30))
-profile.set(MergeStrategy.UPDATE) { copy(age = 31) }
+val save = Documents.document<GameSave>("slot-1")
 
-println(profile.get())   // Profile(name=Sam, age=31)
-profile.delete()
-println(profile.exists()) // false
+save.set(GameSave(level = 3, coins = 75, player = Player("Mara", hp = 80)))
+save.set(MergeStrategy.UPDATE) { copy(coins = coins + 50) }
+
+println(save.get())     // GameSave(level=3, coins=125, player=Player(name=Mara, hp=80))
+save.delete()
+println(save.exists())  // false
 ```
 
-## API
+## The API, end to end
 
-### Opening a store and documents
+### Open a document
 
 ```kotlin
-// Persistent store, backed by a named MMKV instance.
-val store = Documents.create("app") {
-    multiProcess = false              // share across processes (default false)
+// On the default store — the common case. The reified overload resolves the serializer for you.
+val save = Documents.document<GameSave>("slot-1") {
+    dispatcher = Dispatchers.Default  // dispatcher for flow/stateFlow collection (optional)
+}
+// ...or pass the serializer explicitly:
+val save2 = Documents.document("slot-1", GameSave.serializer())
+```
+
+### Open a collection (a separate file)
+
+Reach for a collection only when a set of documents needs its own MMKV file — a wipe-on-logout
+cache, per-user data, a multi-process store, or an encryption boundary:
+
+```kotlin
+val cache = Documents.collection("cache") {
+    multiProcess = false              // share across processes (default: false)
     dispatcher = Dispatchers.Default  // dispatcher for flow/stateFlow collection
 }
+val draft = cache.document<Draft>("draft")
 
-// In-memory store, for tests. No MMKV, no persistence.
+// An in-memory collection for tests — no MMKV, no persistence.
 val test = Documents.inMemory()
-
-// Open a typed document. The reified overload resolves the serializer for you.
-val doc = store.document<Profile>("me")
-// or, explicit serializer:
-val doc2 = store.document("me", Profile.serializer())
+val doc = test.document<GameSave>("slot-1")
 ```
 
-A document `key` must not contain the reserved separator `::` — doing so throws
+A document `key` can't contain the reserved separator `::` — try it and you'll get an
 `IllegalArgumentException`.
 
-### Reading and writing
+### Read & write
 
 ```kotlin
-doc.get(): Profile?                       // current value, or null if absent
-doc.set(value)                            // replace the whole document
-doc.set(MergeStrategy.UPDATE) { ... }     // builder over the current value (or defaults)
-doc.set(MergeStrategy.REPLACE) { ... }    // builder over the type's defaults
-doc.delete()                              // remove the document and all its field keys
-doc.exists(): Boolean                     // true if at least one field key is stored
+save.get(): GameSave?                       // current value, or null if absent
+save.set(value)                             // replace the whole document
+save.set(MergeStrategy.UPDATE) { ... }      // build over the current value (or defaults)
+save.set(MergeStrategy.REPLACE) { ... }     // build over the type's defaults
+save.delete()                               // remove the document and all its field keys
+save.exists(): Boolean                      // true if any field key is stored
 ```
 
-`set(strategy) { ... }` is a `T.() -> T` builder — return a `copy()`, not a mutated receiver.
-The read-modify-write runs under the document's write lock, so a multi-field update is atomic.
+The builder `set(strategy) { ... }` is a `T.() -> T` — return a `copy()`, not a mutated receiver.
+The whole read-modify-write runs under the document's write lock, so multi-field updates are
+**atomic**.
 
-- **`UPDATE`** starts from the persisted value (or the type's defaults if absent), leaving
-  untouched fields intact.
-- **`REPLACE`** starts from the type's defaults, ignoring whatever is persisted.
+- **`UPDATE`** → start from the persisted value (or defaults if absent), leaving untouched fields
+  exactly as they were.
+- **`REPLACE`** → start from the type's defaults, ignoring whatever's on disk.
 
-### Reactivity
+### React to changes
 
 ```kotlin
-doc.flow(): Flow<Profile?>                       // cold; current value, then each committed write
-doc.stateFlow(scope): StateFlow<Profile?>        // hot; shared while subscribed
+save.flow(): Flow<GameSave?>                  // cold; current value, then every committed write
+save.stateFlow(scope): StateFlow<GameSave?>   // hot; shared while there are subscribers
 ```
 
-`flow()` emits the current value on collection, then the new value after every committed write to
-this document. It emits `null` when the document is deleted or absent. Emissions are conflated and
-only happen once the write is durably committed. A write to a *different* document on the same
-store does not notify this one.
+`flow()` hands you the current value the moment you collect, then a fresh value after each
+committed write — `null` when the document is deleted or absent. Emissions are conflated and fire
+only once the write is durably committed. Writing a *different* document in the same collection
+won't wake this one up.
 
-In Compose:
+Straight into Compose:
 
 ```kotlin
-val settings by doc.flow().collectAsStateWithLifecycle(initialValue = doc.get())
+val save by saveDoc.flow().collectAsStateWithLifecycle(initialValue = saveDoc.get())
 ```
 
-(`settings` is nullable — `null` means the document has not been written yet.)
+(`save` is nullable — `null` simply means "not written yet.")
 
-### Field delegates
+### Bind a single field
 
-When you want to bind a single field rather than the whole document:
+Sometimes you don't want the whole document — just one field:
 
 ```kotlin
-val themeFlow: Flow<String> = doc.fieldFlow(Profile::name, default = "")
+val coinsFlow: Flow<Int> = save.fieldFlow(GameSave::coins, default = 0)
 
-var name: String by doc.field(Profile::name, default = "")
-name = "Sam"          // writes only the name field's key
-println(name)         // reads only that key
+var coins: Int by save.field(GameSave::coins, default = 0)
+coins += 50       // writes only the coins field's key
+println(coins)    // reads only that key
 ```
 
 A field delegate reads and writes exactly one decomposed key. `fieldFlow` emits the current value
-(or the default if never set) on collection, then the new value each time *that* field changes; a
-change to another field of the same document does not emit.
+(or the default if never set), then a new value each time *that* field changes — a change to a
+sibling field stays quiet.
 
-### Errors
+### When decoding fails
 
-`get()` (and field reads) throw `DocumentDecodingException` when a stored field cannot be decoded.
-Because a document is one key per field, a read can fail on a single field while the rest are
-intact — the exception names the `documentKey` and, when one field is implicated, the `field`, and
-wraps the underlying cause. It is raised instead of a bare `SerializationException` so callers
-never depend on the serialization layer's error types.
+`get()` (and field reads) throw `DocumentDecodingException` if a stored field can't be decoded.
+Since a document is one key per field, a single field can go bad while the rest stay healthy — so
+the exception names the `documentKey`, the offending `field` when there is one, and wraps the
+underlying cause. You get a clean library error instead of a bare `SerializationException`, so
+your code never has to reach into the serialization layer's error types.
 
-## How it works
+## Under the hood
 
-- **Decomposition.** A document is stored as one MMKV entry per top-level field, keyed
-  `{doc}::{field}`. Nested `@Serializable` types are stored as a single sub-blob under their
-  field's key; nesting depth is unrestricted. This is what makes a one-field update cheap.
-- **Serialization.** Field values are encoded directly to bytes with an internal CBOR instance
-  (`kotlinx-serialization-cbor`) — no JSON text hop. Serialization is an internal detail in v1,
-  not a configurable extension point.
-- **Storage SPI.** All API and logic live in `commonMain`. Only the `Storage` implementation is
-  platform-specific: MMKV on both Android and iOS, plus an in-memory implementation for tests.
-- **Concurrency.** Each document has its own write lock, so builder-style updates are atomic;
-  reactive collection runs on the configured dispatcher (`Dispatchers.Default` by default).
+- **Decomposition** — one MMKV entry per top-level field, keyed `{doc}::{field}`. Nested
+  `@Serializable` types live as a single sub-blob under their field's key, to any depth. This is
+  the trick that makes a one-field update cheap.
+- **Serialization** — field values are encoded straight to bytes with an internal CBOR instance
+  (`kotlinx-serialization-cbor`), no JSON text detour. It's an internal detail in v1, not a
+  pluggable knob.
+- **Storage SPI** — every bit of API and logic lives in `commonMain`. Only the `Storage`
+  implementation is platform-specific: MMKV on Android and iOS, plus an in-memory one for tests.
+- **Concurrency** — each document carries its own write lock (atomic builder updates), and
+  reactive collection runs on the dispatcher you configure (`Dispatchers.Default` by default).
 
 ## Platform support
 
 | Platform | Status | Storage engine |
-| -------- | ------ | -------------- |
-| Android  | ✅      | MMKV           |
-| iOS (arm64 + simulator arm64) | ✅ | MMKV (via CocoaPods) |
+| -------- | :----: | -------------- |
+| Android  | ✅ | MMKV |
+| iOS — `arm64` + `simulatorArm64` | ✅ | MMKV (via CocoaPods) |
 
-The public API is identical across platforms — it lives entirely in `commonMain`. MMKV is bound
-on Apple targets through the Kotlin CocoaPods plugin. The library owns MMKV initialization on both
-platforms, so consumers never initialize it themselves.
+One public API across the board — it all lives in `commonMain`. MMKV is bound on Apple targets
+through the Kotlin CocoaPods plugin, and the library owns MMKV initialization on both platforms,
+so consumers never lift a finger.
 
-## Sample
+## Try the sample
 
-A runnable Android sample lives in [`sample/`](sample/) — a small Compose settings screen built on
-a single `Documents` document.
+A runnable Android sample lives in [`sample/`](sample/) — a tiny Compose settings screen wired to
+a single `Documents` document, with buttons that flip the theme and bump a launch counter, both
+persisting instantly. Clone, run, tap. 👀
 
 ## License
 

@@ -1,7 +1,12 @@
 # ADR-0007: The `Documents` root factory is built alongside T5.1
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0016](0016-documents-entry-point-and-collections.md)
 **Date:** 2026-06-21
+
+> **Superseded.** The `Documents.create(name).document(key)` shape described here was replaced by
+> a default-store fast path (`Documents.document<T>(key)`) plus a named `Collection` handle
+> (`Documents.collection(name).document<T>(key)`). See ADR-0016. The co-delivery-with-T5.1
+> rationale below stands historically.
 
 ## Context
 

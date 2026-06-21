@@ -10,11 +10,10 @@ underneath.
 @Serializable
 data class User(val id: String, val name: String, val theme: Theme = Theme.SYSTEM)
 
-val store = Documents.create("app")
-val user = store.document<User>("user")
+val user = Documents.document<User>("user")
 
 user.set(User(id = "1", name = "Khuram"))
-user.set(MergeStrategy.UPDATE) { name = "Khuram M." }
+user.set(MergeStrategy.UPDATE) { copy(name = "Khuram M.") }
 
 user.flow().collect { println(it) }   // reactive, emits on every change
 val current: User? = user.get()

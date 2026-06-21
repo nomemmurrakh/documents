@@ -27,13 +27,23 @@ abstract interface <#A: kotlin/Any?> io.github.nomemmurrakh.documents/Document {
     abstract fun stateFlow(kotlinx.coroutines/CoroutineScope): kotlinx.coroutines.flow/StateFlow<#A?> // io.github.nomemmurrakh.documents/Document.stateFlow|stateFlow(kotlinx.coroutines.CoroutineScope){}[0]
 }
 
-abstract interface io.github.nomemmurrakh.documents/Documents { // io.github.nomemmurrakh.documents/Documents|null[0]
-    abstract fun <#A1: kotlin/Any?> document(kotlin/String, kotlinx.serialization/KSerializer<#A1>): io.github.nomemmurrakh.documents/Document<#A1> // io.github.nomemmurrakh.documents/Documents.document|document(kotlin.String;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
+abstract interface io.github.nomemmurrakh.documents/Collection { // io.github.nomemmurrakh.documents/Collection|null[0]
+    abstract fun <#A1: kotlin/Any?> document(kotlin/String, kotlinx.serialization/KSerializer<#A1>): io.github.nomemmurrakh.documents/Document<#A1> // io.github.nomemmurrakh.documents/Collection.document|document(kotlin.String;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
+}
 
-    final object Companion { // io.github.nomemmurrakh.documents/Documents.Companion|null[0]
-        final fun create(kotlin/String, kotlin/Function1<io.github.nomemmurrakh.documents/DocumentsConfig, kotlin/Unit> = ...): io.github.nomemmurrakh.documents/Documents // io.github.nomemmurrakh.documents/Documents.Companion.create|create(kotlin.String;kotlin.Function1<io.github.nomemmurrakh.documents.DocumentsConfig,kotlin.Unit>){}[0]
-        final fun inMemory(): io.github.nomemmurrakh.documents/Documents // io.github.nomemmurrakh.documents/Documents.Companion.inMemory|inMemory(){}[0]
-    }
+final class io.github.nomemmurrakh.documents/CollectionConfig { // io.github.nomemmurrakh.documents/CollectionConfig|null[0]
+    final var dispatcher // io.github.nomemmurrakh.documents/CollectionConfig.dispatcher|{}dispatcher[0]
+        final fun <get-dispatcher>(): kotlinx.coroutines/CoroutineDispatcher // io.github.nomemmurrakh.documents/CollectionConfig.dispatcher.<get-dispatcher>|<get-dispatcher>(){}[0]
+        final fun <set-dispatcher>(kotlinx.coroutines/CoroutineDispatcher) // io.github.nomemmurrakh.documents/CollectionConfig.dispatcher.<set-dispatcher>|<set-dispatcher>(kotlinx.coroutines.CoroutineDispatcher){}[0]
+    final var multiProcess // io.github.nomemmurrakh.documents/CollectionConfig.multiProcess|{}multiProcess[0]
+        final fun <get-multiProcess>(): kotlin/Boolean // io.github.nomemmurrakh.documents/CollectionConfig.multiProcess.<get-multiProcess>|<get-multiProcess>(){}[0]
+        final fun <set-multiProcess>(kotlin/Boolean) // io.github.nomemmurrakh.documents/CollectionConfig.multiProcess.<set-multiProcess>|<set-multiProcess>(kotlin.Boolean){}[0]
+}
+
+final class io.github.nomemmurrakh.documents/DocumentConfig { // io.github.nomemmurrakh.documents/DocumentConfig|null[0]
+    final var dispatcher // io.github.nomemmurrakh.documents/DocumentConfig.dispatcher|{}dispatcher[0]
+        final fun <get-dispatcher>(): kotlinx.coroutines/CoroutineDispatcher // io.github.nomemmurrakh.documents/DocumentConfig.dispatcher.<get-dispatcher>|<get-dispatcher>(){}[0]
+        final fun <set-dispatcher>(kotlinx.coroutines/CoroutineDispatcher) // io.github.nomemmurrakh.documents/DocumentConfig.dispatcher.<set-dispatcher>|<set-dispatcher>(kotlinx.coroutines.CoroutineDispatcher){}[0]
 }
 
 final class io.github.nomemmurrakh.documents/DocumentDecodingException : kotlin/RuntimeException { // io.github.nomemmurrakh.documents/DocumentDecodingException|null[0]
@@ -43,17 +53,15 @@ final class io.github.nomemmurrakh.documents/DocumentDecodingException : kotlin/
         final fun <get-field>(): kotlin/String? // io.github.nomemmurrakh.documents/DocumentDecodingException.field.<get-field>|<get-field>(){}[0]
 }
 
-final class io.github.nomemmurrakh.documents/DocumentsConfig { // io.github.nomemmurrakh.documents/DocumentsConfig|null[0]
-    final var dispatcher // io.github.nomemmurrakh.documents/DocumentsConfig.dispatcher|{}dispatcher[0]
-        final fun <get-dispatcher>(): kotlinx.coroutines/CoroutineDispatcher // io.github.nomemmurrakh.documents/DocumentsConfig.dispatcher.<get-dispatcher>|<get-dispatcher>(){}[0]
-        final fun <set-dispatcher>(kotlinx.coroutines/CoroutineDispatcher) // io.github.nomemmurrakh.documents/DocumentsConfig.dispatcher.<set-dispatcher>|<set-dispatcher>(kotlinx.coroutines.CoroutineDispatcher){}[0]
-    final var multiProcess // io.github.nomemmurrakh.documents/DocumentsConfig.multiProcess|{}multiProcess[0]
-        final fun <get-multiProcess>(): kotlin/Boolean // io.github.nomemmurrakh.documents/DocumentsConfig.multiProcess.<get-multiProcess>|<get-multiProcess>(){}[0]
-        final fun <set-multiProcess>(kotlin/Boolean) // io.github.nomemmurrakh.documents/DocumentsConfig.multiProcess.<set-multiProcess>|<set-multiProcess>(kotlin.Boolean){}[0]
+final object io.github.nomemmurrakh.documents/Documents { // io.github.nomemmurrakh.documents/Documents|null[0]
+    final fun <#A1: kotlin/Any?> document(kotlin/String, kotlinx.serialization/KSerializer<#A1>, kotlin/Function1<io.github.nomemmurrakh.documents/DocumentConfig, kotlin/Unit> = ...): io.github.nomemmurrakh.documents/Document<#A1> // io.github.nomemmurrakh.documents/Documents.document|document(kotlin.String;kotlinx.serialization.KSerializer<0:0>;kotlin.Function1<io.github.nomemmurrakh.documents.DocumentConfig,kotlin.Unit>){0§<kotlin.Any?>}[0]
+    final fun collection(kotlin/String, kotlin/Function1<io.github.nomemmurrakh.documents/CollectionConfig, kotlin/Unit> = ...): io.github.nomemmurrakh.documents/Collection // io.github.nomemmurrakh.documents/Documents.collection|collection(kotlin.String;kotlin.Function1<io.github.nomemmurrakh.documents.CollectionConfig,kotlin.Unit>){}[0]
+    final fun inMemory(): io.github.nomemmurrakh.documents/Collection // io.github.nomemmurrakh.documents/Documents.inMemory|inMemory(){}[0]
 }
 
 final fun <#A: kotlin/Any?> io.github.nomemmurrakh.documents/fieldDelegate(io.github.nomemmurrakh.documents/Document<*>, kotlin/String, #A, kotlinx.serialization/KSerializer<#A>): kotlin.properties/ReadWriteProperty<kotlin/Any?, #A> // io.github.nomemmurrakh.documents/fieldDelegate|fieldDelegate(io.github.nomemmurrakh.documents.Document<*>;kotlin.String;0:0;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
 final fun <#A: kotlin/Any?> io.github.nomemmurrakh.documents/fieldFlow(io.github.nomemmurrakh.documents/Document<*>, kotlin/String, #A, kotlinx.serialization/KSerializer<#A>): kotlinx.coroutines.flow/Flow<#A> // io.github.nomemmurrakh.documents/fieldFlow|fieldFlow(io.github.nomemmurrakh.documents.Document<*>;kotlin.String;0:0;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
+final inline fun <#A: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Collection).io.github.nomemmurrakh.documents/document(kotlin/String): io.github.nomemmurrakh.documents/Document<#A> // io.github.nomemmurrakh.documents/document|document@io.github.nomemmurrakh.documents.Collection(kotlin.String){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Document<*>).io.github.nomemmurrakh.documents/field(kotlin.reflect/KProperty1<*, #A>, #A): kotlin.properties/ReadWriteProperty<kotlin/Any?, #A> // io.github.nomemmurrakh.documents/field|field@io.github.nomemmurrakh.documents.Document<*>(kotlin.reflect.KProperty1<*,0:0>;0:0){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Document<*>).io.github.nomemmurrakh.documents/fieldFlow(kotlin.reflect/KProperty1<*, #A>, #A): kotlinx.coroutines.flow/Flow<#A> // io.github.nomemmurrakh.documents/fieldFlow|fieldFlow@io.github.nomemmurrakh.documents.Document<*>(kotlin.reflect.KProperty1<*,0:0>;0:0){0§<kotlin.Any?>}[0]
-final inline fun <#A: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Documents).io.github.nomemmurrakh.documents/document(kotlin/String): io.github.nomemmurrakh.documents/Document<#A> // io.github.nomemmurrakh.documents/document|document@io.github.nomemmurrakh.documents.Documents(kotlin.String){0§<kotlin.Any?>}[0]
+final inline fun <#A: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Documents).io.github.nomemmurrakh.documents/document(kotlin/String, noinline kotlin/Function1<io.github.nomemmurrakh.documents/DocumentConfig, kotlin/Unit> = ...): io.github.nomemmurrakh.documents/Document<#A> // io.github.nomemmurrakh.documents/document|document@io.github.nomemmurrakh.documents.Documents(kotlin.String;kotlin.Function1<io.github.nomemmurrakh.documents.DocumentConfig,kotlin.Unit>){0§<kotlin.Any?>}[0]

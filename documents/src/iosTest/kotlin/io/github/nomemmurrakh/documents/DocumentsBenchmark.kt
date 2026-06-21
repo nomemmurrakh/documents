@@ -39,9 +39,9 @@ class DocumentsBenchmark {
     private val cbor = Cbor { ignoreUnknownKeys = true }
     private val profileSerializer = serializer<Profile>()
 
-    private fun store(): Documents {
+    private fun store(): Collection {
         ensureInitialized()
-        return Documents.create("bench-${NSDate().timeIntervalSince1970}")
+        return Documents.collection("bench-${NSDate().timeIntervalSince1970}")
     }
 
     private fun rawMmkv(): MMKV {
