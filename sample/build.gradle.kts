@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.nomemmurrakh.documents.sample"
+    namespace = "com.nomemmurrakh.documents.sample"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "io.github.nomemmurrakh.documents.sample"
+        applicationId = "com.nomemmurrakh.documents.sample"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

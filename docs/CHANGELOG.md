@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to compile; drop the assignment.
 
 ### Changed
+- **Renamed the Kotlin package from `io.github.nomemmurrakh.documents` to
+  `com.nomemmurrakh.documents`** (ADR-0020), matching the Maven groupId the library already
+  publishes under. Android `namespace`/`applicationId` (library and sample) were renamed to match.
+  **Breaking API change** (pre-1.0): every `import io.github.nomemmurrakh.documents.*` call site
+  must become `import com.nomemmurrakh.documents.*`.
 - **Renamed the update path to `update`, and its builder is now explicit-parameter, not
   receiver-style** (ADR-0018). `set(builder: T.() -> T)` is now `update(builder: (T) -> T)`,
   modeled on `kotlinx.coroutines.flow.MutableStateFlow.update { current -> ... }`. **Breaking API

@@ -105,8 +105,8 @@ Call `Documents.document(...)` and go.
 ## Quick start
 
 ```kotlin
-import io.github.nomemmurrakh.documents.Documents
-import io.github.nomemmurrakh.documents.document
+import com.nomemmurrakh.documents.Documents
+import com.nomemmurrakh.documents.document
 import kotlinx.serialization.Serializable
 
 @Serializable

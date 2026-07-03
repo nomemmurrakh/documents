@@ -9,7 +9,7 @@
             tools:node="merge"
             xmlns:tools="http://schemas.android.com/tools">
             <meta-data
-                android:name="io.github.nomemmurrakh.documents.DocumentsInitializer"
+                android:name="com.nomemmurrakh.documents.DocumentsInitializer"
                 android:value="androidx.startup" />
         </provider>
     </application>
