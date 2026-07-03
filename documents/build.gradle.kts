@@ -16,12 +16,11 @@ kotlin {
     explicitApi()
 
     @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
-    abiValidation {
-        enabled.set(true)
-    }
+    abiValidation()
 
     androidLibrary {
         namespace = "com.nomemmurrakh.documents"
+        //noinspection GradleDependency
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
