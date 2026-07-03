@@ -88,10 +88,10 @@ class DocumentsBenchmark {
     }
 
     @Test
-    fun documentsSetUpdateSingleField() {
+    fun documentsUpdateSingleField() {
         val doc = store().document<Profile>("profile")
         doc.set(sample)
-        report("documents.set(update)") { doc.set { copy(age = age + 1) } }
+        report("documents.update") { doc.update { current -> current.copy(age = current.age + 1) } }
     }
 
     @Test

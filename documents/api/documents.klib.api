@@ -12,8 +12,8 @@ abstract interface <#A: kotlin/Any?> io.github.nomemmurrakh.documents/Document {
     abstract fun flow(): kotlinx.coroutines.flow/Flow<#A?> // io.github.nomemmurrakh.documents/Document.flow|flow(){}[0]
     abstract fun get(): #A? // io.github.nomemmurrakh.documents/Document.get|get(){}[0]
     abstract fun set(#A) // io.github.nomemmurrakh.documents/Document.set|set(1:0){}[0]
-    abstract fun set(kotlin/Function1<#A, #A>) // io.github.nomemmurrakh.documents/Document.set|set(kotlin.Function1<1:0,1:0>){}[0]
     abstract fun stateFlow(kotlinx.coroutines/CoroutineScope): kotlinx.coroutines.flow/StateFlow<#A?> // io.github.nomemmurrakh.documents/Document.stateFlow|stateFlow(kotlinx.coroutines.CoroutineScope){}[0]
+    abstract fun update(kotlin/Function1<#A, #A>) // io.github.nomemmurrakh.documents/Document.update|update(kotlin.Function1<1:0,1:0>){}[0]
 }
 
 abstract interface io.github.nomemmurrakh.documents/Collection { // io.github.nomemmurrakh.documents/Collection|null[0]
@@ -50,6 +50,8 @@ final object io.github.nomemmurrakh.documents/Documents { // io.github.nomemmurr
 
 final fun <#A: kotlin/Any?> io.github.nomemmurrakh.documents/fieldDelegate(io.github.nomemmurrakh.documents/Document<*>, kotlin/String, #A, kotlinx.serialization/KSerializer<#A>): kotlin.properties/ReadWriteProperty<kotlin/Any?, #A> // io.github.nomemmurrakh.documents/fieldDelegate|fieldDelegate(io.github.nomemmurrakh.documents.Document<*>;kotlin.String;0:0;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
 final fun <#A: kotlin/Any?> io.github.nomemmurrakh.documents/fieldFlow(io.github.nomemmurrakh.documents/Document<*>, kotlin/String, #A, kotlinx.serialization/KSerializer<#A>): kotlinx.coroutines.flow/Flow<#A> // io.github.nomemmurrakh.documents/fieldFlow|fieldFlow(io.github.nomemmurrakh.documents.Document<*>;kotlin.String;0:0;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
+final fun <#A: kotlin/Any?> io.github.nomemmurrakh.documents/updateField(io.github.nomemmurrakh.documents/Document<*>, kotlin/String, #A, kotlinx.serialization/KSerializer<#A>) // io.github.nomemmurrakh.documents/updateField|updateField(io.github.nomemmurrakh.documents.Document<*>;kotlin.String;0:0;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
+final inline fun <#A: kotlin/Any?, #B: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Document<#A>).io.github.nomemmurrakh.documents/update(kotlin.reflect/KProperty1<#A, #B>, #B) // io.github.nomemmurrakh.documents/update|update@io.github.nomemmurrakh.documents.Document<0:0>(kotlin.reflect.KProperty1<0:0,0:1>;0:1){0§<kotlin.Any?>;1§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Collection).io.github.nomemmurrakh.documents/document(kotlin/String): io.github.nomemmurrakh.documents/Document<#A> // io.github.nomemmurrakh.documents/document|document@io.github.nomemmurrakh.documents.Collection(kotlin.String){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Document<*>).io.github.nomemmurrakh.documents/field(kotlin.reflect/KProperty1<*, #A>, #A): kotlin.properties/ReadWriteProperty<kotlin/Any?, #A> // io.github.nomemmurrakh.documents/field|field@io.github.nomemmurrakh.documents.Document<*>(kotlin.reflect.KProperty1<*,0:0>;0:0){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (io.github.nomemmurrakh.documents/Document<*>).io.github.nomemmurrakh.documents/fieldFlow(kotlin.reflect/KProperty1<*, #A>, #A): kotlinx.coroutines.flow/Flow<#A> // io.github.nomemmurrakh.documents/fieldFlow|fieldFlow@io.github.nomemmurrakh.documents.Document<*>(kotlin.reflect.KProperty1<*,0:0>;0:0){0§<kotlin.Any?>}[0]

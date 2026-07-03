@@ -1,13 +1,17 @@
 # ADR-0008: The UPDATE builder returns a new `T` via `copy()`, not a mutated receiver
 
-**Status:** Accepted (builder shape amended by [ADR-0017](0017-drop-merge-strategy.md))
+**Status:** Accepted (builder shape amended by [ADR-0017](0017-drop-merge-strategy.md); receiver
+style and verb amended by [ADR-0018](0018-update-verb-and-single-field-update.md))
 **Date:** 2026-06-21
 
-> **Note.** The core decision here — the builder is `T.() -> T` and returns a `copy()` rather
-> than mutating the receiver — still holds. The `strategy: MergeStrategy` parameter shown in the
-> signatures below was later removed: the update builder is now just `set(builder: T.() -> T)`,
+> **Note.** The core decision here — the builder returns a new value via `copy()` rather than
+> mutating a receiver — still holds. The `strategy: MergeStrategy` parameter shown in the
+> signatures below was later removed (ADR-0017): the update builder became `set(builder: T.() -> T)`,
 > always running over the current value, and `REPLACE`-via-builder was dropped as redundant with
-> the `set(value)` overload. See ADR-0017.
+> the `set(value)` overload. The method was later renamed to `update`, and the builder's receiver
+> style (`T.() -> T`) became an explicit parameter (`(T) -> T`), matching
+> `MutableStateFlow.update { current -> ... }` — see ADR-0018. The immutability reasoning in this
+> ADR is unchanged by either amendment.
 
 ## Context
 

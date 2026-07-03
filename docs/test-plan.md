@@ -18,13 +18,14 @@
 
 - `get()` on an absent document returns `null` (no throw).
 - A document with some keys missing decodes using field defaults / null.
-- `set(UPDATE) {}` on a missing document starts from defaults and persists only set fields.
+- `update { current -> ... }` on a missing document starts from defaults and persists only set
+  fields.
 
 ## 3. Merge semantics
 
-- `set(REPLACE)` overwrites all fields, clearing any field not present in the new value.
-- `set(UPDATE) {}` changes only touched fields; untouched fields keep persisted values.
-- Multi-field `UPDATE` is atomic from an observer's perspective (one emission, all-or-nothing).
+- `set(value)` overwrites all fields, clearing any field not present in the new value.
+- `update { current -> ... }` changes only touched fields; untouched fields keep persisted values.
+- Multi-field `update { }` is atomic from an observer's perspective (one emission, all-or-nothing).
 
 ## 4. Existence & deletion
 
@@ -46,6 +47,15 @@
 - Reading a never-set delegated field returns its `default`.
 - Writing a delegated field updates only that field's key.
 - A delegated write triggers the document's `flow()` and the field's `fieldFlow()`.
+
+## 6a. Single-field update (`update(prop, value)`)
+
+- `update(prop, value)` writes only that field's decomposed key; it does not touch other field
+  keys of the same document.
+- `update(prop, value)` triggers the document's `flow()`.
+- `update(prop, value)` does not perform a read of the document — a corrupt *other* field's bytes
+  must not prevent a successful `update(prop, value)` write, unlike `update { }` which would fail
+  decoding first.
 
 ## 7. Error handling
 

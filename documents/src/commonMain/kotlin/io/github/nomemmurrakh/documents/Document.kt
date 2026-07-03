@@ -49,9 +49,9 @@ public interface Document<T> {
      * absent. The read-modify-write runs under the document's write lock.
      *
      * Return the new value from the builder, idiomatically via `copy()`:
-     * `set { copy(name = "…") }`.
+     * `update { current -> current.copy(name = "…") }`.
      */
-    public fun set(builder: T.() -> T)
+    public fun update(builder: (T) -> T)
 
     /**
      * Removes the document and all of its field keys. A subsequent [get] returns `null`.
@@ -101,9 +101,9 @@ internal class DocumentImpl<T>(
         changes.emit(key)
     }
 
-    override fun set(builder: T.() -> T): Unit = lock.withLock {
+    override fun update(builder: (T) -> T): Unit = lock.withLock {
         val base = get() ?: defaults()
-        set(base.builder())
+        set(builder(base))
     }
 
     override fun delete(): Unit = lock.withLock {

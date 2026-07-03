@@ -14,7 +14,7 @@ data class GameSave(val level: Int = 1, val coins: Int = 0, val unlockedBoss: Bo
 val save = Documents.document<GameSave>("slot-1")   // one call, you have a document
 
 save.set(GameSave(level = 1, coins = 0))
-save.set { copy(coins = coins + 50, level = level + 1) }
+save.update { current -> current.copy(coins = current.coins + 50, level = current.level + 1) }
 save.flow().collect { hud.render(it) }   // the HUD reacts to every write
 ```
 
@@ -73,9 +73,11 @@ val save = Documents.document<GameSave>("slot-1")
 save.set(GameSave(level = 5, coins = 120))   // write the whole document
 val current: GameSave? = save.get()          // read it back (null if never written)
 
-save.set {                                   // partial update, copy-style
-    copy(coins = coins + 50)                 // bumps coins, leaves level untouched
+save.update { current ->                     // partial update, copy-style
+    current.copy(coins = current.coins + 50) // bumps coins, leaves level untouched
 }
+
+save.update(GameSave::coins, 170)            // or write just that one key directly, no read
 ```
 
 Need a separate file — a wipe-on-logout cache, per-user data, a multi-process or encrypted store?
@@ -120,7 +122,7 @@ data class GameSave(
 val save = Documents.document<GameSave>("slot-1")
 
 save.set(GameSave(level = 3, coins = 75, player = Player("Mara", hp = 80)))
-save.set { copy(coins = coins + 50) }
+save.update { current -> current.copy(coins = current.coins + 50) }
 
 println(save.get())     // GameSave(level=3, coins=125, player=Player(name=Mara, hp=80))
 save.delete()
@@ -165,16 +167,22 @@ A document `key` can't contain the reserved separator `::` — try it and you'll
 ```kotlin
 save.get(): GameSave?                       // current value, or null if absent
 save.set(value)                             // replace the whole document
-save.set { ... }                            // update: build over the current value (or defaults)
+save.update { current -> ... }              // update: build over the current value (or defaults)
+save.update(GameSave::coins, 170)           // single-field update: writes just that key, no read
 save.delete()                               // remove the document and all its field keys
 save.exists(): Boolean                      // true if any field key is stored
 ```
 
-The overloads carry the intent: `set(value)` **replaces** (a whole object is given), `set { }`
-**updates** (the builder runs over the current value). The update builder is a `T.() -> T` —
-return a `copy()`, not a mutated receiver — and starts from the persisted value, or the type's
-defaults when the document is absent, leaving untouched fields exactly as they were. The whole
-read-modify-write runs under the document's write lock, so multi-field updates are **atomic**.
+Three call shapes carry the intent: `set(value)` **replaces** (a whole object is given),
+`update { current -> ... }` **updates** (the builder runs over the current value), and
+`update(prop, value)` **updates a single field directly**, with no read of the rest of the
+document. The whole-object builder takes `current` as an explicit parameter — matching
+`kotlinx.coroutines.flow.MutableStateFlow.update { current -> ... }` — and returns a new value via
+`copy()`, starting from the persisted value, or the type's defaults when the document is absent,
+leaving untouched fields exactly as they were. The whole read-modify-write runs under the
+document's write lock, so multi-field updates are **atomic**. `update(prop, value)` skips that
+read entirely — it's a single `putBytes` to one decomposed key, the same cost as a field-delegate
+write (see "Bind a single field" below).
 
 ### React to changes
 
@@ -212,6 +220,9 @@ A field delegate reads and writes exactly one decomposed key. `fieldFlow` emits 
 (or the default if never set), then a new value each time *that* field changes — a change to a
 sibling field stays quiet.
 
+For a one-off write with no delegate to declare, `save.update(GameSave::coins, 170)` does the same
+single-key write directly — the non-delegate sibling to `field()`.
+
 ### When decoding fails
 
 `get()` (and field reads) throw `DocumentDecodingException` if a stored field can't be decoded.
@@ -232,6 +243,70 @@ your code never has to reach into the serialization layer's error types.
   implementation is platform-specific: MMKV on Android and iOS, plus an in-memory one for tests.
 - **Concurrency** — each document carries its own write lock (atomic builder updates), and
   reactive collection runs on the dispatcher you configure (`Dispatchers.Default` by default).
+
+## Benchmarks
+
+Documents decomposes a value into one `{doc}::{field}` key per field and runs a CBOR encode/decode
+per field. These microbenchmarks measure that overhead against using raw MMKV directly — encoding
+the same 5-field value once with CBOR and calling MMKV's byte API.
+
+The numbers are captured on-device (Documents vs raw MMKV is not a JVM-host benchmark — MMKV is
+mmap-backed and needs a real device/simulator). They are device- and OS-specific and are not run
+in CI. See [ADR-0014](docs/0014-on-device-benchmarks.md).
+
+Sample type:
+
+```kotlin
+@Serializable
+data class Profile(
+    val id: Long,
+    val name: String,
+    val email: String,
+    val age: Int,
+    val active: Boolean,
+)
+```
+
+### iOS
+
+A `kotlin.time.TimeSource`-based timing harness (warmup + measured iterations; median / p95),
+run on the simulator or a device:
+
+```
+./gradlew :documents:iosSimulatorArm64Test
+```
+
+Results print to test output as `BENCH <name> median=<n>ns p95=<n>ns`. Each raw-MMKV baseline does
+the *same underlying work* as the Documents call it's paired with — the same field keys
+(`"profile::id"`, `"profile::age"`, etc.), the same per-field CBOR encode/decode calls, the same
+existence prefix-scan before a read, and the same prefix-scan-then-remove on clear — by hand, with
+no library machinery (no lock, no change bus, no composite encoder). This isolates what the
+abstraction costs on top of doing the identical raw operations manually, rather than comparing
+Documents' per-field decomposition against a single whole-object blob (which would be a different,
+unfair comparison).
+
+| Operation                            | Documents | Raw MMKV (same work, by hand) |
+| ------------------------------------- | --------- | ------------------------------ |
+| `set(value)` (5 field)                | 22.3 µs   | 18.8 µs                        |
+| `get` (5 field)                       | 20.2 µs   | 9.1 µs                         |
+| `update { }` (whole-object, full get+set) | 44.2 µs   | 28.9 µs                        |
+| `update(prop, value)` (1 field)       | 3.9 µs    | 2.3 µs                          |
+| `delete` (incl. set, 5 field)         | 23.5 µs   | 18.8 µs                        |
+| field delegate write (1 field)        | 5.2 µs    | 2.3 µs                         |
+
+_Device: iPhone 17 Pro simulator · iOS 26.1 · median of 20k iterations, CBOR encoding. The
+whole-object `update { }` builder always does a full 5-field get followed by a full 5-field set,
+even when only one field changed — it's the read-modify-write path, and the raw baseline
+replicates that same round trip rather than a hand-optimized single-key patch, so the pairing
+stays honest. `update(prop, value)` is the true single-key write with no read — it comes in even
+below field delegate write since it skips the `ReadWriteProperty` object the delegate allocates.
+`delete` measures set + delete. Absolute timings are simulator (host CPU), not real hardware —
+compare Documents vs raw MMKV within this table, not against other platforms._
+
+### Android
+
+Pending re-run. An instrumented harness already exists (`connectedAndroidDeviceTest`, same
+`TimeSource` shape); the numbers here predate the CBOR switch and need a fresh on-device run.
 
 ## Platform support
 

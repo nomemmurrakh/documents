@@ -9,8 +9,8 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.usePinned
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.cbor.Cbor
-import kotlinx.serialization.serializer
 import platform.Foundation.NSData
 import platform.Foundation.NSDate
 import platform.Foundation.create
@@ -37,7 +37,6 @@ private const val MEASURE = 20_000
 class DocumentsBenchmark {
 
     private val cbor = Cbor { ignoreUnknownKeys = true }
-    private val profileSerializer = serializer<Profile>()
 
     private fun store(): Collection {
         ensureInitialized()
@@ -48,8 +47,6 @@ class DocumentsBenchmark {
         ensureInitialized()
         return requireNotNull(MMKV.mmkvWithID("bench-raw-${NSDate().timeIntervalSince1970}"))
     }
-
-    private fun encode(value: Profile): ByteArray = cbor.encodeToByteArray(profileSerializer, value)
 
     private fun report(name: String, block: () -> Unit) {
         repeat(WARMUP) { block() }
@@ -72,10 +69,11 @@ class DocumentsBenchmark {
     }
 
     @Test
-    fun rawMmkvSet() {
+    fun rawMmkvSetReplace() {
         val mmkv = rawMmkv()
-        report("rawMmkv.set") {
-            mmkv.setData(encode(sample).toNSData(), forKey = "profile")
+        report("rawMmkv.set(REPLACE, 5-field)") {
+            mmkv.rawFieldPrefixScanAndClear("profile::")
+            mmkv.rawWriteAllFields(sample, cbor)
         }
     }
 
@@ -89,18 +87,31 @@ class DocumentsBenchmark {
     @Test
     fun rawMmkvGet() {
         val mmkv = rawMmkv()
-        mmkv.setData(encode(sample).toNSData(), forKey = "profile")
-        report("rawMmkv.get") {
-            val bytes = requireNotNull(mmkv.getDataForKey("profile")).toByteArray()
-            cbor.decodeFromByteArray(profileSerializer, bytes)
+        mmkv.rawWriteAllFields(sample, cbor)
+        report("rawMmkv.get(5-field)") {
+            check(mmkv.rawFieldKeyExists("profile::"))
+            mmkv.rawReadAllFields(cbor)
         }
     }
 
     @Test
-    fun documentsSetUpdateSingleField() {
+    fun documentsUpdateSingleField() {
         val doc = store().document<Profile>("profile")
         doc.set(sample)
-        report("documents.set(update)") { doc.set { copy(age = age + 1) } }
+        report("documents.update") { doc.update { current -> current.copy(age = current.age + 1) } }
+    }
+
+    @Test
+    fun rawMmkvSetUpdateSingleField() {
+        val mmkv = rawMmkv()
+        mmkv.rawWriteAllFields(sample, cbor)
+        report("rawMmkv.set(update via full get+set, 5-field)") {
+            check(mmkv.rawFieldKeyExists("profile::"))
+            val current = mmkv.rawReadAllFields(cbor)
+            val updated = current.copy(age = current.age + 1)
+            mmkv.rawFieldPrefixScanAndClear("profile::")
+            mmkv.rawWriteAllFields(updated, cbor)
+        }
     }
 
     @Test
@@ -113,10 +124,81 @@ class DocumentsBenchmark {
     }
 
     @Test
+    fun rawMmkvDelete() {
+        val mmkv = rawMmkv()
+        report("rawMmkv.delete(5-field)") {
+            mmkv.rawWriteAllFields(sample, cbor)
+            mmkv.rawFieldPrefixScanAndClear("profile::")
+        }
+    }
+
+    @Test
     fun documentsFieldDelegateWrite() {
         var age by store().document<Profile>("profile").field(Profile::age, default = 0)
         report("documents.field write") { age += 1 }
     }
+
+    @Test
+    fun rawMmkvFieldWrite() {
+        val mmkv = rawMmkv()
+        var age = 0
+        report("rawMmkv.field write(1-field)") {
+            age += 1
+            mmkv.setData(cbor.encodeToByteArray(Int.serializer(), age).toNSData(), forKey = "profile::age")
+        }
+    }
+
+    @Test
+    fun documentsUpdateFieldDirect() {
+        val doc = store().document<Profile>("profile")
+        doc.set(sample)
+        var age = 0
+        report("documents.update(prop, value)") {
+            age += 1
+            doc.update(Profile::age, age)
+        }
+    }
+
+    @Test
+    fun rawMmkvUpdateFieldDirect() {
+        val mmkv = rawMmkv()
+        var age = 0
+        report("rawMmkv.update(prop, value)(1-field)") {
+            age += 1
+            mmkv.setData(cbor.encodeToByteArray(Int.serializer(), age).toNSData(), forKey = "profile::age")
+        }
+    }
+}
+
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+private fun MMKV.rawFieldPrefixScanAndClear(prefix: String) {
+    allKeys()
+        .filterIsInstance<String>()
+        .filter { it.startsWith(prefix) }
+        .forEach { removeValueForKey(it) }
+}
+
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+private fun MMKV.rawFieldKeyExists(prefix: String): Boolean =
+    allKeys().filterIsInstance<String>().any { it.startsWith(prefix) }
+
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class, ExperimentalSerializationApi::class)
+private fun MMKV.rawWriteAllFields(profile: Profile, cbor: Cbor) {
+    setData(cbor.encodeToByteArray(Long.serializer(), profile.id).toNSData(), forKey = "profile::id")
+    setData(cbor.encodeToByteArray(String.serializer(), profile.name).toNSData(), forKey = "profile::name")
+    setData(cbor.encodeToByteArray(String.serializer(), profile.email).toNSData(), forKey = "profile::email")
+    setData(cbor.encodeToByteArray(Int.serializer(), profile.age).toNSData(), forKey = "profile::age")
+    setData(cbor.encodeToByteArray(Boolean.serializer(), profile.active).toNSData(), forKey = "profile::active")
+}
+
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class, ExperimentalSerializationApi::class)
+private fun MMKV.rawReadAllFields(cbor: Cbor): Profile {
+    val id = cbor.decodeFromByteArray(Long.serializer(), requireNotNull(getDataForKey("profile::id")).toByteArray())
+    val name = cbor.decodeFromByteArray(String.serializer(), requireNotNull(getDataForKey("profile::name")).toByteArray())
+    val email = cbor.decodeFromByteArray(String.serializer(), requireNotNull(getDataForKey("profile::email")).toByteArray())
+    val age = cbor.decodeFromByteArray(Int.serializer(), requireNotNull(getDataForKey("profile::age")).toByteArray())
+    val active = cbor.decodeFromByteArray(Boolean.serializer(), requireNotNull(getDataForKey("profile::active")).toByteArray())
+    return Profile(id, name, email, age, active)
 }
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)

@@ -12,10 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   roadmap, task breakdown, test plan).
 
 ### Changed
+- **Renamed the update path to `update`, and its builder is now explicit-parameter, not
+  receiver-style** (ADR-0018). `set(builder: T.() -> T)` is now `update(builder: (T) -> T)`,
+  modeled on `kotlinx.coroutines.flow.MutableStateFlow.update { current -> ... }`. **Breaking API
+  change** (pre-1.0): every `doc.set { copy(...) }` call site becomes
+  `doc.update { current -> current.copy(...) }`, with bare property reads inside the builder now
+  requiring an explicit `current.` prefix.
+- **Added `Document<T>.update(prop, value)`** for direct single-field writes (ADR-0018). Reuses
+  the same single-key write path `field()`'s delegate already uses (`DocumentImpl.writeField`) —
+  no read of the rest of the document. `field()`/`fieldFlow()` are unchanged.
 - **Dropped `MergeStrategy`** (ADR-0017). The overloads now carry the intent: `set(value)`
   replaces the whole document, `set { }` updates it (builder over the current value, or defaults
   when absent). **Breaking API change** (pre-1.0): `set(MergeStrategy.UPDATE) { }` becomes
   `set { }`; `set(MergeStrategy.REPLACE) { }` must be rewritten as a whole-object `set(value)`.
+  (Superseded by the `update` rename above.)
 - **Reworked the entry point** (ADR-0016). `Documents` is now an entry-point object, not the
   per-file handle. Open a document on the default store with `Documents.document<T>(key)`, or open
   a named `Collection` (its own MMKV file) with `Documents.collection(name)` then

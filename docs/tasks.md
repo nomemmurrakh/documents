@@ -91,11 +91,19 @@ have tests before moving on. This is also the source for `good first issue` labe
       — Jetpack Microbenchmark was tried and dropped, see ADR-0014. Cases: `set(REPLACE)`, `get`, `set(UPDATE)`, `delete`,
       field-delegate write, each vs raw MMKV. Results table in `README.md` (fill in after running on
       device). No public ABI change (benchmarks are test-source-only); `checkLegacyAbi` unmoved.
-- [ ] **T9.2** *(follow-up)* Refresh the README benchmark tables with post-CBOR numbers
-      ([ADR-0015](0015-cbor-internal-format.md)). The published tables are **stale** — measured under
-      the old JSON encoding. Re-measure on an **otherwise-idle** device (Android: the informal CBOR
-      re-run was on a device in active use; iOS: previous numbers are simulator-only — use real
-      hardware) and replace both tables. Drop the stale-numbers warning notes once done.
+- [x] **T9.2a** iOS: rewrote the raw-MMKV baselines in `DocumentsBenchmark.kt` to do the same
+      per-field work as Documents (same 5 field keys, same per-field CBOR encode/decode, same
+      prefix-scan-then-remove on clear) instead of one whole-object blob — the old raw baseline was
+      not a fair comparison of what the library's abstraction actually costs. Added raw-MMKV
+      counterparts for `set{}` update (full get+set round trip, matching `DocumentImpl.set(builder)`
+      having no single-field shortcut today), `delete`, and field-delegate write, which previously had
+      none. Refreshed README iOS table with the new fair numbers, simulator run
+      (`iosSimulatorArm64Test`), median of 20k iterations. Test-source-only; `checkLegacyAbi` unmoved.
+- [ ] **T9.2b** *(follow-up)* Android: apply the same fair-comparison rewrite to
+      `androidDeviceTest/.../DocumentsBenchmark.kt` (currently still has the old whole-object raw
+      baseline) and refresh the README Android table on an otherwise-idle device — that table is
+      also still stale from the original JSON-era run.
+      the table.
 
 ## Phase 10 — iOS storage (v1.0; ships with Android)
 

@@ -51,6 +51,23 @@ internal fun <V> fieldFlow(
 ): Flow<V> =
     (document as DocumentImpl<*>).fieldValues(fieldName, default, serializer)
 
+/**
+ * Writes [value] directly to the single decomposed key for [prop] on this document, with no
+ * read of the rest of the document. Emits on the document's [Document.flow].
+ */
+public inline fun <T, reified V> Document<T>.update(prop: KProperty1<T, V>, value: V): Unit =
+    updateField(this, prop.name, value, serializer())
+
+@PublishedApi
+internal fun <V> updateField(
+    document: Document<*>,
+    fieldName: String,
+    value: V,
+    serializer: KSerializer<V>,
+) {
+    (document as DocumentImpl<*>).writeField(fieldName, value, serializer)
+}
+
 private class DocumentFieldDelegate<V>(
     private val document: DocumentImpl<*>,
     private val fieldName: String,

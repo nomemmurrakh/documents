@@ -66,11 +66,13 @@ val current: User? = user.get()
 // Write — replaces the whole document
 user.set(User(id = "1", name = "Khuram", email = "k@nomem.dev"))
 
-// Partial update via builder
-user.set {
-    // receiver is the current document; return the new value via copy() (see ADR-0008)
-    copy(name = "Khuram M.")
+// Whole-object update via builder
+user.update { current ->
+    current.copy(name = "Khuram M.")
 }
+
+// Single-field update — writes only that field's key, no read-modify-write
+user.update(User::name, "Khuram M.")
 
 // Existence
 val present: Boolean = user.exists()
@@ -79,14 +81,17 @@ val present: Boolean = user.exists()
 user.delete()
 ```
 
-### Update vs. replace
+### Update vs. replace vs. single-field update
 
-The two overloads carry the intent; there is no strategy enum (see ADR-0017).
+Three call shapes, three intents; no strategy enum (see ADR-0017, extended by ADR-0018).
 
 - `set(value)` **replaces** the whole document — a complete object is supplied.
-- `set { }` **updates** it — the builder runs over the current value (or the type's defaults
-  when the document is absent) and returns the new value, idiomatically via `copy()` (ADR-0008).
-  Untouched fields retain their persisted value.
+- `update { current -> ... }` **updates** it — the builder receives the current value (or the
+  type's defaults when the document is absent) as an explicit parameter and returns the new
+  value, idiomatically via `copy()` (ADR-0008, ADR-0018). Untouched fields retain their persisted
+  value. This is a read-modify-write under the document's write lock.
+- `update(prop, value)` **updates a single field directly** — no read, no decode of the rest of
+  the document; it writes exactly one decomposed key (ADR-0018).
 
 ## 4. Reactivity
 
@@ -120,6 +125,9 @@ class Settings {
 - `fieldFlow(prop, default)` emits the current field value (or `default` if never set) on
   collection, then the new value each time that field changes. A field's declared default is
   not recoverable from a `KProperty` at runtime, so the caller supplies it — see ADR-0010.
+- `update(prop, value)` (§3) is a related but distinct single-field write: it is a plain function
+  call with no `ReadWriteProperty`/`by` involved, for one-off field writes outside a class that
+  owns a `var`-backed delegate.
 
 ## 6. Serialization
 
@@ -171,7 +179,8 @@ Collection
 Document<T>
   .get(): T?
   .set(value: T)                                          // replace whole document
-  .set(builder: T.() -> T)                                // update; receiver = current, returns new (copy)
+  .update(builder: (T) -> T)                              // update; builder takes current, returns new (copy)
+  .update(prop: KProperty1<T, V>, value: V)                // single-field write, no read (extension fn)
   .delete()
   .exists(): Boolean
   .flow(): Flow<T?>

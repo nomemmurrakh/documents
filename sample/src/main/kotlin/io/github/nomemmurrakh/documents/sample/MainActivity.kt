@@ -84,19 +84,21 @@ fun DemoScreen() {
 
                 Button(onClick = {
                     // Update — builder runs over the persisted value, copy-style.
-                    save.set { copy(level = level + 1) }
+                    save.update { current -> current.copy(level = current.level + 1) }
                 }) { Text("Level +1 (update)") }
             }
 
             ButtonRow {
                 Button(onClick = {
                     // Writes only the coins field's key (decomposition).
-                    save.set { copy(coins = coins + 50) }
+                    save.update { current -> current.copy(coins = current.coins + 50) }
                 }) { Text("Coins +50") }
 
                 Button(onClick = {
                     // Touch a nested @Serializable sub-blob.
-                    save.set { copy(player = player.copy(hp = (player.hp - 10).coerceAtLeast(0))) }
+                    save.update { current ->
+                        current.copy(player = current.player.copy(hp = (current.player.hp - 10).coerceAtLeast(0)))
+                    }
                 }) { Text("Player hp -10") }
             }
 
@@ -112,7 +114,7 @@ fun DemoScreen() {
 
             ButtonRow {
                 Button(onClick = {
-                    draftDoc.set { copy(text = "hello", edits = edits + 1) }
+                    draftDoc.update { current -> current.copy(text = "hello", edits = current.edits + 1) }
                 }) { Text("Edit draft") }
 
                 OutlinedButton(onClick = { draftDoc.delete() }) { Text("Clear draft") }
