@@ -80,8 +80,8 @@ save.update { current ->                     // partial update, copy-style
 save.update(GameSave::coins, 170)            // or write just that one key directly, no read
 ```
 
-Need a separate file — a wipe-on-logout cache, per-user data, a multi-process or encrypted store?
-Open a named **collection** and pull documents from it:
+Need a separate file — a wipe-on-logout cache, per-user data, or an encrypted store? Open a named
+**collection** and pull documents from it:
 
 ```kotlin
 val cache = Documents.collection("cache")     // its own MMKV file
@@ -145,11 +145,10 @@ val save2 = Documents.document("slot-1", GameSave.serializer())
 ### Open a collection (a separate file)
 
 Reach for a collection only when a set of documents needs its own MMKV file — a wipe-on-logout
-cache, per-user data, a multi-process store, or an encryption boundary:
+cache, per-user data, or an encryption boundary:
 
 ```kotlin
 val cache = Documents.collection("cache") {
-    multiProcess = false              // share across processes (default: false)
     dispatcher = Dispatchers.Default  // dispatcher for flow/stateFlow collection
 }
 val draft = cache.document<Draft>("draft")
@@ -158,6 +157,11 @@ val draft = cache.document<Draft>("draft")
 val test = Documents.inMemory()
 val doc = test.document<GameSave>("slot-1")
 ```
+
+**Single-process only.** Storage is always opened in MMKV's single-process mode: concurrent access
+to the same store from more than one OS process (a background service, an app extension, etc.) is
+not supported and can corrupt the store. If your app needs to share a store across processes,
+this library isn't the right fit for that store today.
 
 A document `key` can't contain the reserved separator `::` — try it and you'll get an
 `IllegalArgumentException`.

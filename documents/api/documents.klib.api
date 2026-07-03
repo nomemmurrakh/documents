@@ -24,9 +24,6 @@ final class io.github.nomemmurrakh.documents/CollectionConfig { // io.github.nom
     final var dispatcher // io.github.nomemmurrakh.documents/CollectionConfig.dispatcher|{}dispatcher[0]
         final fun <get-dispatcher>(): kotlinx.coroutines/CoroutineDispatcher // io.github.nomemmurrakh.documents/CollectionConfig.dispatcher.<get-dispatcher>|<get-dispatcher>(){}[0]
         final fun <set-dispatcher>(kotlinx.coroutines/CoroutineDispatcher) // io.github.nomemmurrakh.documents/CollectionConfig.dispatcher.<set-dispatcher>|<set-dispatcher>(kotlinx.coroutines.CoroutineDispatcher){}[0]
-    final var multiProcess // io.github.nomemmurrakh.documents/CollectionConfig.multiProcess|{}multiProcess[0]
-        final fun <get-multiProcess>(): kotlin/Boolean // io.github.nomemmurrakh.documents/CollectionConfig.multiProcess.<get-multiProcess>|<get-multiProcess>(){}[0]
-        final fun <set-multiProcess>(kotlin/Boolean) // io.github.nomemmurrakh.documents/CollectionConfig.multiProcess.<set-multiProcess>|<set-multiProcess>(kotlin.Boolean){}[0]
 }
 
 final class io.github.nomemmurrakh.documents/DocumentConfig { // io.github.nomemmurrakh.documents/DocumentConfig|null[0]

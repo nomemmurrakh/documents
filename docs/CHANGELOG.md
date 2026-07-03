@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial project scaffolding and design documentation (PRD, API design, architecture, ADRs,
   roadmap, task breakdown, test plan).
 
+### Removed
+- **`CollectionConfig.multiProcess`** (ADR-0019). Storage is now always opened single-process;
+  concurrent access to the same MMKV store from more than one OS process is unsupported. The flag
+  made storage safe to share across processes but `flow()`/`stateFlow()` never observed writes
+  from other processes reactively — a correctness trap removed rather than documented around.
+  **Breaking API change** (pre-1.0): any `collection(name) { multiProcess = ... }` call site fails
+  to compile; drop the assignment.
+
 ### Changed
 - **Renamed the update path to `update`, and its builder is now explicit-parameter, not
   receiver-style** (ADR-0018). `set(builder: T.() -> T)` is now `update(builder: (T) -> T)`,

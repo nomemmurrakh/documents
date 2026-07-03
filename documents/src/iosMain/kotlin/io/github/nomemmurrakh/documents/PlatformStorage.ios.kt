@@ -1,7 +1,6 @@
 package io.github.nomemmurrakh.documents
 
 import cocoapods.MMKV.MMKV
-import cocoapods.MMKV.MMKVMultiProcess
 import cocoapods.MMKV.MMKVSingleProcess
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -33,9 +32,8 @@ private fun mmkvRootDir(): String {
 }
 
 @OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
-internal actual fun platformStorage(name: String, multiProcess: Boolean): Storage {
-    val mode = if (multiProcess) MMKVMultiProcess else MMKVSingleProcess
-    val mmkv = requireNotNull(MMKV.mmkvWithID(name, mode = mode)) {
+internal actual fun platformStorage(name: String): Storage {
+    val mmkv = requireNotNull(MMKV.mmkvWithID(name, mode = MMKVSingleProcess)) {
         "MMKV.mmkvWithID returned null for '$name'"
     }
     return MmkvStorage(mmkv)
