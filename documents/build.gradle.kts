@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.vanniktech.mavenPublish)
+    alias(libs.plugins.dokka)
 }
 
 group = "com.nomemmurrakh"
@@ -72,6 +73,18 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+        }
+    }
+}
+
+dokka {
+    moduleName.set("Documents")
+
+    dokkaSourceSets.commonMain {
+        sourceLink {
+            localDirectory.set(rootDir)
+            remoteUrl("https://github.com/nomemmurrakh/documents/blob/master")
+            remoteLineSuffix.set("#L")
         }
     }
 }
