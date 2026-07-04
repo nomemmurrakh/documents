@@ -35,7 +35,9 @@ val draft = cache.document<Draft>("draft")
 - Both the default store's config and a collection's config expose `dispatcher` only.
 - MMKV is initialized automatically (Android via `androidx.startup`; iOS via `initializeMMKV`
   with the in-process sandbox path on first use). Consumers never call `MMKV.initialize` or pass a
-  `Context` — see [ADR-0012](adr/0012-automatic-mmkv-initialization.md) (and [ADR-0013](adr/0013-ios-mmkv-via-cocoapods.md) for the iOS CocoaPods binding).
+  `Context` — see [ADR-0012](adr/0012-automatic-mmkv-initialization.md) (and [ADR-0013](adr/0013-ios-mmkv-via-cocoapods.md) for the iOS CocoaPods binding). On Android this depends on a
+  `<provider android:name="androidx.startup.InitializationProvider">` entry merged into the
+  consumer's manifest; it must not be removed or overridden or `MMKV.initialize` never runs.
 - Field values are serialized with a single internal CBOR format (see [ADR-0015](adr/0015-cbor-internal-format.md)); the on-disk
   format is not configurable and is not a public extension point in v1.
 
