@@ -11,7 +11,8 @@ function findHtmlFiles(dir, base = "") {
   const out = [];
   for (const name of fs.readdirSync(dir, { withFileTypes: true })) {
     if (name.name === "partials" || name.name === "assets" || name.name === "data" ||
-        name.name === "scripts" || name.name === "src" || name.name.startsWith(".")) {
+        name.name === "scripts" || name.name === "src" || name.name === "api" ||
+        name.name.startsWith(".")) {
       continue;
     }
     const rel = path.join(base, name.name);

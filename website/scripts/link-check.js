@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const SKIP_DIRS = new Set(["partials", "assets", "data", "scripts", "src"]);
+const SKIP_DIRS = new Set(["partials", "assets", "data", "scripts", "src", "api"]);
 
 function findHtmlFiles(dir, base = "") {
   const out = [];

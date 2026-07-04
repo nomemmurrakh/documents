@@ -5,6 +5,9 @@ captures
 .externalNativeBuild
 .cxx
 
+# Generated API docs (built by CI, not committed)
+website/api
+
 # Kotlin
 .kotlin
 
