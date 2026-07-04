@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    id("org.jetbrains.kotlin.native.cocoapods")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.cocoapods)
     alias(libs.plugins.android.kotlin.multiplatform.library)
-    alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.vanniktech.mavenPublish)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.vanniktech.maven.publish)
     alias(libs.plugins.dokka)
 }
 
@@ -18,11 +18,11 @@ kotlin {
     @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
     abiValidation()
 
-    androidLibrary {
+    android {
         namespace = "com.nomemmurrakh.documents"
         //noinspection GradleDependency
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
-        minSdk = libs.versions.android.minSdk.get().toInt()
+        compileSdk = libs.versions.androidCompileSdk.get().toInt()
+        minSdk = libs.versions.androidMinSdk.get().toInt()
 
         withHostTestBuilder {}.configure {}
         withDeviceTestBuilder {
@@ -35,12 +35,14 @@ kotlin {
             jvmTarget = JvmTarget.JVM_11
         }
     }
+
     iosArm64()
     iosSimulatorArm64()
 
     cocoapods {
         version = project.version.toString()
-        summary = "A document-oriented, typed, reactive Kotlin Multiplatform storage library backed by MMKV."
+        summary =
+            "A document-oriented, typed, reactive Kotlin Multiplatform storage library backed by MMKV."
         homepage = "https://github.com/nomemmurrakh/documents"
         ios.deploymentTarget = "13.0"
         pod("MMKV") {
@@ -57,7 +59,7 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation(libs.mmkv)
+            implementation(libs.tencent.mmkv)
             implementation(libs.androidx.startup)
         }
 
@@ -98,7 +100,8 @@ mavenPublishing {
 
     pom {
         name = "Documents"
-        description = "A document-oriented, typed, reactive Kotlin Multiplatform storage library backed by MMKV."
+        description =
+            "A document-oriented, typed, reactive Kotlin Multiplatform storage library backed by MMKV."
         inceptionYear = "2026"
         url = "https://github.com/nomemmurrakh/documents"
         licenses {
