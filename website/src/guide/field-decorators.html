@@ -1,0 +1,41 @@
+<h1>Field Decorators</h1>
+
+<p><code>FieldDecorator</code> lets you hook into a document's read/write path per field — wrap
+what's written before it reaches storage, unwrap it after it comes back. Use it for per-field
+encryption, compression, checksums, or logging.</p>
+
+<h2>Attaching decorators</h2>
+<p>Decorators can be configured at the collection level, the document level, or both:</p>
+
+<pre><code class="language-kotlin">val notes = Documents.collection("notes") {
+    decorators = listOf(LoggingDecorator())
+}
+
+val note = notes.document&lt;Note&gt;("note-1") {
+    decorators = listOf(ChecksumDecorator())
+}
+// note's effective decorator list, in order: [LoggingDecorator(), ChecksumDecorator()]</code></pre>
+
+<p>Collection-level decorators apply to every document opened in that collection; document-level
+decorators are appended after them for that one document.</p>
+
+<h2>Order matters</h2>
+<p>Writes fold through the decorator list left-to-right; reads fold right-to-left. Whichever
+decorator ran <em>last</em> on write runs <em>first</em> on read, so each wrap is undone in the
+reverse order it was applied:</p>
+
+<pre><code class="language-kotlin">// decorators = listOf(Compress, Encrypt)
+// write:  bytes  -> Compress.wrap   -> Encrypt.wrap   -> stored
+// read:   stored -> Encrypt.unwrap  -> Compress.unwrap -> bytes</code></pre>
+
+<p>This is why compress-then-encrypt — not the reverse — is the order that actually works:
+encrypted bytes are high-entropy and don't meaningfully compress. See
+<a href="/concepts/decorations.html">Decorations</a> for why the library folds the list this way.</p>
+
+<h2>Where else this applies</h2>
+<p>Decorators also apply under field delegates — see
+<a href="/guide/field-delegates.html">Field Delegates</a> — and sit immediately next to where CBOR
+encode/decode happens, see <a href="/concepts/serialization-cbor.html">Serialization (CBOR)</a>
+and <a href="/concepts/field-decomposition.html">Field Decomposition</a>. A decorator's
+<code>unwrap</code> failing surfaces as <code>DocumentDecodingException</code>, the same as any
+other decode failure — see <a href="/guide/error-handling.html">Error Handling</a>.</p>

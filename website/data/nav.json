@@ -7,6 +7,7 @@
     { "title": "Read & Write", "href": "/guide/read-and-write.html" },
     { "title": "Reactivity", "href": "/guide/reactivity.html" },
     { "title": "Field Delegates", "href": "/guide/field-delegates.html" },
+    { "title": "Field Decorators", "href": "/guide/field-decorators.html" },
     { "title": "Collections & Testing", "href": "/guide/collections-and-testing.html" },
     { "title": "Error Handling", "href": "/guide/error-handling.html" }
   ]},
@@ -20,6 +21,7 @@
   { "title": "Concepts", "children": [
     { "title": "Field Decomposition", "href": "/concepts/field-decomposition.html" },
     { "title": "Serialization (CBOR)", "href": "/concepts/serialization-cbor.html" },
+    { "title": "Decorations", "href": "/concepts/decorations.html" },
     { "title": "Storage SPI", "href": "/concepts/storage-spi.html" },
     { "title": "Reactivity Model", "href": "/concepts/reactivity-model.html" },
     { "title": "Concurrency", "href": "/concepts/concurrency.html" }

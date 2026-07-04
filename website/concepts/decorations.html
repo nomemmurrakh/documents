@@ -11,7 +11,7 @@
 <meta property="og:description" content="A document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <meta property="og:image" content="/assets/img/og-image.png">
 <meta property="og:type" content="website">
-<title>Design Decisions · Documents</title>
+<title>Decorations · Documents</title>
 <link rel="stylesheet" href="/assets/css/main.css">
 
 </head>
@@ -97,7 +97,7 @@
         <span class="nav-group__title">Concepts</span>
         <ul class="nav-group__list"><li><a href="/concepts/field-decomposition.html">Field Decomposition</a></li>
 <li><a href="/concepts/serialization-cbor.html">Serialization (CBOR)</a></li>
-<li><a href="/concepts/decorations.html">Decorations</a></li>
+<li><a href="/concepts/decorations.html" aria-current="page">Decorations</a></li>
 <li><a href="/concepts/storage-spi.html">Storage SPI</a></li>
 <li><a href="/concepts/reactivity-model.html">Reactivity Model</a></li>
 <li><a href="/concepts/concurrency.html">Concurrency</a></li></ul>
@@ -107,7 +107,7 @@
 <li><a href="/sample-app.html">Sample App</a></li>
 <li class="nav-group">
         <span class="nav-group__title">Design Decisions</span>
-        <ul class="nav-group__list"><li><a href="/design-decisions/index.html" aria-current="page">Overview</a></li></ul>
+        <ul class="nav-group__list"><li><a href="/design-decisions/index.html">Overview</a></li></ul>
       </li>
 <li><a href="/api/" target="_blank" rel="noopener">API Reference</a></li>
 <li><a href="/contributing.html">Contributing</a></li>
@@ -115,55 +115,63 @@
 </nav>
 
 <main id="main-content" class="main-content" tabindex="-1">
-<h1>Design Decisions</h1>
+<h1>Decorations</h1>
 
-<p>A curated index of the project's Architecture Decision Records — not all twenty reproduced
-here, just a grouped map of why each matters, linking out to the real ADR files.</p>
+<p>A <em>decoration</em> is a bytes-in/bytes-out transform applied to one field's already-CBOR-
+encoded value, sitting between a <code>Document&lt;T&gt;</code> and the storage layer underneath
+it. This is the mechanism behind <code>FieldDecorator</code> — see
+<a href="/guide/field-decorators.html">Field Decorators</a> for how to attach one.</p>
 
-<h2>API shape</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0004-vocabulary.md">ADR-0004</a> — settled on "document" as the user-facing noun.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0007-documents-root-factory.md">ADR-0007</a> — <span class="badge badge--superseded">Superseded by ADR-0016</span> an earlier shape for the root factory.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0008-update-builder-returns-copy.md">ADR-0008</a> — the update builder returns a new value via <code>copy()</code>, not a mutated receiver.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0016-documents-entry-point-and-collections.md">ADR-0016</a> — <code>Documents</code> as the entry point, <code>Collection</code> as the named-file handle.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0017-drop-merge-strategy.md">ADR-0017</a> — dropped the <code>MergeStrategy</code> enum; the call shape carries the intent instead.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0018-update-verb-and-single-field-update.md">ADR-0018</a> — <code>update(builder)</code> as the verb, plus <code>update(prop, value)</code> for single-field writes.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0021-field-decorator-extension-point.md">ADR-0021</a> — <code>FieldDecorator</code>, a bytes-in/bytes-out extension point for per-field encryption, compression, or logging.</li>
-</ul>
+<h2>The interface</h2>
+<pre><code class="language-kotlin"><span class="tok-keyword">interface</span> <span class="tok-type">FieldDecorator</span> {
+    <span class="tok-keyword">fun</span> wrap(fieldName: <span class="tok-type">String</span>, bytes: <span class="tok-type">ByteArray</span>): <span class="tok-type">ByteArray</span>
+    <span class="tok-keyword">fun</span> unwrap(fieldName: <span class="tok-type">String</span>, bytes: <span class="tok-type">ByteArray</span>): <span class="tok-type">ByteArray</span>
+}</code></pre>
 
-<h2>Storage &amp; serialization</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0001-field-decomposition.md">ADR-0001</a> — one MMKV key per top-level field.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0003-serialdescriptor-walking.md">ADR-0003</a> — walk fields via <code>SerialDescriptor</code>, never reflection.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0006-codec-holds-serializer.md">ADR-0006</a> — <span class="badge badge--superseded">Superseded by ADR-0015</span> the earlier per-type <code>Codec</code> design.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0015-cbor-internal-format.md">ADR-0015</a> — a single internal CBOR format, replacing the pluggable <code>Codec</code> abstraction.</li>
-</ul>
+<p><code>wrap</code> runs on every write, immediately before the encoded bytes reach storage.
+<code>unwrap</code> runs on every read, immediately after the bytes come back from storage and
+before they're decoded. <code>fieldName</code> is the field's own name — <code>"title"</code> for
+<code>Note::title</code> — never a raw storage key, so a decorator can single out individual
+fields with <code>if (fieldName == Note::title.name) ...</code>.</p>
 
-<h2>Reactivity &amp; concurrency</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0002-sharedflow-reactivity.md">ADR-0002</a> — an in-memory <code>SharedFlow</code> change bus for reactivity.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0011-synchronous-api-nonsuspend-lock.md">ADR-0011</a> — a synchronous document API with a non-suspending write lock; only <code>Flow</code> collection is dispatcher-governed.</li>
-</ul>
+<h2>Why fold in opposite directions</h2>
+<p>When more than one decorator is configured, writes fold through the list left-to-right and
+reads fold right-to-left:</p>
 
-<h2>Platform &amp; publishing</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0005-publishing-maven-central.md">ADR-0005</a> — publish to Maven Central via macOS CI, not JitPack.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0012-automatic-mmkv-initialization.md">ADR-0012</a> — the library owns MMKV initialization, zero-touch.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0013-ios-mmkv-via-cocoapods.md">ADR-0013</a> — bind MMKV on iOS via the Kotlin CocoaPods plugin.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0019-drop-multiprocess-mode.md">ADR-0019</a> — dropped <code>multiProcess</code> mode; storage is always single-process.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0020-align-package-with-groupid.md">ADR-0020</a> — aligned the Kotlin package with the Maven groupId.</li>
-</ul>
+<pre><code class="language-kotlin">decorators.fold(bytes) { acc, decorator -&gt; decorator.wrap(fieldName, acc) }        <span class="tok-comment">// write</span>
+decorators.foldRight(bytes) { decorator, acc -&gt; decorator.unwrap(fieldName, acc) } <span class="tok-comment">// read</span></code></pre>
 
-<h2>Errors &amp; testing</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0009-document-decoding-exception.md">ADR-0009</a> — decoding failures surface as <code>DocumentDecodingException</code>.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0010-field-delegate-serializer.md">ADR-0010</a> — <code>field(prop, default)</code> resolves its serializer via a reified inline extension.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0014-on-device-benchmarks.md">ADR-0014</a> — on-device, platform-native benchmark harnesses.</li>
-</ul>
+<p>Think of each decorator as a layer wrapped around the bytes. The last decorator to wrap on
+write is the outermost layer, so it has to be the first one peeled off on read — reversing the
+list on the read side is what makes <code>unwrap</code> undo <code>wrap</code> correctly for any
+combination of decorators, not just a single one. This is also why order is a real design choice:
+<code>listOf(Compress, Encrypt)</code> compresses first and encrypts the compressed result, so
+decompression only ever has to run on something that decrypted cleanly — reversing the pair would
+try to compress already-encrypted, high-entropy bytes, which doesn't shrink them.</p>
 
-<p>For the full history behind any of these, see the
-<a href="https://github.com/nomemmurrakh/documents/tree/master/docs/adr" target="_blank" rel="noopener">complete ADR index on GitHub</a>,
-or read <a href="/contributing.html">Contributing</a> for how to propose a new one.</p>
+<h2>A sketch of encryption as a decoration</h2>
+<p>Encryption is a natural fit for this shape: <code>wrap</code> encrypts the plaintext bytes,
+<code>unwrap</code> decrypts them back. A minimal sketch:</p>
+
+<pre><code class="language-kotlin"><span class="tok-keyword">class</span> <span class="tok-type">EncryptingDecorator</span>(<span class="tok-keyword">private</span> <span class="tok-keyword">val</span> cipher: <span class="tok-type">Cipher</span>) : <span class="tok-type">FieldDecorator</span> {
+    <span class="tok-keyword">override</span> <span class="tok-keyword">fun</span> wrap(fieldName: <span class="tok-type">String</span>, bytes: <span class="tok-type">ByteArray</span>): <span class="tok-type">ByteArray</span> =
+        cipher.encrypt(bytes, associatedData = fieldName.encodeToByteArray())
+
+    <span class="tok-keyword">override</span> <span class="tok-keyword">fun</span> unwrap(fieldName: <span class="tok-type">String</span>, bytes: <span class="tok-type">ByteArray</span>): <span class="tok-type">ByteArray</span> =
+        cipher.decrypt(bytes, associatedData = fieldName.encodeToByteArray())
+}</code></pre>
+
+<p>Passing <code>fieldName</code> as associated data binds each ciphertext to its own field, so a
+value copied from one field's storage key into another's fails to decrypt instead of silently
+succeeding with the wrong field's data. See
+<a href="/use-cases/session-and-user-state.html">Session &amp; User State</a> for a complete,
+working AES-GCM implementation.</p>
+
+<h2>Failure contract</h2>
+<p>If <code>unwrap</code> throws <code>SerializationException</code>,
+<code>IllegalStateException</code>, or <code>IllegalArgumentException</code>, it surfaces as
+<code>DocumentDecodingException</code> — see <a href="/guide/error-handling.html">Error
+Handling</a>.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>

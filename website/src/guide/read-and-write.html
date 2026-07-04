@@ -57,3 +57,7 @@ println(note.exists())   // false</code></pre>
 lock keeps a multi-field <code>update</code> atomic, or
 <a href="/guide/field-delegates.html">Field Delegates</a> if you'd rather bind a single field as a
 property than call <code>update(prop, value)</code> directly.</p>
+
+<p>Every one of these operations passes through any configured <code>FieldDecorator</code>s —
+wrapping on the way to storage, unwrapping on the way back — see
+<a href="/guide/field-decorators.html">Field Decorators</a>.</p>

@@ -11,7 +11,7 @@
 <meta property="og:description" content="A document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <meta property="og:image" content="/assets/img/og-image.png">
 <meta property="og:type" content="website">
-<title>Design Decisions · Documents</title>
+<title>Field Decorators · Documents</title>
 <link rel="stylesheet" href="/assets/css/main.css">
 
 </head>
@@ -81,7 +81,7 @@
 <li><a href="/guide/read-and-write.html">Read & Write</a></li>
 <li><a href="/guide/reactivity.html">Reactivity</a></li>
 <li><a href="/guide/field-delegates.html">Field Delegates</a></li>
-<li><a href="/guide/field-decorators.html">Field Decorators</a></li>
+<li><a href="/guide/field-decorators.html" aria-current="page">Field Decorators</a></li>
 <li><a href="/guide/collections-and-testing.html">Collections & Testing</a></li>
 <li><a href="/guide/error-handling.html">Error Handling</a></li></ul>
       </li>
@@ -107,7 +107,7 @@
 <li><a href="/sample-app.html">Sample App</a></li>
 <li class="nav-group">
         <span class="nav-group__title">Design Decisions</span>
-        <ul class="nav-group__list"><li><a href="/design-decisions/index.html" aria-current="page">Overview</a></li></ul>
+        <ul class="nav-group__list"><li><a href="/design-decisions/index.html">Overview</a></li></ul>
       </li>
 <li><a href="/api/" target="_blank" rel="noopener">API Reference</a></li>
 <li><a href="/contributing.html">Contributing</a></li>
@@ -115,55 +115,47 @@
 </nav>
 
 <main id="main-content" class="main-content" tabindex="-1">
-<h1>Design Decisions</h1>
+<h1>Field Decorators</h1>
 
-<p>A curated index of the project's Architecture Decision Records — not all twenty reproduced
-here, just a grouped map of why each matters, linking out to the real ADR files.</p>
+<p><code>FieldDecorator</code> lets you hook into a document's read/write path per field — wrap
+what's written before it reaches storage, unwrap it after it comes back. Use it for per-field
+encryption, compression, checksums, or logging.</p>
 
-<h2>API shape</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0004-vocabulary.md">ADR-0004</a> — settled on "document" as the user-facing noun.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0007-documents-root-factory.md">ADR-0007</a> — <span class="badge badge--superseded">Superseded by ADR-0016</span> an earlier shape for the root factory.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0008-update-builder-returns-copy.md">ADR-0008</a> — the update builder returns a new value via <code>copy()</code>, not a mutated receiver.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0016-documents-entry-point-and-collections.md">ADR-0016</a> — <code>Documents</code> as the entry point, <code>Collection</code> as the named-file handle.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0017-drop-merge-strategy.md">ADR-0017</a> — dropped the <code>MergeStrategy</code> enum; the call shape carries the intent instead.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0018-update-verb-and-single-field-update.md">ADR-0018</a> — <code>update(builder)</code> as the verb, plus <code>update(prop, value)</code> for single-field writes.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0021-field-decorator-extension-point.md">ADR-0021</a> — <code>FieldDecorator</code>, a bytes-in/bytes-out extension point for per-field encryption, compression, or logging.</li>
-</ul>
+<h2>Attaching decorators</h2>
+<p>Decorators can be configured at the collection level, the document level, or both:</p>
 
-<h2>Storage &amp; serialization</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0001-field-decomposition.md">ADR-0001</a> — one MMKV key per top-level field.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0003-serialdescriptor-walking.md">ADR-0003</a> — walk fields via <code>SerialDescriptor</code>, never reflection.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0006-codec-holds-serializer.md">ADR-0006</a> — <span class="badge badge--superseded">Superseded by ADR-0015</span> the earlier per-type <code>Codec</code> design.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0015-cbor-internal-format.md">ADR-0015</a> — a single internal CBOR format, replacing the pluggable <code>Codec</code> abstraction.</li>
-</ul>
+<pre><code class="language-kotlin"><span class="tok-keyword">val</span> notes = <span class="tok-type">Documents</span>.collection(<span class="tok-string">"notes"</span>) {
+    decorators = listOf(<span class="tok-type">LoggingDecorator</span>())
+}
 
-<h2>Reactivity &amp; concurrency</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0002-sharedflow-reactivity.md">ADR-0002</a> — an in-memory <code>SharedFlow</code> change bus for reactivity.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0011-synchronous-api-nonsuspend-lock.md">ADR-0011</a> — a synchronous document API with a non-suspending write lock; only <code>Flow</code> collection is dispatcher-governed.</li>
-</ul>
+<span class="tok-keyword">val</span> note = notes.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note-1"</span>) {
+    decorators = listOf(<span class="tok-type">ChecksumDecorator</span>())
+}
+<span class="tok-comment">// note's effective decorator list, in order: [LoggingDecorator(), ChecksumDecorator()]</span></code></pre>
 
-<h2>Platform &amp; publishing</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0005-publishing-maven-central.md">ADR-0005</a> — publish to Maven Central via macOS CI, not JitPack.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0012-automatic-mmkv-initialization.md">ADR-0012</a> — the library owns MMKV initialization, zero-touch.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0013-ios-mmkv-via-cocoapods.md">ADR-0013</a> — bind MMKV on iOS via the Kotlin CocoaPods plugin.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0019-drop-multiprocess-mode.md">ADR-0019</a> — dropped <code>multiProcess</code> mode; storage is always single-process.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0020-align-package-with-groupid.md">ADR-0020</a> — aligned the Kotlin package with the Maven groupId.</li>
-</ul>
+<p>Collection-level decorators apply to every document opened in that collection; document-level
+decorators are appended after them for that one document.</p>
 
-<h2>Errors &amp; testing</h2>
-<ul>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0009-document-decoding-exception.md">ADR-0009</a> — decoding failures surface as <code>DocumentDecodingException</code>.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0010-field-delegate-serializer.md">ADR-0010</a> — <code>field(prop, default)</code> resolves its serializer via a reified inline extension.</li>
-  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0014-on-device-benchmarks.md">ADR-0014</a> — on-device, platform-native benchmark harnesses.</li>
-</ul>
+<h2>Order matters</h2>
+<p>Writes fold through the decorator list left-to-right; reads fold right-to-left. Whichever
+decorator ran <em>last</em> on write runs <em>first</em> on read, so each wrap is undone in the
+reverse order it was applied:</p>
 
-<p>For the full history behind any of these, see the
-<a href="https://github.com/nomemmurrakh/documents/tree/master/docs/adr" target="_blank" rel="noopener">complete ADR index on GitHub</a>,
-or read <a href="/contributing.html">Contributing</a> for how to propose a new one.</p>
+<pre><code class="language-kotlin"><span class="tok-comment">// decorators = listOf(Compress, Encrypt)</span>
+<span class="tok-comment">// write:  bytes  -&gt; Compress.wrap   -&gt; Encrypt.wrap   -&gt; stored</span>
+<span class="tok-comment">// read:   stored -&gt; Encrypt.unwrap  -&gt; Compress.unwrap -&gt; bytes</span></code></pre>
+
+<p>This is why compress-then-encrypt — not the reverse — is the order that actually works:
+encrypted bytes are high-entropy and don't meaningfully compress. See
+<a href="/concepts/decorations.html">Decorations</a> for why the library folds the list this way.</p>
+
+<h2>Where else this applies</h2>
+<p>Decorators also apply under field delegates — see
+<a href="/guide/field-delegates.html">Field Delegates</a> — and sit immediately next to where CBOR
+encode/decode happens, see <a href="/concepts/serialization-cbor.html">Serialization (CBOR)</a>
+and <a href="/concepts/field-decomposition.html">Field Decomposition</a>. A decorator's
+<code>unwrap</code> failing surfaces as <code>DocumentDecodingException</code>, the same as any
+other decode failure — see <a href="/guide/error-handling.html">Error Handling</a>.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>

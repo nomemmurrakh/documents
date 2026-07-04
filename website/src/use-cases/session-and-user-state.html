@@ -30,6 +30,61 @@ should end with the session:</p>
     session.delete()
 }</code></pre>
 
+<h2>Encrypting the auth token</h2>
+<p><code>authToken</code> is a realistic candidate for field-level encryption — the session
+collection is a natural encryption boundary. <code>FieldDecorator</code> is a complete extension
+point for this; the example below uses
+<a href="https://github.com/whyoleg/cryptography-kotlin">cryptography-kotlin</a>
+(<code>dev.whyoleg.cryptography</code>, v0.6.0), one library choice among several, and a
+dependency your app adds, not one <code>Documents</code> pulls in:</p>
+
+<pre><code class="language-kotlin">// build.gradle.kts (your app/module, not Documents itself)
+implementation("dev.whyoleg.cryptography:cryptography-core:0.6.0")
+implementation("dev.whyoleg.cryptography:cryptography-provider-optimal:0.6.0")</code></pre>
+
+<pre><code class="language-kotlin">import dev.whyoleg.cryptography.CryptographyProvider
+import dev.whyoleg.cryptography.algorithms.AES
+
+class AesGcmFieldDecorator(
+    private val key: AES.GCM.Key,
+) : FieldDecorator {
+
+    private val cipher = key.cipher()
+
+    override fun wrap(fieldName: String, bytes: ByteArray): ByteArray =
+        cipher.encryptBlocking(
+            plaintext = bytes,
+            associatedData = fieldName.encodeToByteArray(),
+        )
+
+    override fun unwrap(fieldName: String, bytes: ByteArray): ByteArray =
+        cipher.decryptBlocking(
+            ciphertext = bytes,
+            associatedData = fieldName.encodeToByteArray(),
+        )
+}
+
+val provider = CryptographyProvider.Default
+val key = provider.get(AES.GCM).keyGenerator().generateKeyBlocking()
+
+val sessionStore = Documents.collection("session") {
+    decorators = listOf(AesGcmFieldDecorator(key))
+}
+val session = sessionStore.document&lt;Session&gt;("current")</code></pre>
+
+<p>Note the <code>Blocking</code> suffix — <code>encryptBlocking</code>/<code>decryptBlocking</code>,
+not the suspending <code>encrypt</code>/<code>decrypt</code> — since <code>FieldDecorator.wrap</code>
+and <code>unwrap</code> are synchronous. <code>encryptBlocking</code> bundles the nonce and auth
+tag into the returned <code>ByteArray</code>, so AES-GCM's authentication catches a tampered or
+corrupted stored value instead of decoding it into garbage, and passing <code>fieldName</code> as
+associated data means a ciphertext copied from one field's key into another's fails to decrypt
+rather than silently succeeding with the wrong data. Key generation, storage, and rotation are
+your app's own responsibility — see the
+<a href="https://github.com/whyoleg/cryptography-kotlin">cryptography-kotlin</a> docs for that
+part, and <a href="/concepts/decorations.html">Decorations</a> /
+<a href="/guide/field-decorators.html">Field Decorators</a> for how the extension point itself
+works.</p>
+
 <p>See <a href="/guide/opening-documents.html">Opening Documents</a> for when to reach for a
 named collection versus the default store, and keep in mind the
 <a href="/index.html#single-process-only">single-process constraint</a> that applies to every

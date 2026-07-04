@@ -40,6 +40,12 @@ new value each time <em>that</em> field changes. A change to a sibling field sta
 <a href="/guide/read-and-write.html">Read &amp; Write</a>. It's the non-delegate sibling to
 <code>field()</code>, for code that doesn't own a <code>var</code>-backed property.</p>
 
+<h2>Decorators apply here too</h2>
+<p><code>field()</code> and <code>fieldFlow()</code> both call through <code>readField</code>/
+<code>writeField</code> internally — the same choke point <code>update(prop, value)</code> uses —
+so any configured <code>FieldDecorator</code>s run here as well. See
+<a href="/guide/field-decorators.html">Field Decorators</a>.</p>
+
 <h2>When to reach for this</h2>
 <p>Field delegates suit settings-style usage — a screen with a handful of independent toggles or
 values, each bound directly to a property, with no need to read or write the rest of the

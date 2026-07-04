@@ -22,3 +22,6 @@ string — which keeps the format small and the encode/decode step cheap, on top
 memory-mapped storage engine. Since each field is encoded independently (see
 <a href="/concepts/field-decomposition.html">Field Decomposition</a>), the format only ever needs
 to represent one field's value at a time, not a whole document.</p>
+
+<p>Any configured <a href="/concepts/decorations.html">decoration</a> runs immediately adjacent to
+this step — wrapping the encoded bytes right after this, unwrapping them right before.</p>

@@ -1,0 +1,57 @@
+<h1>Decorations</h1>
+
+<p>A <em>decoration</em> is a bytes-in/bytes-out transform applied to one field's already-CBOR-
+encoded value, sitting between a <code>Document&lt;T&gt;</code> and the storage layer underneath
+it. This is the mechanism behind <code>FieldDecorator</code> — see
+<a href="/guide/field-decorators.html">Field Decorators</a> for how to attach one.</p>
+
+<h2>The interface</h2>
+<pre><code class="language-kotlin">interface FieldDecorator {
+    fun wrap(fieldName: String, bytes: ByteArray): ByteArray
+    fun unwrap(fieldName: String, bytes: ByteArray): ByteArray
+}</code></pre>
+
+<p><code>wrap</code> runs on every write, immediately before the encoded bytes reach storage.
+<code>unwrap</code> runs on every read, immediately after the bytes come back from storage and
+before they're decoded. <code>fieldName</code> is the field's own name — <code>"title"</code> for
+<code>Note::title</code> — never a raw storage key, so a decorator can single out individual
+fields with <code>if (fieldName == Note::title.name) ...</code>.</p>
+
+<h2>Why fold in opposite directions</h2>
+<p>When more than one decorator is configured, writes fold through the list left-to-right and
+reads fold right-to-left:</p>
+
+<pre><code class="language-kotlin">decorators.fold(bytes) { acc, decorator -&gt; decorator.wrap(fieldName, acc) }        // write
+decorators.foldRight(bytes) { decorator, acc -&gt; decorator.unwrap(fieldName, acc) } // read</code></pre>
+
+<p>Think of each decorator as a layer wrapped around the bytes. The last decorator to wrap on
+write is the outermost layer, so it has to be the first one peeled off on read — reversing the
+list on the read side is what makes <code>unwrap</code> undo <code>wrap</code> correctly for any
+combination of decorators, not just a single one. This is also why order is a real design choice:
+<code>listOf(Compress, Encrypt)</code> compresses first and encrypts the compressed result, so
+decompression only ever has to run on something that decrypted cleanly — reversing the pair would
+try to compress already-encrypted, high-entropy bytes, which doesn't shrink them.</p>
+
+<h2>A sketch of encryption as a decoration</h2>
+<p>Encryption is a natural fit for this shape: <code>wrap</code> encrypts the plaintext bytes,
+<code>unwrap</code> decrypts them back. A minimal sketch:</p>
+
+<pre><code class="language-kotlin">class EncryptingDecorator(private val cipher: Cipher) : FieldDecorator {
+    override fun wrap(fieldName: String, bytes: ByteArray): ByteArray =
+        cipher.encrypt(bytes, associatedData = fieldName.encodeToByteArray())
+
+    override fun unwrap(fieldName: String, bytes: ByteArray): ByteArray =
+        cipher.decrypt(bytes, associatedData = fieldName.encodeToByteArray())
+}</code></pre>
+
+<p>Passing <code>fieldName</code> as associated data binds each ciphertext to its own field, so a
+value copied from one field's storage key into another's fails to decrypt instead of silently
+succeeding with the wrong field's data. See
+<a href="/use-cases/session-and-user-state.html">Session &amp; User State</a> for a complete,
+working AES-GCM implementation.</p>
+
+<h2>Failure contract</h2>
+<p>If <code>unwrap</code> throws <code>SerializationException</code>,
+<code>IllegalStateException</code>, or <code>IllegalArgumentException</code>, it surfaces as
+<code>DocumentDecodingException</code> — see <a href="/guide/error-handling.html">Error
+Handling</a>.</p>

@@ -42,6 +42,36 @@
     "text": "Only flow() and stateFlow() collection runs on a configurable dispatcher — Dispatchers.Default by default, since re-reading and decoding a value on each change bus emission is CPU-bound work (see Reactivity Model ). This dispatcher only affects how a Flow is collected; it has no bearing on the document operations themselves, which remain synchronous regardless of which dispatcher a caller happens to be on."
   },
   {
+    "title": "Decorations",
+    "href": "/concepts/decorations.html",
+    "section": "Decorations",
+    "text": "A decoration is a bytes-in/bytes-out transform applied to one field's already-CBOR- encoded value, sitting between a Document<T> and the storage layer underneath it. This is the mechanism behind FieldDecorator — see Field Decorators for how to attach one."
+  },
+  {
+    "title": "Decorations",
+    "href": "/concepts/decorations.html",
+    "section": "The interface",
+    "text": "interface FieldDecorator { fun wrap(fieldName: String , bytes: ByteArray ): ByteArray fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray } wrap runs on every write, immediately before the encoded bytes reach storage. unwrap runs on every read, immediately after the bytes come back from storage and before they're decoded. fieldName is the field's own name — \"title\" for Note::title — never a raw storage key, so a decorator can single out individual fields with if (fieldName == Note::title.name) ... ."
+  },
+  {
+    "title": "Decorations",
+    "href": "/concepts/decorations.html",
+    "section": "Why fold in opposite directions",
+    "text": "When more than one decorator is configured, writes fold through the list left-to-right and reads fold right-to-left: decorators.fold(bytes) { acc, decorator -> decorator.wrap(fieldName, acc) } // write decorators.foldRight(bytes) { decorator, acc -> decorator.unwrap(fieldName, acc) } // read Think of each decorator as a layer wrapped around the bytes. The last decorator to wrap on write is the outermost layer, so it has to be the first one peeled off on read — reversing the list on the read side is what makes unwrap undo wrap correctly for any combination of decorators, not just a single one. This is also why order is a real design choice: listOf(Compress, Encrypt) compresses first and encrypts the compressed result, so decompression only ever has to run on something that decrypted cleanly — reversing the pair would try to compress already-encrypted, high-entropy bytes, which doesn't shrink them."
+  },
+  {
+    "title": "Decorations",
+    "href": "/concepts/decorations.html",
+    "section": "A sketch of encryption as a decoration",
+    "text": "Encryption is a natural fit for this shape: wrap encrypts the plaintext bytes, unwrap decrypts them back. A minimal sketch: class EncryptingDecorator ( private val cipher: Cipher ) : FieldDecorator { override fun wrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.encrypt(bytes, associatedData = fieldName.encodeToByteArray()) override fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.decrypt(bytes, associatedData = fieldName.encodeToByteArray()) } Passing fieldName as associated data binds each ciphertext to its own field, so a value copied from one field's storage key into another's fails to decrypt instead of silently succeeding with the wrong field's data. See Session & User State for a complete, working AES-GCM implementation."
+  },
+  {
+    "title": "Decorations",
+    "href": "/concepts/decorations.html",
+    "section": "Failure contract",
+    "text": "If unwrap throws SerializationException , IllegalStateException , or IllegalArgumentException , it surfaces as DocumentDecodingException — see Error Handling ."
+  },
+  {
     "title": "Field Decomposition",
     "href": "/concepts/field-decomposition.html",
     "section": "Field Decomposition",
@@ -63,7 +93,7 @@
     "title": "Field Decomposition",
     "href": "/concepts/field-decomposition.html",
     "section": "How fields are discovered",
-    "text": "The library walks each type's fields using kotlinx.serialization's SerialDescriptor — never reflection, which keeps this working identically on Kotlin/Native (iOS) as it does on the JVM. A custom encoder/decoder writes and reads each element to and from its own {doc}::{field} key instead of a single shared output buffer."
+    "text": "The library walks each type's fields using kotlinx.serialization's SerialDescriptor — never reflection, which keeps this working identically on Kotlin/Native (iOS) as it does on the JVM. A custom encoder/decoder writes and reads each element to and from its own {doc}::{field} key instead of a single shared output buffer. Each decomposed field is also where a decoration attaches, if one is configured — one field's key, one wrap/unwrap pair."
   },
   {
     "title": "Reactivity Model",
@@ -99,7 +129,7 @@
     "title": "Serialization (CBOR)",
     "href": "/concepts/serialization-cbor.html",
     "section": "Why CBOR, not JSON",
-    "text": "CBOR encodes directly to compact binary — no text serialization, no parsing back out of a string — which keeps the format small and the encode/decode step cheap, on top of an already memory-mapped storage engine. Since each field is encoded independently (see Field Decomposition ), the format only ever needs to represent one field's value at a time, not a whole document."
+    "text": "CBOR encodes directly to compact binary — no text serialization, no parsing back out of a string — which keeps the format small and the encode/decode step cheap, on top of an already memory-mapped storage engine. Since each field is encoded independently (see Field Decomposition ), the format only ever needs to represent one field's value at a time, not a whole document. Any configured decoration runs immediately adjacent to this step — wrapping the encoded bytes right after this, unwrapping them right before."
   },
   {
     "title": "Storage SPI",
@@ -135,7 +165,7 @@
     "title": "Design Decisions",
     "href": "/design-decisions/index.html",
     "section": "API shape",
-    "text": "ADR-0004 — settled on \"document\" as the user-facing noun. ADR-0007 — Superseded by ADR-0016 an earlier shape for the root factory. ADR-0008 — the update builder returns a new value via copy() , not a mutated receiver. ADR-0016 — Documents as the entry point, Collection as the named-file handle. ADR-0017 — dropped the MergeStrategy enum; the call shape carries the intent instead. ADR-0018 — update(builder) as the verb, plus update(prop, value) for single-field writes."
+    "text": "ADR-0004 — settled on \"document\" as the user-facing noun. ADR-0007 — Superseded by ADR-0016 an earlier shape for the root factory. ADR-0008 — the update builder returns a new value via copy() , not a mutated receiver. ADR-0016 — Documents as the entry point, Collection as the named-file handle. ADR-0017 — dropped the MergeStrategy enum; the call shape carries the intent instead. ADR-0018 — update(builder) as the verb, plus update(prop, value) for single-field writes. ADR-0021 — FieldDecorator , a bytes-in/bytes-out extension point for per-field encryption, compression, or logging."
   },
   {
     "title": "Design Decisions",
@@ -189,13 +219,37 @@
     "title": "Error Handling",
     "href": "/guide/error-handling.html",
     "section": "What it wraps, and why",
-    "text": "Because a document is decomposed into one MMKV key per field (see Field Decomposition ), a single field can go bad — a corrupted byte range, a stale format from an old app version — while every other field in the same document stays perfectly healthy. DocumentDecodingException names the documentKey , the offending field when there is one, and wraps the underlying cause, which might otherwise have surfaced as a bare SerializationException , IllegalStateException , or IllegalArgumentException from the CBOR format. Your code catches one clean library exception type instead of reaching into the serialization layer's own error hierarchy."
+    "text": "Because a document is decomposed into one MMKV key per field (see Field Decomposition ), a single field can go bad — a corrupted byte range, a stale format from an old app version — while every other field in the same document stays perfectly healthy. DocumentDecodingException names the documentKey , the offending field when there is one, and wraps the underlying cause, which might otherwise have surfaced as a bare SerializationException , IllegalStateException , or IllegalArgumentException from the CBOR format. Your code catches one clean library exception type instead of reaching into the serialization layer's own error hierarchy. A configured field decorator that throws one of those same three exception types from unwrap — a wrong key, corrupted ciphertext, a failed integrity check — is wrapped the same way, indistinguishable from any other decode failure."
   },
   {
     "title": "Error Handling",
     "href": "/guide/error-handling.html",
     "section": "What's not an error",
     "text": "A document that was simply never written is not a decoding failure — get() returns null for that case, it never throws just because something is missing. See Read & Write ."
+  },
+  {
+    "title": "Field Decorators",
+    "href": "/guide/field-decorators.html",
+    "section": "Field Decorators",
+    "text": "FieldDecorator lets you hook into a document's read/write path per field — wrap what's written before it reaches storage, unwrap it after it comes back. Use it for per-field encryption, compression, checksums, or logging."
+  },
+  {
+    "title": "Field Decorators",
+    "href": "/guide/field-decorators.html",
+    "section": "Attaching decorators",
+    "text": "Decorators can be configured at the collection level, the document level, or both: val notes = Documents .collection( \"notes\" ) { decorators = listOf( LoggingDecorator ()) } val note = notes.document< Note >( \"note-1\" ) { decorators = listOf( ChecksumDecorator ()) } // note's effective decorator list, in order: [LoggingDecorator(), ChecksumDecorator()] Collection-level decorators apply to every document opened in that collection; document-level decorators are appended after them for that one document."
+  },
+  {
+    "title": "Field Decorators",
+    "href": "/guide/field-decorators.html",
+    "section": "Order matters",
+    "text": "Writes fold through the decorator list left-to-right; reads fold right-to-left. Whichever decorator ran last on write runs first on read, so each wrap is undone in the reverse order it was applied: // decorators = listOf(Compress, Encrypt) // write: bytes -> Compress.wrap -> Encrypt.wrap -> stored // read: stored -> Encrypt.unwrap -> Compress.unwrap -> bytes This is why compress-then-encrypt — not the reverse — is the order that actually works: encrypted bytes are high-entropy and don't meaningfully compress. See Decorations for why the library folds the list this way."
+  },
+  {
+    "title": "Field Decorators",
+    "href": "/guide/field-decorators.html",
+    "section": "Where else this applies",
+    "text": "Decorators also apply under field delegates — see Field Delegates — and sit immediately next to where CBOR encode/decode happens, see Serialization (CBOR) and Field Decomposition . A decorator's unwrap failing surfaces as DocumentDecodingException , the same as any other decode failure — see Error Handling ."
   },
   {
     "title": "Field Delegates",
@@ -226,6 +280,12 @@
     "href": "/guide/field-delegates.html",
     "section": "Not inside a class with a delegate? Use update(prop, value)",
     "text": "For a one-off field write with no delegate to declare, plain note.update(Note::done, true) does the same single-key write directly — see Read & Write . It's the non-delegate sibling to field() , for code that doesn't own a var -backed property."
+  },
+  {
+    "title": "Field Delegates",
+    "href": "/guide/field-delegates.html",
+    "section": "Decorators apply here too",
+    "text": "field() and fieldFlow() both call through readField / writeField internally — the same choke point update(prop, value) uses — so any configured FieldDecorator s run here as well. See Field Decorators ."
   },
   {
     "title": "Field Delegates",
@@ -333,7 +393,7 @@
     "title": "Read & Write",
     "href": "/guide/read-and-write.html",
     "section": "delete() and exists()",
-    "text": "note.delete() // removes the document and all its field keys println(note.exists()) // false See Concurrency for exactly how the per-document write lock keeps a multi-field update atomic, or Field Delegates if you'd rather bind a single field as a property than call update(prop, value) directly."
+    "text": "note.delete() // removes the document and all its field keys println(note.exists()) // false See Concurrency for exactly how the per-document write lock keeps a multi-field update atomic, or Field Delegates if you'd rather bind a single field as a property than call update(prop, value) directly. Every one of these operations passes through any configured FieldDecorator s — wrapping on the way to storage, unwrapping on the way back — see Field Decorators ."
   },
   {
     "title": "Documents",
@@ -357,7 +417,7 @@
     "title": "Documents",
     "href": "/index.html",
     "section": "What it gives you",
-    "text": "A document-oriented public API — get , set , update , delete , exists , flow , stateFlow . Typed persistence of any @Serializable object, with no per-type boilerplate. Reactivity — observers are notified when a document or a single field changes. MMKV-class performance — the abstraction adds CPU/memory cost only, never extra I/O. A fully KMP-compatible public API living in commonMain , with only the storage engine binding per platform. Serialization handled internally via a compact CBOR format — zero schema, zero per-type boilerplate to babysit."
+    "text": "A document-oriented public API — get , set , update , delete , exists , flow , stateFlow . Typed persistence of any @Serializable object, with no per-type boilerplate. Reactivity — observers are notified when a document or a single field changes. MMKV-class performance — the abstraction adds CPU/memory cost only, never extra I/O. A fully KMP-compatible public API living in commonMain , with only the storage engine binding per platform. Serialization handled internally via a compact CBOR format — zero schema, zero per-type boilerplate to babysit. A FieldDecorator hook for per-field encryption, compression, or logging — see Field Decorators ."
   },
   {
     "title": "Documents",
@@ -459,7 +519,13 @@
     "title": "Session & User State",
     "href": "/use-cases/session-and-user-state.html",
     "section": "Session & User State",
-    "text": "The signed-in user, an auth token, the active profile — state that's scoped to a login session rather than the app's durable settings. Keeping it in its own collection keeps it separate from data that should survive a logout. @Serializable data class Session ( val userId: String , val displayName: String , val authToken: String , ) val sessionStore = Documents .collection( \"session\" ) val session = sessionStore.document< Session >( \"current\" ) // sign in session. set ( Session (userId = \"u_42\" , displayName = \"Mara\" , authToken = \"…\" )) // react to sign-in / sign-out anywhere in the UI session.flow().collect { current -> isSignedIn = current != null } Logging out deletes the session document — there is no separate \"clear the whole collection\" call in the public API, so sign-out is an explicit delete() on each document that should end with the session: fun signOut() { session.delete() } See Opening Documents for when to reach for a named collection versus the default store, and keep in mind the single-process constraint that applies to every store, including this one."
+    "text": "The signed-in user, an auth token, the active profile — state that's scoped to a login session rather than the app's durable settings. Keeping it in its own collection keeps it separate from data that should survive a logout. @Serializable data class Session ( val userId: String , val displayName: String , val authToken: String , ) val sessionStore = Documents .collection( \"session\" ) val session = sessionStore.document< Session >( \"current\" ) // sign in session. set ( Session (userId = \"u_42\" , displayName = \"Mara\" , authToken = \"…\" )) // react to sign-in / sign-out anywhere in the UI session.flow().collect { current -> isSignedIn = current != null } Logging out deletes the session document — there is no separate \"clear the whole collection\" call in the public API, so sign-out is an explicit delete() on each document that should end with the session: fun signOut() { session.delete() }"
+  },
+  {
+    "title": "Session & User State",
+    "href": "/use-cases/session-and-user-state.html",
+    "section": "Encrypting the auth token",
+    "text": "authToken is a realistic candidate for field-level encryption — the session collection is a natural encryption boundary. FieldDecorator is a complete extension point for this; the example below uses cryptography-kotlin ( dev.whyoleg.cryptography , v0.6.0), one library choice among several, and a dependency your app adds, not one Documents pulls in: // build.gradle.kts (your app/module, not Documents itself) implementation( \"dev.whyoleg.cryptography:cryptography-core:0.6.0\" ) implementation( \"dev.whyoleg.cryptography:cryptography-provider-optimal:0.6.0\" ) import dev.whyoleg.cryptography. CryptographyProvider import dev.whyoleg.cryptography.algorithms. AES class AesGcmFieldDecorator ( private val key: AES . GCM . Key , ) : FieldDecorator { private val cipher = key.cipher() override fun wrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.encryptBlocking( plaintext = bytes, associatedData = fieldName.encodeToByteArray(), ) override fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.decryptBlocking( ciphertext = bytes, associatedData = fieldName.encodeToByteArray(), ) } val provider = CryptographyProvider . Default val key = provider. get ( AES . GCM ).keyGenerator().generateKeyBlocking() val sessionStore = Documents .collection( \"session\" ) { decorators = listOf( AesGcmFieldDecorator (key)) } val session = sessionStore.document< Session >( \"current\" ) Note the Blocking suffix — encryptBlocking / decryptBlocking , not the suspending encrypt / decrypt — since FieldDecorator.wrap and unwrap are synchronous. encryptBlocking bundles the nonce and auth tag into the returned ByteArray , so AES-GCM's authentication catches a tampered or corrupted stored value instead of decoding it into garbage, and passing fieldName as associated data means a ciphertext copied from one field's key into another's fails to decrypt rather than silently succeeding with the wrong data. Key generation, storage, and rotation are your app's own responsibility — see the cryptography-kotlin docs for that part, and Decorations / Field Decorators for how the extension point itself works. See Opening Documents for when to reach for a named collection versus the default store, and keep in mind the single-process constraint that applies to every store, including this one."
   },
   {
     "title": "Settings & Preferences",

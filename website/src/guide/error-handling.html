@@ -28,6 +28,10 @@ underlying cause, which might otherwise have surfaced as a bare
 <code>SerializationException</code>, <code>IllegalStateException</code>, or
 <code>IllegalArgumentException</code> from the CBOR format. Your code catches one clean library
 exception type instead of reaching into the serialization layer's own error hierarchy.</p>
+<p>A configured <a href="/guide/field-decorators.html">field decorator</a> that throws one of
+those same three exception types from <code>unwrap</code> — a wrong key, corrupted ciphertext, a
+failed integrity check — is wrapped the same way, indistinguishable from any other decode
+failure.</p>
 
 <h2>What's <em>not</em> an error</h2>
 <p>A document that was simply never written is not a decoding failure — <code>get()</code>

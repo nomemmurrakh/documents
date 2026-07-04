@@ -34,3 +34,6 @@ decomposed further in v1; only top-level fields get their own key.</p>
 — never reflection, which keeps this working identically on Kotlin/Native (iOS) as it does on the
 JVM. A custom encoder/decoder writes and reads each element to and from its own
 <code>{doc}::{field}</code> key instead of a single shared output buffer.</p>
+
+<p>Each decomposed field is also where a <a href="/concepts/decorations.html">decoration</a>
+attaches, if one is configured — one field's key, one wrap/unwrap pair.</p>
