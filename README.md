@@ -4,6 +4,8 @@
 
 [![CI](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml/badge.svg?branch=master)](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml)
 [![License](https://img.shields.io/github/license/nomemmurrakh/documents)](LICENSE)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.4.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
+[![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-blue.svg)](https://documents.nomemmurrakh.com/platform-support.html)
 
 A document-oriented Kotlin Multiplatform storage library backed by
 [MMKV](https://github.com/Tencent/MMKV). Define a data class, treat it as a document, and get
@@ -42,7 +44,7 @@ so consumers never lift a finger.
 
 ## Try the sample
 
-A runnable Android sample lives in [`sample/`](sample/) — a tiny Compose settings screen wired to
+A runnable Android sample lives in [`sample/android/`](sample/android/) — a tiny Compose settings screen wired to
 a single `Documents` document, with buttons that flip the theme and bump a launch counter, both
 persisting instantly. Clone, run, tap. 👀
 

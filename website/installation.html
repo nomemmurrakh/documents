@@ -129,6 +129,16 @@ an internal <code>initializeMMKV</code> call using the in-process sandbox path o
 never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>. Add the
 dependency, call <code>Documents.document(...)</code>, and go.</p>
 
+<div class="callout callout--note">
+  <div class="callout__title">Note</div>
+  <p>On Android, this works by merging a <code>&lt;provider
+  android:name="androidx.startup.InitializationProvider"&gt;</code> entry into your app's manifest.
+  You don't need to add anything yourself — just don't remove or override that merged entry (for
+  example with a conflicting <code>tools:node="remove"</code> targeting
+  <code>InitializationProvider</code>), or MMKV won't initialize and document access will fail at
+  runtime.</p>
+</div>
+
 <h2>Supported platforms</h2>
 <p>Android and iOS (<code>arm64</code> and <code>simulatorArm64</code>) today — see
 <a href="/platform-support.html">Platform Support</a> for the full table and how MMKV is bound on

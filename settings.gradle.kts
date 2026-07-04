@@ -18,4 +18,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "documents"
 include(":documents")
-include(":sample")
+include(":sample:android")

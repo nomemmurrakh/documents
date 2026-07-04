@@ -15,7 +15,7 @@ detekt {
     source.setFrom(
         files(
             "documents/src",
-            "sample/src",
+            "sample/android/src",
         ),
     )
 }

@@ -6,11 +6,13 @@ plugins {
 
 android {
     namespace = "com.nomemmurrakh.documents.sample"
+    //noinspection GradleDependency
     compileSdk = libs.versions.androidCompileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "com.nomemmurrakh.documents.sample"
         minSdk = libs.versions.androidMinSdk.get().toInt()
+        //noinspection OldTargetApi
         targetSdk = libs.versions.androidTargetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"

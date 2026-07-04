@@ -267,7 +267,7 @@
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
     "section": "No setup ceremony",
-    "text": "MMKV initializes itself the first time it's needed — on Android via androidx.startup , on iOS via an internal call using the in-process sandbox path. You never call MMKV.initialize() and never pass a Context ; the first Documents.document(...) or Documents.collection(...) call is enough."
+    "text": "MMKV initializes itself the first time it's needed — on Android via androidx.startup , on iOS via an internal call using the in-process sandbox path. You never call MMKV.initialize() and never pass a Context ; the first Documents.document(...) or Documents.collection(...) call is enough. Note On Android, this relies on a <provider android:name=\"androidx.startup.InitializationProvider\"> entry merged into your app's manifest. Leave it alone — removing or overriding that merged entry (for example with a conflicting tools:node=\"remove\" ) stops MMKV from initializing, and document access will fail at runtime."
   },
   {
     "title": "Reactivity",
@@ -387,7 +387,7 @@
     "title": "Installation",
     "href": "/installation.html",
     "section": "No setup ceremony",
-    "text": "The library initializes MMKV for you — on Android via androidx.startup , on iOS via an internal initializeMMKV call using the in-process sandbox path on first use. You never call MMKV.initialize() and never pass a Context . Add the dependency, call Documents.document(...) , and go."
+    "text": "The library initializes MMKV for you — on Android via androidx.startup , on iOS via an internal initializeMMKV call using the in-process sandbox path on first use. You never call MMKV.initialize() and never pass a Context . Add the dependency, call Documents.document(...) , and go. Note On Android, this works by merging a <provider android:name=\"androidx.startup.InitializationProvider\"> entry into your app's manifest. You don't need to add anything yourself — just don't remove or override that merged entry (for example with a conflicting tools:node=\"remove\" targeting InitializationProvider ), or MMKV won't initialize and document access will fail at runtime."
   },
   {
     "title": "Installation",
@@ -423,7 +423,7 @@
     "title": "Sample App",
     "href": "/sample-app.html",
     "section": "Sample App",
-    "text": "A runnable Android sample lives in the repo's sample/ module — a single Compose screen that exercises every claim in the docs, so one run of the app is a real smoke test."
+    "text": "A runnable Android sample lives in the repo's sample/android/ module — a single Compose screen that exercises every claim in the docs, so one run of the app is a real smoke test."
   },
   {
     "title": "Sample App",
@@ -435,7 +435,7 @@
     "title": "Sample App",
     "href": "/sample-app.html",
     "section": "Run it",
-    "text": "Clone the repository and run the sample module (Android only) from Android Studio or via Gradle. See Reactive UI State for the general pattern this sample demonstrates."
+    "text": "Clone the repository and run the sample:android module (Android only) from Android Studio or via Gradle. See Reactive UI State for the general pattern this sample demonstrates."
   },
   {
     "title": "Caches & Drafts",

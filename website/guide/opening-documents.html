@@ -161,6 +161,15 @@ choose ordinary identifiers like <code>"note-1"</code> or <code>"user"</code>.</
 never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>; the first
 <code>Documents.document(...)</code> or <code>Documents.collection(...)</code> call is enough.</p>
 
+<div class="callout callout--note">
+  <div class="callout__title">Note</div>
+  <p>On Android, this relies on a <code>&lt;provider
+  android:name="androidx.startup.InitializationProvider"&gt;</code> entry merged into your app's
+  manifest. Leave it alone — removing or overriding that merged entry (for example with a
+  conflicting <code>tools:node="remove"</code>) stops MMKV from initializing, and document access
+  will fail at runtime.</p>
+</div>
+
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
   <details id="toc-details" open>
