@@ -87,18 +87,19 @@ internal class DocumentImpl<T>(
     private val cbor: Cbor,
     private val changes: ChangeBus = ChangeBus(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val decorators: List<FieldDecorator> = emptyList(),
 ) : Document<T> {
 
     private val lock = reentrantLock()
 
     override fun get(): T? = lock.withLock {
         if (!exists()) return null
-        decodeDocument(key, serializer, storage, cbor)
+        decodeDocument(key, serializer, storage, cbor, decorators)
     }
 
     override fun set(value: T): Unit = lock.withLock {
         clear()
-        encodeDocument(key, value, serializer, storage, cbor)
+        encodeDocument(key, value, serializer, storage, cbor, decorators)
         changes.emit(key)
     }
 
@@ -126,7 +127,8 @@ internal class DocumentImpl<T>(
     internal fun <V> readField(fieldName: String, default: V, serializer: KSerializer<V>): V = lock.withLock {
         val raw = storage.getBytes(Keys.field(key, fieldName)) ?: return default
         try {
-            cbor.decodeFromByteArray(serializer, raw)
+            val unwrapped = applyUnwrap(decorators, fieldName, raw)
+            cbor.decodeFromByteArray(serializer, unwrapped)
         } catch (cause: SerializationException) {
             throw DocumentDecodingException(key, fieldName, cause)
         } catch (cause: IllegalStateException) {
@@ -137,7 +139,8 @@ internal class DocumentImpl<T>(
     }
 
     internal fun <V> writeField(fieldName: String, value: V, serializer: KSerializer<V>): Unit = lock.withLock {
-        storage.putBytes(Keys.field(key, fieldName), cbor.encodeToByteArray(serializer, value))
+        val bytes = applyWrap(decorators, fieldName, cbor.encodeToByteArray(serializer, value))
+        storage.putBytes(Keys.field(key, fieldName), bytes)
         changes.emit(key)
     }
 

@@ -23,8 +23,11 @@ val doc = Documents.document<User>("user") {
 // A separate MMKV file, for a distinct lifecycle/access pattern.
 val cache = Documents.collection("cache") {
     dispatcher = Dispatchers.Default // default
+    decorators = listOf(EncryptingDecorator(key)) // default: emptyList()
 }
-val draft = cache.document<Draft>("draft")
+val draft = cache.document<Draft>("draft") {
+    decorators = listOf(ChecksumDecorator()) // appended after the collection's, if any
+}
 ```
 
 - `document<T>(key)` with no block must work and use sensible defaults; it opens (get-or-open,
@@ -32,7 +35,11 @@ val draft = cache.document<Draft>("draft")
 - `collection(name)` maps `name` to the underlying MMKV instance id; open a collection only for a
   wipe-on-logout cache, per-user scoping, or an encryption boundary. Collections are
   **single-process only** — there is no supported way to share a store across OS processes.
-- Both the default store's config and a collection's config expose `dispatcher` only.
+- Both the default store's config and a collection's config expose `dispatcher` and `decorators`.
+- `decorators` (see §11) defaults to `emptyList()` on both config types. A document's own
+  decorators are appended after its enclosing collection's, so a collection can set a default
+  decorator list while one document adds further decorators of its own — see
+  [ADR-0021](adr/0021-field-decorator-extension-point.md).
 - MMKV is initialized automatically (Android via `androidx.startup`; iOS via `initializeMMKV`
   with the in-process sandbox path on first use). Consumers never call `MMKV.initialize` or pass a
   `Context` — see [ADR-0012](adr/0012-automatic-mmkv-initialization.md) (and [ADR-0013](adr/0013-ios-mmkv-via-cocoapods.md) for the iOS CocoaPods binding). On Android this depends on a
@@ -167,16 +174,48 @@ val doc = store.document<SettingsData>("settings")
 - Using a non-`@Serializable` `T` is a compile-time error where possible, otherwise a
   clear runtime `IllegalArgumentException` at `document()` time.
 
-## 10. Full surface summary
+## 10. `FieldDecorator`
+
+A public, bytes-in/bytes-out extension point for per-field behavior (encryption, compression,
+checksums, logging), sitting between `Document<T>` and the internal CBOR/decomposition layer —
+see [ADR-0021](adr/0021-field-decorator-extension-point.md). Does not implement encryption
+itself, and is not a public extension point on `Storage` or the on-disk format (§6 stands
+unchanged).
+
+```kotlin
+interface FieldDecorator {
+    fun wrap(fieldName: String, bytes: ByteArray): ByteArray
+    fun unwrap(fieldName: String, bytes: ByteArray): ByteArray
+}
+```
+
+- `wrap` runs on write, immediately before a field's already-CBOR-encoded bytes reach storage;
+  `unwrap` runs on read, immediately after those bytes are read from storage and before they are
+  decoded. Both are keyed by `fieldName`, not a storage key or a `KProperty1`.
+- Configured via `decorators` on `DocumentConfig`/`CollectionConfig` (§1); a document's list is
+  the collection's list with its own decorators appended.
+- With more than one decorator, `wrap` applies them in list order; `unwrap` applies them in
+  reverse order, so the one that ran last on write runs first on read. This order is forced by
+  round-trip correctness, not a preference.
+- `unwrap` reports a failure by throwing `SerializationException`, `IllegalStateException`, or
+  `IllegalArgumentException` — it surfaces as `DocumentDecodingException` (§9), the same
+  contract as a corrupt CBOR field.
+- An encryption-flavored decorator should bind its output to `fieldName` as associated data
+  (e.g. `fieldName.encodeToByteArray()`), so a ciphertext moved from one field's key to another
+  no longer decrypts.
+- The default, `emptyList()` on both config types, costs one empty-list check per field
+  operation — no measurable overhead when no decorators are configured.
+
+## 11. Full surface summary
 
 ```
 Documents
-  .document<T>(key, block?): Document<T>      // default store; block configures dispatcher
-  .collection(name, block?): Collection       // named MMKV file; block configures dispatcher
+  .document<T>(key, block?): Document<T>      // default store; block configures dispatcher, decorators
+  .collection(name, block?): Collection       // named MMKV file; block configures dispatcher, decorators
   .inMemory(): Collection
 
 Collection
-  .document<T>(key): Document<T>
+  .document<T>(key, block?): Document<T>      // block configures decorators, appended after the collection's
 
 Document<T>
   .get(): T?
@@ -189,6 +228,10 @@ Document<T>
   .stateFlow(scope): StateFlow<T?>
   .field(prop, default): ReadWriteProperty<Any?, V>
   .fieldFlow(prop, default): Flow<V>
+
+FieldDecorator
+  .wrap(fieldName: String, bytes: ByteArray): ByteArray
+  .unwrap(fieldName: String, bytes: ByteArray): ByteArray
 
 DocumentDecodingException
 ```

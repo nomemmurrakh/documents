@@ -18,6 +18,7 @@ internal class DocumentDecoder(
     private val documentKey: String,
     private val storage: Storage,
     private val cbor: Cbor,
+    private val decorators: List<FieldDecorator> = emptyList(),
 ) : AbstractDecoder() {
 
     override val serializersModule: SerializersModule = cbor.serializersModule
@@ -25,21 +26,33 @@ internal class DocumentDecoder(
     override fun decodeElementIndex(descriptor: SerialDescriptor): Int = CompositeDecoder.DECODE_DONE
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder =
-        FieldCompositeDecoder(documentKey, storage, cbor)
+        FieldCompositeDecoder(documentKey, storage, cbor, decorators)
 
     @Suppress("TooManyFunctions") // implements the full CompositeDecoder SPI
     private class FieldCompositeDecoder(
         private val documentKey: String,
         private val storage: Storage,
         private val cbor: Cbor,
+        private val decorators: List<FieldDecorator>,
     ) : CompositeDecoder {
 
         override val serializersModule: SerializersModule = cbor.serializersModule
 
         private var nextIndex = 0
 
-        private fun bytes(descriptor: SerialDescriptor, index: Int): ByteArray? =
-            storage.getBytes(Keys.field(documentKey, descriptor.getElementName(index)))
+        private fun bytes(descriptor: SerialDescriptor, index: Int): ByteArray? {
+            val fieldName = descriptor.getElementName(index)
+            val raw = storage.getBytes(Keys.field(documentKey, fieldName)) ?: return null
+            return try {
+                applyUnwrap(decorators, fieldName, raw)
+            } catch (cause: SerializationException) {
+                throw DocumentDecodingException(documentKey, fieldName, cause)
+            } catch (cause: IllegalStateException) {
+                throw DocumentDecodingException(documentKey, fieldName, cause)
+            } catch (cause: IllegalArgumentException) {
+                throw DocumentDecodingException(documentKey, fieldName, cause)
+            }
+        }
 
         private fun <T> read(descriptor: SerialDescriptor, index: Int, deserializer: DeserializationStrategy<T>): T {
             val field = descriptor.getElementName(index)

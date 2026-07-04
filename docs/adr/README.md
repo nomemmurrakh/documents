@@ -25,3 +25,4 @@ place with its status updated to point at the ADR that replaced it.
 | [0018](0018-update-verb-and-single-field-update.md) | `set(builder)` becomes `update(builder)`; add `update(prop, value)` for single-field writes | Accepted (amends [0008](0008-update-builder-returns-copy.md)) | 2026-07-02 |
 | [0019](0019-drop-multiprocess-mode.md) | Drop `multiProcess`; storage is always single-process | Accepted | 2026-07-03 |
 | [0020](0020-align-package-with-groupid.md) | Align Kotlin package with Maven groupId (`com.nomemmurrakh`) | Accepted | 2026-07-03 |
+| [0021](0021-field-decorator-extension-point.md) | `FieldDecorator` — a bytes-in/bytes-out extension point for field values | Accepted | 2026-07-04 |

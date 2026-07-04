@@ -18,6 +18,12 @@ public class DocumentConfig internal constructor() {
      * is CPU-bound serialization, so this defaults to [Dispatchers.Default].
      */
     public var dispatcher: CoroutineDispatcher = Dispatchers.Default
+
+    /**
+     * Decorators appended after the ones configured on the enclosing [Collection], if any. See
+     * [FieldDecorator] for the extension point this attaches.
+     */
+    public var decorators: List<FieldDecorator> = emptyList()
 }
 
 /**
@@ -30,6 +36,13 @@ public class CollectionConfig internal constructor() {
      * is CPU-bound serialization, so this defaults to [Dispatchers.Default].
      */
     public var dispatcher: CoroutineDispatcher = Dispatchers.Default
+
+    /**
+     * Decorators applied to every [Document] opened in this collection. A document's own
+     * decorators, if any, are appended after these. See [FieldDecorator] for the extension point
+     * this attaches.
+     */
+    public var decorators: List<FieldDecorator> = emptyList()
 }
 
 /**
@@ -52,11 +65,12 @@ public class CollectionConfig internal constructor() {
 public interface Collection {
 
     /**
-     * Opens the [Document] at [key], using [serializer] for its value type.
+     * Opens the [Document] at [key], using [serializer] for its value type and configured
+     * through [config].
      *
      * @throws IllegalArgumentException when [key] contains the reserved key separator.
      */
-    public fun <T> document(key: String, serializer: KSerializer<T>): Document<T>
+    public fun <T> document(key: String, serializer: KSerializer<T>, config: DocumentConfig.() -> Unit = {}): Document<T>
 }
 
 /**
@@ -80,7 +94,9 @@ public object Documents {
         ensureInitialized()
         val resolved = DocumentConfig().apply(config)
         val storage = platformStorage(DEFAULT_STORE_ID)
-        return CollectionImpl(storage, DefaultCbor, resolved.dispatcher).document(key, serializer)
+        return CollectionImpl(storage, DefaultCbor, resolved.dispatcher, emptyList()).document(key, serializer) {
+            decorators = resolved.decorators
+        }
     }
 
     /**
@@ -89,14 +105,14 @@ public object Documents {
     public fun collection(name: String, config: CollectionConfig.() -> Unit = {}): Collection {
         ensureInitialized()
         val resolved = CollectionConfig().apply(config)
-        return CollectionImpl(platformStorage(name), DefaultCbor, resolved.dispatcher)
+        return CollectionImpl(platformStorage(name), DefaultCbor, resolved.dispatcher, resolved.decorators)
     }
 
     /**
      * Creates a non-persistent, in-memory [Collection]. Intended for tests.
      */
     public fun inMemory(): Collection =
-        CollectionImpl(InMemoryStorage(), DefaultCbor, Dispatchers.Default)
+        CollectionImpl(InMemoryStorage(), DefaultCbor, Dispatchers.Default, emptyList())
 }
 
 /**
@@ -113,12 +129,14 @@ public inline fun <reified T> Documents.document(
 
 /**
  * Opens the [Document] at [key] in this collection, resolving the value type's serializer at the
- * call site.
+ * call site and configured through [config].
  *
  * @throws IllegalArgumentException when [key] contains the reserved key separator.
  */
-public inline fun <reified T> Collection.document(key: String): Document<T> =
-    document(key, serializer())
+public inline fun <reified T> Collection.document(
+    key: String,
+    noinline config: DocumentConfig.() -> Unit = {},
+): Document<T> = document(key, serializer(), config)
 
 internal const val DEFAULT_STORE_ID: String = "documents.default"
 
@@ -134,12 +152,14 @@ internal class CollectionImpl(
     private val storage: Storage,
     private val cbor: Cbor,
     private val dispatcher: CoroutineDispatcher,
+    private val decorators: List<FieldDecorator>,
 ) : Collection {
 
     private val changes = ChangeBus()
 
-    override fun <T> document(key: String, serializer: KSerializer<T>): Document<T> {
+    override fun <T> document(key: String, serializer: KSerializer<T>, config: DocumentConfig.() -> Unit): Document<T> {
         Keys.prefix(key)
-        return DocumentImpl(key, serializer, storage, cbor, changes, dispatcher)
+        val resolved = DocumentConfig().apply(config)
+        return DocumentImpl(key, serializer, storage, cbor, changes, dispatcher, decorators + resolved.decorators)
     }
 }

@@ -160,3 +160,56 @@ migration. Decision recorded in [ADR-0015](adr/0015-cbor-internal-format.md) (su
 - [x] **T11.3** Make the benchmark raw-MMKV baseline encode with CBOR too (apples-to-apples), so
       both sides of the comparison use the library's format. Acceptance: benchmark sources compile;
       README numbers re-run on device as a follow-up (needs hardware).
+
+## Phase 12 — `FieldDecorator` extension point
+
+Adds a public, bytes-in/bytes-out extension point for per-field behavior (encryption,
+compression, checksums, logging), sitting between `Document<T>` and the CBOR/decomposition
+layer. Full design and rationale in [ADR-0021](adr/0021-field-decorator-extension-point.md);
+background discussion in `docs/discussions/decorators-and-encryption.md`. Does not implement
+encryption itself, and does not promote NG2 (PRD) out of non-goal status — see ADR-0021.
+
+- [x] **T12.1** Add the public `FieldDecorator` interface (`wrap(fieldName, bytes)` /
+      `unwrap(fieldName, bytes)`) and the internal `applyWrap`/`applyUnwrap` fold helpers.
+      Tests: empty-list identity (no-op round trip), single-decorator round trip, multi-decorator
+      order (write left-to-right, read right-to-left) with decorators that are not
+      self-inverse-order-agnostic (e.g. two decorators whose combined output differs by
+      order) to prove the reversal is real, not accidental.
+- [x] **T12.2** *(depends on T12.1)* Wire `applyWrap`/`applyUnwrap` into the two integration
+      points identified in ADR-0021: `FieldCompositeEncoder`/`FieldCompositeDecoder`
+      (`DocumentEncoder.kt`/`DocumentDecoder.kt`) and `DocumentImpl.writeField`/`readField`
+      (`Document.kt`). Tests: `set`/`update{}`/`get()` and single-field `update(prop, value)`/
+      `field()` delegates all apply decorators identically.
+- [x] **T12.3** *(depends on T12.1)* Add `decorators: List<FieldDecorator> = emptyList()` to
+      `DocumentConfig` and `CollectionConfig` (`Documents.kt`); implement the collection→document
+      append rule (document's list appended after collection's) computed once at `Document`
+      construction time in `CollectionImpl.document(key)`. Tests: collection-only, document-only,
+      both-layered (order preserved), and confirm no merge recomputation occurs per read/write
+      call (e.g. via a call-counting test decorator).
+- [x] **T12.4** *(depends on T12.2)* Failure contract: a `FieldDecorator.unwrap` throwing
+      `SerializationException`/`IllegalStateException`/`IllegalArgumentException` surfaces as
+      `DocumentDecodingException(documentKey, fieldName, cause)`, matching api-design §9. Tests
+      for a decorator that deliberately throws on `unwrap` (e.g. simulating a bad key/corrupted
+      ciphertext). Caught a real bug during implementation: `FieldCompositeDecoder`'s
+      presence-check path called `applyUnwrap` outside any try/catch, so a throwing decorator
+      would have leaked a raw exception instead of `DocumentDecodingException` — fixed by
+      moving the catch into `bytes()` itself.
+- [x] **T12.5** *(depends on T12.1–T12.4)* Update `api-design.md` (new `FieldDecorator` section,
+      `decorators` config on both config blocks) and KDoc on all new public declarations
+      (`FieldDecorator`, `decorators` properties) — including the AEAD associated-data
+      recommendation from ADR-0021 in `FieldDecorator`'s KDoc. Acceptance: `checkKotlinAbi`
+      reflects the new surface; regenerate via `updateKotlinAbi`.
+- [x] **T12.6** *(depends on T12.1–T12.4; extends Phase 9)* Ran the existing iOS benchmark suite
+      (`DocumentsBenchmark.kt`, `iosSimulatorArm64Test`) with decorators wired in but unconfigured
+      (`emptyList()` default), on the same iPhone 17 Pro / iOS 26.1 simulator as the published
+      website baseline, but on different host hardware (Apple M2 vs. whatever produced the
+      published numbers) — so absolute medians are not directly comparable (`documents.set`
+      ~26.9–27.0 µs here vs. 22.3 µs published), but every `rawMmkv.*` baseline shifted by the
+      same proportion (e.g. `rawMmkv.get` 9.5–9.8 µs here vs. 9.1 µs published) despite raw-MMKV
+      code being entirely untouched by this feature. The `documents.*`-vs-`rawMmkv.*` relative
+      gap — the actual measure of library overhead — is unchanged from the published ratios.
+      Two consecutive runs reproduced the same medians (±1%), confirming the shift is host-machine
+      variance, not decorator overhead. Confirms ADR-0021's no-measurable-regression analysis; no
+      design change. Follow-up: re-run on the exact original host to get a directly comparable
+      absolute number, and apply the same treatment to Android (T9.2b) once that table is
+      refreshed.

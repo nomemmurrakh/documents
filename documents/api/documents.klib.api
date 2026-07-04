@@ -17,16 +17,27 @@ abstract interface <#A: kotlin/Any?> com.nomemmurrakh.documents/Document { // co
 }
 
 abstract interface com.nomemmurrakh.documents/Collection { // com.nomemmurrakh.documents/Collection|null[0]
-    abstract fun <#A1: kotlin/Any?> document(kotlin/String, kotlinx.serialization/KSerializer<#A1>): com.nomemmurrakh.documents/Document<#A1> // com.nomemmurrakh.documents/Collection.document|document(kotlin.String;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
+    abstract fun <#A1: kotlin/Any?> document(kotlin/String, kotlinx.serialization/KSerializer<#A1>, kotlin/Function1<com.nomemmurrakh.documents/DocumentConfig, kotlin/Unit> = ...): com.nomemmurrakh.documents/Document<#A1> // com.nomemmurrakh.documents/Collection.document|document(kotlin.String;kotlinx.serialization.KSerializer<0:0>;kotlin.Function1<com.nomemmurrakh.documents.DocumentConfig,kotlin.Unit>){0§<kotlin.Any?>}[0]
+}
+
+abstract interface com.nomemmurrakh.documents/FieldDecorator { // com.nomemmurrakh.documents/FieldDecorator|null[0]
+    abstract fun unwrap(kotlin/String, kotlin/ByteArray): kotlin/ByteArray // com.nomemmurrakh.documents/FieldDecorator.unwrap|unwrap(kotlin.String;kotlin.ByteArray){}[0]
+    abstract fun wrap(kotlin/String, kotlin/ByteArray): kotlin/ByteArray // com.nomemmurrakh.documents/FieldDecorator.wrap|wrap(kotlin.String;kotlin.ByteArray){}[0]
 }
 
 final class com.nomemmurrakh.documents/CollectionConfig { // com.nomemmurrakh.documents/CollectionConfig|null[0]
+    final var decorators // com.nomemmurrakh.documents/CollectionConfig.decorators|{}decorators[0]
+        final fun <get-decorators>(): kotlin.collections/List<com.nomemmurrakh.documents/FieldDecorator> // com.nomemmurrakh.documents/CollectionConfig.decorators.<get-decorators>|<get-decorators>(){}[0]
+        final fun <set-decorators>(kotlin.collections/List<com.nomemmurrakh.documents/FieldDecorator>) // com.nomemmurrakh.documents/CollectionConfig.decorators.<set-decorators>|<set-decorators>(kotlin.collections.List<com.nomemmurrakh.documents.FieldDecorator>){}[0]
     final var dispatcher // com.nomemmurrakh.documents/CollectionConfig.dispatcher|{}dispatcher[0]
         final fun <get-dispatcher>(): kotlinx.coroutines/CoroutineDispatcher // com.nomemmurrakh.documents/CollectionConfig.dispatcher.<get-dispatcher>|<get-dispatcher>(){}[0]
         final fun <set-dispatcher>(kotlinx.coroutines/CoroutineDispatcher) // com.nomemmurrakh.documents/CollectionConfig.dispatcher.<set-dispatcher>|<set-dispatcher>(kotlinx.coroutines.CoroutineDispatcher){}[0]
 }
 
 final class com.nomemmurrakh.documents/DocumentConfig { // com.nomemmurrakh.documents/DocumentConfig|null[0]
+    final var decorators // com.nomemmurrakh.documents/DocumentConfig.decorators|{}decorators[0]
+        final fun <get-decorators>(): kotlin.collections/List<com.nomemmurrakh.documents/FieldDecorator> // com.nomemmurrakh.documents/DocumentConfig.decorators.<get-decorators>|<get-decorators>(){}[0]
+        final fun <set-decorators>(kotlin.collections/List<com.nomemmurrakh.documents/FieldDecorator>) // com.nomemmurrakh.documents/DocumentConfig.decorators.<set-decorators>|<set-decorators>(kotlin.collections.List<com.nomemmurrakh.documents.FieldDecorator>){}[0]
     final var dispatcher // com.nomemmurrakh.documents/DocumentConfig.dispatcher|{}dispatcher[0]
         final fun <get-dispatcher>(): kotlinx.coroutines/CoroutineDispatcher // com.nomemmurrakh.documents/DocumentConfig.dispatcher.<get-dispatcher>|<get-dispatcher>(){}[0]
         final fun <set-dispatcher>(kotlinx.coroutines/CoroutineDispatcher) // com.nomemmurrakh.documents/DocumentConfig.dispatcher.<set-dispatcher>|<set-dispatcher>(kotlinx.coroutines.CoroutineDispatcher){}[0]
@@ -49,7 +60,7 @@ final fun <#A: kotlin/Any?> com.nomemmurrakh.documents/fieldDelegate(com.nomemmu
 final fun <#A: kotlin/Any?> com.nomemmurrakh.documents/fieldFlow(com.nomemmurrakh.documents/Document<*>, kotlin/String, #A, kotlinx.serialization/KSerializer<#A>): kotlinx.coroutines.flow/Flow<#A> // com.nomemmurrakh.documents/fieldFlow|fieldFlow(com.nomemmurrakh.documents.Document<*>;kotlin.String;0:0;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
 final fun <#A: kotlin/Any?> com.nomemmurrakh.documents/updateField(com.nomemmurrakh.documents/Document<*>, kotlin/String, #A, kotlinx.serialization/KSerializer<#A>) // com.nomemmurrakh.documents/updateField|updateField(com.nomemmurrakh.documents.Document<*>;kotlin.String;0:0;kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
 final inline fun <#A: kotlin/Any?, #B: reified kotlin/Any?> (com.nomemmurrakh.documents/Document<#A>).com.nomemmurrakh.documents/update(kotlin.reflect/KProperty1<#A, #B>, #B) // com.nomemmurrakh.documents/update|update@com.nomemmurrakh.documents.Document<0:0>(kotlin.reflect.KProperty1<0:0,0:1>;0:1){0§<kotlin.Any?>;1§<kotlin.Any?>}[0]
-final inline fun <#A: reified kotlin/Any?> (com.nomemmurrakh.documents/Collection).com.nomemmurrakh.documents/document(kotlin/String): com.nomemmurrakh.documents/Document<#A> // com.nomemmurrakh.documents/document|document@com.nomemmurrakh.documents.Collection(kotlin.String){0§<kotlin.Any?>}[0]
+final inline fun <#A: reified kotlin/Any?> (com.nomemmurrakh.documents/Collection).com.nomemmurrakh.documents/document(kotlin/String, noinline kotlin/Function1<com.nomemmurrakh.documents/DocumentConfig, kotlin/Unit> = ...): com.nomemmurrakh.documents/Document<#A> // com.nomemmurrakh.documents/document|document@com.nomemmurrakh.documents.Collection(kotlin.String;kotlin.Function1<com.nomemmurrakh.documents.DocumentConfig,kotlin.Unit>){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (com.nomemmurrakh.documents/Document<*>).com.nomemmurrakh.documents/field(kotlin.reflect/KProperty1<*, #A>, #A): kotlin.properties/ReadWriteProperty<kotlin/Any?, #A> // com.nomemmurrakh.documents/field|field@com.nomemmurrakh.documents.Document<*>(kotlin.reflect.KProperty1<*,0:0>;0:0){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (com.nomemmurrakh.documents/Document<*>).com.nomemmurrakh.documents/fieldFlow(kotlin.reflect/KProperty1<*, #A>, #A): kotlinx.coroutines.flow/Flow<#A> // com.nomemmurrakh.documents/fieldFlow|fieldFlow@com.nomemmurrakh.documents.Document<*>(kotlin.reflect.KProperty1<*,0:0>;0:0){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (com.nomemmurrakh.documents/Documents).com.nomemmurrakh.documents/document(kotlin/String, noinline kotlin/Function1<com.nomemmurrakh.documents/DocumentConfig, kotlin/Unit> = ...): com.nomemmurrakh.documents/Document<#A> // com.nomemmurrakh.documents/document|document@com.nomemmurrakh.documents.Documents(kotlin.String;kotlin.Function1<com.nomemmurrakh.documents.DocumentConfig,kotlin.Unit>){0§<kotlin.Any?>}[0]

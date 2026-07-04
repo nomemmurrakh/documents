@@ -17,25 +17,29 @@ internal class DocumentEncoder(
     private val documentKey: String,
     private val storage: Storage,
     private val cbor: Cbor,
+    private val decorators: List<FieldDecorator> = emptyList(),
 ) : AbstractEncoder() {
 
     override val serializersModule: SerializersModule = cbor.serializersModule
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder =
-        FieldCompositeEncoder(documentKey, storage, cbor)
+        FieldCompositeEncoder(documentKey, storage, cbor, decorators)
 
     @Suppress("TooManyFunctions") // implements the full CompositeEncoder SPI
     private class FieldCompositeEncoder(
         private val documentKey: String,
         private val storage: Storage,
         private val cbor: Cbor,
+        private val decorators: List<FieldDecorator>,
     ) : CompositeEncoder {
 
         override val serializersModule: SerializersModule = cbor.serializersModule
 
         private fun <T> put(descriptor: SerialDescriptor, index: Int, serializer: SerializationStrategy<T>, value: T) {
-            val key = Keys.field(documentKey, descriptor.getElementName(index))
-            storage.putBytes(key, cbor.encodeToByteArray(serializer, value))
+            val fieldName = descriptor.getElementName(index)
+            val key = Keys.field(documentKey, fieldName)
+            val bytes = applyWrap(decorators, fieldName, cbor.encodeToByteArray(serializer, value))
+            storage.putBytes(key, bytes)
         }
 
         override fun encodeBooleanElement(descriptor: SerialDescriptor, index: Int, value: Boolean): Unit =
@@ -79,9 +83,11 @@ internal class DocumentEncoder(
             serializer: SerializationStrategy<T>,
             value: T?,
         ) {
-            val key = Keys.field(documentKey, descriptor.getElementName(index))
+            val fieldName = descriptor.getElementName(index)
+            val key = Keys.field(documentKey, fieldName)
             val nullableSerializer = (serializer as KSerializer<T>).nullable
-            storage.putBytes(key, cbor.encodeToByteArray(nullableSerializer, value))
+            val bytes = applyWrap(decorators, fieldName, cbor.encodeToByteArray(nullableSerializer, value))
+            storage.putBytes(key, bytes)
         }
 
         override fun encodeInlineElement(descriptor: SerialDescriptor, index: Int): Encoder {

@@ -12,8 +12,9 @@ internal fun <T> encodeDocument(
     serializer: SerializationStrategy<T>,
     storage: Storage,
     cbor: Cbor,
+    decorators: List<FieldDecorator> = emptyList(),
 ) {
-    serializer.serialize(DocumentEncoder(documentKey, storage, cbor), value)
+    serializer.serialize(DocumentEncoder(documentKey, storage, cbor, decorators), value)
 }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -22,4 +23,5 @@ internal fun <T> decodeDocument(
     deserializer: DeserializationStrategy<T>,
     storage: Storage,
     cbor: Cbor,
-): T = deserializer.deserialize(DocumentDecoder(documentKey, storage, cbor))
+    decorators: List<FieldDecorator> = emptyList(),
+): T = deserializer.deserialize(DocumentDecoder(documentKey, storage, cbor, decorators))
