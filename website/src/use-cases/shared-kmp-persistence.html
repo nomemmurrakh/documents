@@ -1,0 +1,32 @@
+<h1>Shared KMP Persistence</h1>
+
+<p>One storage API in <code>commonMain</code> — the same document code runs unchanged on Android
+and iOS, reading and writing through the same MMKV-backed store on both platforms.</p>
+
+<pre><code class="language-kotlin">// commonMain
+@Serializable
+data class OfflineQueueItem(
+    val id: String,
+    val endpoint: String,
+    val payloadJson: String,
+    val attempts: Int = 0,
+)
+
+class PendingRequestQueue {
+    private val doc = Documents.document&lt;List&lt;OfflineQueueItem&gt;&gt;("pending-requests")
+
+    fun enqueue(item: OfflineQueueItem) {
+        doc.update { current -&gt; (current ?: emptyList()) + item }
+    }
+
+    fun observe(): Flow&lt;List&lt;OfflineQueueItem&gt;&gt; =
+        doc.flow().map { it ?: emptyList() }
+}</code></pre>
+
+<p><code>PendingRequestQueue</code> is written once, in <code>commonMain</code>, and used
+identically from an Android <code>ViewModel</code> and an iOS view model — there is no
+platform-specific persistence code to write or keep in sync, because the entire public API and
+its logic live in <code>commonMain</code>. Only the underlying <code>Storage</code> implementation
+differs per platform, and that's an internal detail the library owns. See
+<a href="/concepts/storage-spi.html">Storage SPI</a> and
+<a href="/platform-support.html">Platform Support</a> for how each target is bound.</p>

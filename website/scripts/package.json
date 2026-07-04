@@ -1,0 +1,11 @@
+{
+  "name": "documents-website-build",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build-time tooling for the Documents documentation website. Node stdlib only, no dependencies.",
+  "scripts": {
+    "build": "node build.js",
+    "build:search": "node build-search-index.js",
+    "build:all": "node build.js && node build-search-index.js"
+  }
+}

@@ -1,0 +1,34 @@
+<h1>Reactive UI State</h1>
+
+<p>Anything Compose or SwiftUI should re-render on when it changes — a document's
+<code>flow()</code> gives a UI layer exactly that, with no manual re-reads and no polling.</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class DownloadState(
+    val bytesDownloaded: Long = 0,
+    val totalBytes: Long = 0,
+    val isComplete: Boolean = false,
+)
+
+val download = Documents.document&lt;DownloadState&gt;("active-download")</code></pre>
+
+<p>A background worker updates <code>bytesDownloaded</code> as chunks arrive. It's a single field,
+so <code>update(prop, value)</code> is the natural fit — one direct write to that key:</p>
+
+<pre><code class="language-kotlin">download.update(DownloadState::bytesDownloaded, bytesSoFar)</code></pre>
+
+<p>A Compose screen collects the same document and redraws on every write, with zero coupling to
+where the write came from:</p>
+
+<pre><code class="language-kotlin">@Composable
+fun DownloadProgressBar(download: Document&lt;DownloadState&gt;) {
+    val state by download.flow().collectAsStateWithLifecycle(initialValue = download.get())
+    val progress = state?.let { it.bytesDownloaded.toFloat() / it.totalBytes } ?: 0f
+
+    LinearProgressIndicator(progress = progress)
+}</code></pre>
+
+<p>The real <a href="/sample-app.html">sample app</a> demonstrates this exact pattern end to end —
+a button press writes to a document, and a separate readout re-renders purely by collecting its
+<code>flow()</code>. See <a href="/guide/reactivity.html">Reactivity</a> for the full
+<code>flow()</code>/<code>stateFlow()</code> API.</p>

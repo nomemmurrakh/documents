@@ -1,0 +1,21 @@
+<h1>Contributing</h1>
+
+<p>Issues, pull requests, and stars all help — the project lives at
+<a href="https://github.com/nomemmurrakh/documents" target="_blank" rel="noopener">github.com/nomemmurrakh/documents</a>.
+It's licensed under the
+<a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.</p>
+
+<h2>What a pull request has to pass</h2>
+<p>Every PR runs through CI:</p>
+<ul>
+  <li>A build-and-test matrix — <code>iosSimulatorArm64Test</code> on macOS,
+      <code>testAndroidHostTest</code> on Ubuntu.</li>
+  <li>An ABI check — <code>:documents:checkKotlinAbi</code>, guarding the public binary
+      surface.</li>
+  <li><code>detekt</code>, Kotlin static analysis.</li>
+</ul>
+
+<h2>Where to start</h2>
+<p>Read <a href="/guide/index.html">the Guide</a> and
+<a href="/design-decisions/index.html">Design Decisions</a> to get oriented in how the library is
+built and why, then open an issue or a PR on GitHub.</p>

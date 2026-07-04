@@ -1,0 +1,38 @@
+<h1>Caches &amp; Drafts</h1>
+
+<p>Last-synced payloads, an in-progress form, the "continue where you left off" blob — data that's
+useful but disposable, and should live apart from durable settings so it's easy to reason about
+(and to wipe) on its own.</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class SyncState(
+    val lastSyncedAtEpochMs: Long = 0,
+    val lastSyncedEtag: String = "",
+)
+
+@Serializable
+data class DraftPost(
+    val title: String = "",
+    val body: String = "",
+)
+
+val cache = Documents.collection("cache")
+
+val syncState = cache.document&lt;SyncState&gt;("sync-state")
+val draft = cache.document&lt;DraftPost&gt;("compose-draft")</code></pre>
+
+<p>The compose screen writes to <code>draft</code> on every keystroke debounce, and reads it back
+on next launch to restore exactly where the user left off:</p>
+
+<pre><code class="language-kotlin">draft.update { current -&gt;
+    current.copy(body = textField.value)
+}
+
+// next launch
+val restored = draft.get() ?: DraftPost()</code></pre>
+
+<p>Because <code>cache</code> is its own collection — its own MMKV file — clearing it out (a
+"reset cache" action, or a storage-pressure cleanup) never touches durable data living in the
+default store or another collection. See
+<a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for how collections
+isolate one set of documents from another.</p>

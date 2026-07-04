@@ -1,0 +1,47 @@
+<h1>Field Delegates</h1>
+
+<p>Sometimes you don't want the whole document — just one field, read and written like an
+ordinary Kotlin property. Field delegates give you that without giving up typed, reactive
+storage.</p>
+
+<pre><code class="language-kotlin">class NoteEditor {
+    private val note = Documents.document&lt;Note&gt;("note-1")
+
+    var done: Boolean by note.field(Note::done, default = false)
+    val doneFlow: Flow&lt;Boolean&gt; = note.fieldFlow(Note::done, default = false)
+}</code></pre>
+
+<h2><code>field(prop, default)</code></h2>
+<p><code>field(prop, default)</code> returns a <code>ReadWriteProperty</code> backed by a single
+decomposed key. Reading it returns <code>default</code> if the field was never set; writing it
+updates only that field's key — nothing else about the document is touched — and emits on the
+document's <code>flow()</code> too:</p>
+
+<pre><code class="language-kotlin">editor.done = true   // writes only the "done" field's key
+println(editor.done) // reads only that key</code></pre>
+
+<h2>Why the caller supplies <code>default</code></h2>
+<p>A field's declared default isn't recoverable from a <code>KProperty</code> at runtime, so
+<code>field()</code> and <code>fieldFlow()</code> both take <code>default</code> explicitly —
+there's no reflection-based way to ask "what was the default value of this property in the data
+class?" once you're holding a bare property reference.</p>
+
+<h2><code>fieldFlow(prop, default)</code></h2>
+<p>Emits the current field value (or <code>default</code>, if never set) on collection, then a
+new value each time <em>that</em> field changes. A change to a sibling field stays quiet:</p>
+
+<pre><code class="language-kotlin">note.fieldFlow(Note::done, default = false).collect { done -&gt;
+    checkbox.setChecked(done)
+}</code></pre>
+
+<h2>Not inside a class with a delegate? Use <code>update(prop, value)</code></h2>
+<p>For a one-off field write with no delegate to declare, plain
+<code>note.update(Note::done, true)</code> does the same single-key write directly — see
+<a href="/guide/read-and-write.html">Read &amp; Write</a>. It's the non-delegate sibling to
+<code>field()</code>, for code that doesn't own a <code>var</code>-backed property.</p>
+
+<h2>When to reach for this</h2>
+<p>Field delegates suit settings-style usage — a screen with a handful of independent toggles or
+values, each bound directly to a property, with no need to read or write the rest of the
+document. See <a href="/use-cases/settings-and-preferences.html">Settings &amp; Preferences</a>
+for a fuller example.</p>

@@ -1,0 +1,30 @@
+<h1>Settings &amp; Preferences</h1>
+
+<p>The classic <code>SharedPreferences</code>/<code>NSUserDefaults</code> job — theme, locale,
+feature flags, onboarding state — except typed and observable instead of a flat string-keyed
+bag.</p>
+
+<pre><code class="language-kotlin">@Serializable
+enum class Theme { SYSTEM, LIGHT, DARK }
+
+@Serializable
+data class AppSettings(
+    val theme: Theme = Theme.SYSTEM,
+    val locale: String = "en-US",
+    val hasCompletedOnboarding: Boolean = false,
+)
+
+class SettingsRepository {
+    private val doc = Documents.document&lt;AppSettings&gt;("app-settings")
+
+    var theme: Theme by doc.field(AppSettings::theme, default = Theme.SYSTEM)
+    var locale: String by doc.field(AppSettings::locale, default = "en-US")
+
+    val themeFlow: Flow&lt;Theme&gt; = doc.fieldFlow(AppSettings::theme, default = Theme.SYSTEM)
+}</code></pre>
+
+<p>Each setting reads and writes as an ordinary property — flipping <code>theme</code> touches
+only that field's key, and <code>themeFlow</code> lets a UI layer re-render the instant it
+changes, with no polling and no re-reading the rest of the settings object. See
+<a href="/guide/field-delegates.html">Field Delegates</a> for the full mechanics of
+<code>field()</code> and <code>fieldFlow()</code>.</p>

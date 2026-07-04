@@ -1,0 +1,101 @@
+# Documents docs website
+
+A hand-written, mobile-first, dark-themed static documentation site for the `Documents` Kotlin
+Multiplatform library. No framework, no bundler — a tiny Node build script assembles shared
+partials into static HTML.
+
+## Build
+
+From the repo root:
+
+```sh
+node website/scripts/build.js
+node website/scripts/build-search-index.js
+```
+
+Or from inside `website/scripts/`:
+
+```sh
+npm run build:all
+```
+
+`build.js` reads page sources from `website/src/**/*.html`, assembles each with the shared
+partials in `website/partials/` and the nav tree in `website/data/nav.json`, and writes the final
+static pages into `website/*.html` (mirroring the source structure). `build-search-index.js` walks
+the built pages and writes `website/data/search-index.json`, consumed by the client-side search
+in `assets/js/search.js`.
+
+Both scripts use only Node's standard library — no `npm install` required.
+
+To check for broken internal links after a build:
+
+```sh
+node website/scripts/link-check.js
+```
+
+## Preview locally
+
+```sh
+npx serve website
+```
+
+(Run from the repo root.) Pages are reachable both with and without the `.html` extension (e.g.
+`http://localhost:3000/style-guide` or `http://localhost:3000/style-guide.html`) — `serve`'s
+default clean-URL behavior handles both forms.
+
+Serving via `file://` directly will not work for same-origin `fetch` calls (search index, GitHub
+stats) — always use a static server for full functionality.
+
+## Add a new page
+
+1. Add a source fragment under `website/src/` (a `<h1>` + body HTML — no `<html>`/`<head>`/nav/
+   footer, those are assembled automatically).
+2. Add a corresponding entry to `website/data/nav.json`.
+3. Re-run the build (`build.js` then `build-search-index.js`) and `link-check.js`.
+
+## Regenerate brand assets
+
+If `brand/logo.svg` or `brand/social-preview.svg` change, re-export PNGs first (see
+`brand/README.md`):
+
+```sh
+cd brand
+rsvg-convert -w 512 -h 512 logo.svg -o exports/logo-512.png
+rsvg-convert -w 256 -h 256 logo.svg -o exports/logo-256.png
+rsvg-convert -w 180 -h 180 logo.svg -o exports/apple-touch-icon-180.png
+rsvg-convert -w 32  -h 32  logo.svg -o exports/favicon-32.png
+rsvg-convert -w 16  -h 16  logo.svg -o exports/favicon-16.png
+rsvg-convert -w 1280 -h 640 social-preview.svg -o exports/social-preview.png
+```
+
+Then re-copy into the site and regenerate the multi-resolution favicon (no ImageMagick on this
+machine — `rsvg-convert` + `png-to-ico` instead):
+
+```sh
+cd /path/to/repo
+cp brand/logo.svg website/assets/img/logo.svg
+cp brand/logo.svg website/assets/img/favicon.svg
+cp brand/exports/logo-512.png website/assets/img/logo-512.png
+cp brand/exports/logo-256.png website/assets/img/logo-256.png
+cp brand/exports/apple-touch-icon-180.png website/assets/img/apple-touch-icon.png
+cp brand/exports/social-preview.png website/assets/img/og-image.png
+cp brand/exports/favicon-16.png website/assets/img/favicon-16.png
+cp brand/exports/favicon-32.png website/assets/img/favicon-32.png
+npx --yes png-to-ico brand/exports/favicon-16.png brand/exports/favicon-32.png > website/assets/img/favicon.ico
+```
+
+## Deployment
+
+The site deploys to GitHub Pages via `.github/workflows/pages.yml`: on every push to `master`
+that touches `website/**`, the workflow runs the same build + search-index + link-check steps as
+above, then publishes `website/` as the Pages artifact. Trigger it manually from the Actions tab
+(`workflow_dispatch`) if you need a rebuild without a content change.
+
+`website/CNAME` pins the custom domain (`documents.nomemmurrakh.com`). It ships as part of the
+build output, so GitHub Pages re-applies it on every deploy — no per-deploy dashboard step needed.
+DNS is a one-time setup: a `CNAME` record for the `documents` subdomain pointing at
+`nomemmurrakh.github.io`, plus enabling Pages in the repo settings (Settings → Pages → Source:
+GitHub Actions).
+
+Still deferred: making the header's `/api/` link resolve to a real deployed Dokka build, and
+versioned docs for multiple library releases.

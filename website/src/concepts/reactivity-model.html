@@ -1,0 +1,26 @@
+<h1>Reactivity Model</h1>
+
+<p>MMKV has no native change-listener mechanism, so reactivity is entirely a process-local concern
+built on top of it.</p>
+
+<h2>The change bus</h2>
+<p>A single shared, process-local event stream acts as a change bus: after every committed write
+or delete, the affected document's key is emitted onto that bus. <code>document.flow()</code>
+filters the bus for its own key, then re-reads and emits the fresh value — conflated, so a burst
+of rapid writes doesn't queue up redundant emissions. The initial value is emitted the moment a
+collector starts collecting, before any new write has happened.</p>
+
+<pre><code class="language-kotlin">note.flow().collect { current -&gt;
+    // fires once immediately with the current value, then again after every committed write
+}</code></pre>
+
+<p><code>fieldFlow(prop)</code> filters further, down to one field — a change to a sibling field
+never triggers it. See <a href="/guide/field-delegates.html">Field Delegates</a>.</p>
+
+<h2>Not cross-process</h2>
+<p>Because the change bus is process-local, cross-process change notification is
+<strong>not</strong> provided — a write made by another OS process will not show up as an
+emission on this bus. This is consistent with the
+<a href="/index.html#single-process-only">single-process constraint</a> that applies to storage
+generally: this library's reactivity, like its storage, is designed around a single owning
+process.</p>

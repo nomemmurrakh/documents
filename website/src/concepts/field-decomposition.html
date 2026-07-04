@@ -1,0 +1,36 @@
+<h1>Field Decomposition</h1>
+
+<p>A document is never stored as one serialized blob. Instead, every top-level field becomes its
+own MMKV entry, keyed <code>{document}::{field}</code>:</p>
+
+<pre><code class="language-kotlin">// Note(title = "Pick up milk", body = "2%, not whole", done = false)
+// stored as:
+note-1::title -&gt; bytes
+note-1::body  -&gt; bytes
+note-1::done  -&gt; bytes</code></pre>
+
+<p>The <code>::</code> separator is reserved for this purpose, which is why it's rejected in a
+document <code>key</code> — see <a href="/guide/opening-documents.html">Opening Documents</a>.</p>
+
+<h2>Why decompose</h2>
+<p>Decomposition is what makes field-level reactivity and truly cheap single-field writes
+possible. <code>update(prop, value)</code> and field delegates each touch exactly one decomposed
+key — a single <code>putBytes</code> or <code>getBytes</code> call, independent of how many other
+fields the document has, with no read or re-encoding of anything else.</p>
+<p><code>update { current -> ... }</code> is a different story: it's a full read-modify-write of
+the <em>whole</em> document — every field is decoded on the read side, and every field is
+re-encoded and rewritten on the write side, even when the builder only changes one of them. See
+<a href="/guide/read-and-write.html">Read &amp; Write</a> for when to reach for each shape, and
+<a href="/benchmarks.html">Benchmarks</a> for the measured cost difference between the two.</p>
+
+<h2>Nested types</h2>
+<p>A field whose type is itself a <code>@Serializable</code> object — like a nested
+<code>Player</code> inside a save file, or an address inside a user profile — is stored as a
+single serialized sub-blob under that one field's key, to any nesting depth. Nested types are not
+decomposed further in v1; only top-level fields get their own key.</p>
+
+<h2>How fields are discovered</h2>
+<p>The library walks each type's fields using kotlinx.serialization's <code>SerialDescriptor</code>
+— never reflection, which keeps this working identically on Kotlin/Native (iOS) as it does on the
+JVM. A custom encoder/decoder writes and reads each element to and from its own
+<code>{doc}::{field}</code> key instead of a single shared output buffer.</p>

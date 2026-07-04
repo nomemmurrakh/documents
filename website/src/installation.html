@@ -1,0 +1,26 @@
+<h1>Installation</h1>
+
+<p><code>com.nomemmurrakh:documents</code> is published on Maven Central. Add it to a KMP module's
+<code>commonMain</code>, or a plain Android module:</p>
+
+<pre><code class="language-kotlin">// build.gradle.kts
+dependencies {
+    implementation("com.nomemmurrakh:documents:0.1.0")
+}</code></pre>
+
+<h2>No setup ceremony</h2>
+<p>The library initializes MMKV for you — on Android via <code>androidx.startup</code>, on iOS via
+an internal <code>initializeMMKV</code> call using the in-process sandbox path on first use. You
+never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>. Add the
+dependency, call <code>Documents.document(...)</code>, and go.</p>
+
+<h2>Supported platforms</h2>
+<p>Android and iOS (<code>arm64</code> and <code>simulatorArm64</code>) today — see
+<a href="/platform-support.html">Platform Support</a> for the full table and how MMKV is bound on
+each target.</p>
+
+<h2>Where it's published</h2>
+<p>Maven Central, not JitPack — the standard Gradle dependency declaration above is all a consumer
+needs, no extra repository entries.</p>
+
+<p><a href="/quick-start.html">Continue to Quick Start →</a></p>

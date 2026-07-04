@@ -1,0 +1,22 @@
+<h1>Collections &amp; Testing</h1>
+
+<h2>Collections</h2>
+<p>A <code>Collection</code> is a named, separate MMKV file — reach for one when a set of
+documents needs its own lifecycle or access boundary: a wipe-on-logout cache, per-user scoping,
+or an encryption boundary. See <a href="/guide/opening-documents.html">Opening Documents</a> for
+how to open one.</p>
+
+<h2>Testing with an in-memory backend</h2>
+<p><code>Documents.inMemory()</code> returns a <code>Collection</code> with identical semantics,
+backed by an in-memory map instead of a real MMKV file — no device, no simulator, no disk state
+to clean up between tests:</p>
+
+<pre><code class="language-kotlin">val store = Documents.inMemory()
+val note = store.document&lt;Note&gt;("note-1")
+
+note.set(Note(title = "Test note"))
+assertEquals("Test note", note.get()?.title)</code></pre>
+
+<p>Every store here — the default store, every named collection, and the in-memory backend alike
+— is single-process only; see <a href="/index.html#single-process-only">Overview</a> for the
+constraint that applies across all of them.</p>

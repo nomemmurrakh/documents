@@ -1,0 +1,20 @@
+<h1>Platform Support</h1>
+
+<table>
+  <thead>
+    <tr><th>Platform</th><th>Status</th><th>Storage engine</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Android</td><td>✅</td><td>MMKV</td></tr>
+    <tr><td>iOS — <code>arm64</code> + <code>simulatorArm64</code></td><td>✅</td><td>MMKV (via CocoaPods)</td></tr>
+  </tbody>
+</table>
+
+<p>One public API across both platforms — it all lives in <code>commonMain</code>. MMKV is bound
+on Apple targets through the Kotlin CocoaPods plugin, and the library owns MMKV initialization on
+both platforms, so consumers never lift a finger. There is no JVM/desktop or wasm target in this
+release.</p>
+
+<p>See <a href="/use-cases/shared-kmp-persistence.html">Shared KMP Persistence</a> for what this
+means in practice, and <a href="/concepts/storage-spi.html">Storage SPI</a> for how the platform-
+specific binding is isolated behind a minimal internal interface.</p>

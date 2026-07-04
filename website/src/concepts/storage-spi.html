@@ -1,0 +1,33 @@
+<h1>Storage SPI</h1>
+
+<p>Underneath the public API sits a minimal interface that makes the storage engine swappable —
+this is how it's built, not something a consumer of the library implements or configures
+directly.</p>
+
+<pre><code class="language-kotlin">internal interface Storage {
+    fun getBytes(key: String): ByteArray?
+    fun putBytes(key: String, value: ByteArray)
+    fun remove(key: String)
+    fun contains(key: String): Boolean
+    fun keys(prefix: String): List&lt;String&gt;
+}</code></pre>
+
+<p>Every decomposed field key (see <a href="/concepts/field-decomposition.html">Field
+Decomposition</a>) is read and written through exactly these five operations. Two implementations
+exist:</p>
+
+<ul>
+  <li><strong><code>MmkvStorage</code></strong> — wraps a real Tencent MMKV instance. Used in
+      production on both Android and iOS.</li>
+  <li><strong><code>InMemoryStorage</code></strong> — wraps a plain in-memory map, guarded for
+      concurrent access. Backs <code>Documents.inMemory()</code>, used for unit tests with no real
+      MMKV instance involved — see
+      <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a>.</li>
+</ul>
+
+<p>Everything above this interface — the public API, field decomposition, serialization,
+reactivity — lives in <code>commonMain</code> and has no idea which <code>Storage</code>
+implementation it's talking to. Only the concrete implementation is platform-specific, which is
+what keeps the entire public surface KMP-clean. See
+<a href="/use-cases/shared-kmp-persistence.html">Shared KMP Persistence</a> and
+<a href="/platform-support.html">Platform Support</a>.</p>

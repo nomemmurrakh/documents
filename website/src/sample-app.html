@@ -1,0 +1,32 @@
+<h1>Sample App</h1>
+
+<p>A runnable Android sample lives in the repo's <code>sample/</code> module — a single Compose
+screen that exercises every claim in the docs, so one run of the app is a real smoke test.</p>
+
+<h2>What it does</h2>
+<p>A default-store document, <code>Documents.document&lt;GameSave&gt;("slot-1")</code>, backs the
+first section:</p>
+<ul>
+  <li><strong>Reset (set value)</strong> — a full <code>set()</code> replacing the whole
+      document.</li>
+  <li><strong>Level +1 (update)</strong> and <strong>Coins +50</strong> — both go through
+      <code>update { current -> current.copy(...) }</code>.</li>
+  <li><strong>Player hp -10</strong> — an <code>update { }</code> that touches the nested
+      <code>Player</code> sub-blob, proving nested <code>@Serializable</code> types round-trip
+      correctly.</li>
+  <li><strong>delete()</strong> — removes the document entirely.</li>
+</ul>
+<p>Above the buttons, a live readout shows <code>get()</code> and <code>exists()</code>, plus a
+separate readout bound to <code>fieldFlow(GameSave::coins, default = 0)</code> — proving that a
+single decomposed field reacts on its own, independent of the whole-document flow.</p>
+
+<p>A second section opens a separate <code>Documents.collection("cache")</code> holding a
+<code>Draft</code> document, with <strong>Edit draft</strong> and <strong>Clear draft</strong>
+buttons. The screen states its own test explicitly: editing the draft must never change the
+<code>slot-1</code> readout above — proving the collection is backed by a genuinely separate MMKV
+file, isolated from the default store.</p>
+
+<h2>Run it</h2>
+<p>Clone the repository and run the <code>sample</code> module (Android only) from Android Studio
+or via Gradle. See <a href="/use-cases/reactive-ui-state.html">Reactive UI State</a> for the
+general pattern this sample demonstrates.</p>

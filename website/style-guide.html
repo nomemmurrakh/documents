@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Style Guide · Documents</title>
+<link rel="stylesheet" href="/assets/css/main.css">
+<style>
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .swatch {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+  }
+  .swatch__color {
+    height: 72px;
+  }
+  .swatch__label {
+    padding: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    background: var(--bg-elevated);
+  }
+  .type-scale > * {
+    margin-bottom: var(--space-3);
+  }
+  .gradient-compare {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-5);
+  }
+  .gradient-compare > div {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+  }
+  section {
+    margin-bottom: var(--space-8);
+  }
+</style>
+</head>
+<body>
+<main class="container" style="max-width: 90ch; padding-block: var(--space-6);">
+  <h1>Style Guide</h1>
+  <p class="text-muted">Internal review page — not linked from nav.json, excluded from search index.</p>
+
+  <section>
+    <h2>Color palette</h2>
+    <div class="swatch-grid">
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--bg-base);"></div>
+        <div class="swatch__label">--bg-base<br>#15111c</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--bg-elevated);"></div>
+        <div class="swatch__label">--bg-elevated<br>#1d1420</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--brand-grad-1);"></div>
+        <div class="swatch__label">--brand-grad-1<br>#7F52FF</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--brand-grad-2);"></div>
+        <div class="swatch__label">--brand-grad-2<br>#C711E1</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--brand-grad-3);"></div>
+        <div class="swatch__label">--brand-grad-3<br>#E44857</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--accent-grad-start);"></div>
+        <div class="swatch__label">--accent-grad-start<br>#a888ff</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--accent-grad-end);"></div>
+        <div class="swatch__label">--accent-grad-end<br>#e9789d</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--text-heading);"></div>
+        <div class="swatch__label">--text-heading<br>#f4f0f8</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--text-body);"></div>
+        <div class="swatch__label">--text-body<br>#d6d0e0</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background: var(--text-muted);"></div>
+        <div class="swatch__label">--text-muted<br>#8d84a0</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Gradients: brand-mark vs. UI accent</h2>
+    <p>The brand-mark gradient is reserved for the logo and small brand accents only. The UI
+       accent-text gradient is used for interactive/emphasis UI text. They must never be swapped.</p>
+    <div class="gradient-compare">
+      <div class="brand-mark-gradient">Brand-mark gradient (logo only)</div>
+      <div class="gradient-text">UI accent-text gradient (links, emphasis)</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Type scale</h2>
+    <div class="type-scale">
+      <h1>Heading 1 — The quick brown fox</h1>
+      <h2>Heading 2 — The quick brown fox</h2>
+      <h3>Heading 3 — The quick brown fox</h3>
+      <h4>Heading 4 — The quick brown fox</h4>
+      <p>Body text — Documents is a document-oriented, typed, reactive Kotlin Multiplatform
+         library backed by MMKV. This paragraph uses <code>--text-body</code>.</p>
+      <p class="text-muted">Muted text — used for secondary captions and de-emphasized copy.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Buttons</h2>
+    <p>
+      <button class="btn btn--primary" type="button">Primary action</button>
+      <button class="btn btn--secondary" type="button">Secondary action</button>
+    </p>
+  </section>
+
+  <section>
+    <h2>Code block</h2>
+    <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
+<span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">GameSave</span>(
+    <span class="tok-keyword">val</span> level: <span class="tok-type">Int</span> = <span class="tok-number">1</span>,
+    <span class="tok-keyword">val</span> coins: <span class="tok-type">Int</span> = <span class="tok-number">0</span>,
+    <span class="tok-keyword">val</span> player: <span class="tok-type">Player</span> = <span class="tok-type">Player</span>(),
+)
+
+<span class="tok-keyword">val</span> save = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">GameSave</span>&gt;(<span class="tok-string">"slot-1"</span>)
+save.update { current -&gt; current.copy(coins = current.coins + <span class="tok-number">50</span>) }</code></pre>
+  </section>
+
+  <section>
+    <h2>Callouts</h2>
+    <div class="callout callout--info">
+      <div class="callout__title">Info</div>
+      <p>Documents auto-initializes MMKV — no <code>Context</code>, no manual setup.</p>
+    </div>
+    <div class="callout callout--note">
+      <div class="callout__title">Note</div>
+      <p>Storage is always single-process. Sharing a store across OS processes is not supported.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Table</h2>
+    <table>
+      <thead>
+        <tr><th>Platform</th><th>Target</th><th>Storage</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Android</td><td>✅</td><td>MMKV</td></tr>
+        <tr><td>iOS</td><td>arm64 + simulatorArm64</td><td>MMKV via CocoaPods</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Badges</h2>
+    <p>
+      <span class="badge badge--accepted">Accepted</span>
+      <span class="badge badge--superseded">Superseded</span>
+    </p>
+  </section>
+</main>
+</body>
+</html>

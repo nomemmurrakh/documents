@@ -1,0 +1,46 @@
+:root {
+  --bg-base: #15111c;
+  --bg-elevated: #1d1420;
+
+  /* Brand-mark gradient: logo and small brand-mark accents only — never UI chrome. */
+  --brand-grad-1: #7F52FF;
+  --brand-grad-2: #C711E1;
+  --brand-grad-3: #E44857;
+
+  /* UI accent-text gradient: interactive/emphasis UI (links, active nav, headline highlights). */
+  --accent-grad-start: #a888ff;
+  --accent-grad-end: #e9789d;
+  --accent-solid: #b499ff;
+
+  --text-heading: #f4f0f8;
+  --text-body: #d6d0e0;
+  --text-muted: #8d84a0;
+
+  --border-subtle: #2c2333;
+  --border-strong: #3c2f47;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, Menlo, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.45);
+}

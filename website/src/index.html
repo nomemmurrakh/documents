@@ -1,0 +1,77 @@
+<h1>Documents</h1>
+<p>Typed, reactive documents on top of MMKV — fast <em>and</em> a joy to write. Define a data
+class, treat it as a document, and get typed reads, copy-style updates, and <code>Flow</code>
+reactivity — all riding on the fastest key-value engine on mobile.</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class Note(val title: String = "", val body: String = "", val done: Boolean = false)
+
+val note = Documents.document&lt;Note&gt;("note-1") // one call, you have a document
+
+note.set(Note(title = "Pick up milk", body = "2%, not whole"))
+note.update(Note::done, true) // one field, no read
+note.update { current -&gt; // several fields, one atomic write
+    current.copy(
+        title = "Pick up oat milk",
+        body = "The barista-approved kind",
+    )
+}
+note.flow().collect { editor.render(it) } // the editor reacts to every write</code></pre>
+
+<h2>Built for elegancy</h2>
+<p>MMKV is ridiculously fast — memory-mapped, protobuf-backed, about as quick as anything else on
+the platform. But out of the box it hands you a bare cupboard: raw keys, primitives only. Every
+typed object means hand-rolling serialization and key management again, from scratch, every time.
+The typed and reactive alternatives buy their comfort back by giving up that speed, so you end up
+picking a side — fast, or pleasant to use.</p>
+<p><code>Documents</code> refuses to pick a side. It's built for elegancy: a clean, idiomatic
+Kotlin surface — typed documents, property delegates, a <code>copy()</code>-style update DSL,
+<code>Flow</code> reactivity — sitting directly on top of MMKV, costing you a little CPU for
+serialization and never a single extra byte of I/O. Clean code on top, MMKV all the way down.</p>
+
+<h2>The problem</h2>
+<p>Android and Kotlin Multiplatform apps constantly need to persist a single record of structured
+data — a logged-in user, a settings object, a session, a draft — and none of the usual tools fit
+that shape well. <code>SharedPreferences</code> is key-value only, awkward for nested objects, and
+loads the whole file into memory. Jetpack DataStore is typed, but Proto demands schema files and
+Preferences is still flat key-value — heavy ceremony just to store one object. SQLite and Room are
+relational and table-oriented, overkill for a single document with no relations to speak of. And
+raw MMKV is blisteringly fast but offers no abstraction at all: you're on your own for
+serialization and key management. There was no library giving a document-oriented, typed,
+reactive API with MMKV's performance underneath — so <code>Documents</code> is that intersection.</p>
+
+<h2>What it gives you</h2>
+<ul>
+  <li>A document-oriented public API — <code>get</code>, <code>set</code>, <code>update</code>,
+      <code>delete</code>, <code>exists</code>, <code>flow</code>, <code>stateFlow</code>.</li>
+  <li>Typed persistence of any <code>@Serializable</code> object, with no per-type boilerplate.</li>
+  <li>Reactivity — observers are notified when a document or a single field changes.</li>
+  <li>MMKV-class performance — the abstraction adds CPU/memory cost only, never extra I/O.</li>
+  <li>A fully KMP-compatible public API living in <code>commonMain</code>, with only the storage
+      engine binding per platform.</li>
+  <li>Serialization handled internally via a compact CBOR format — zero schema, zero per-type
+      boilerplate to babysit.</li>
+</ul>
+
+<h2>Single-process only</h2>
+<p>Every store — the default store, every named collection, and the in-memory test backend alike
+— is single-process. <strong>Concurrent access to the same store from more than one OS process is
+not supported and can corrupt it.</strong> A background service, an app extension, a second
+process spawned for any reason — none of these may open the same store as your main process at
+the same time.</p>
+<p>This is not a soft caveat or an edge case to work around: if your app needs to share a store
+across processes, this library is not the right fit for that store today. Design around a
+single-process owner for each store, or keep multi-process data out of <code>Documents</code>
+entirely.</p>
+
+<section id="contributors-section">
+  <h2>Built by</h2>
+  <div id="gh-contributors" class="contributors" hidden></div>
+</section>
+
+<h2>Where to next</h2>
+<ul>
+  <li><a href="/installation.html">Installation</a> — add the dependency, zero setup ceremony.</li>
+  <li><a href="/quick-start.html">Quick Start</a> — the whole API in one short walkthrough.</li>
+  <li><a href="/guide/index.html">Guide</a> — task-oriented walkthroughs of every part of the API.</li>
+</ul>

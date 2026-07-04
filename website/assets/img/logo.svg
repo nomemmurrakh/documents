@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="docGrad" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"  stop-color="#7F52FF"/>
+      <stop offset="50%" stop-color="#C711E1"/>
+      <stop offset="100%" stop-color="#E44857"/>
+    </linearGradient>
+
+    <!-- Document silhouette, reused both as the fill and as a hard clip so nothing
+         (flap, glyphs) can ever render outside the rounded outline -->
+    <path id="docPath" d="M120,64
+             L320,64
+             Q336,64 347.3,75.3
+             L404.7,132.7
+             Q416,144 416,160
+             L416,424
+             Q416,448 392,448
+             L120,448
+             Q96,448 96,424
+             L96,88
+             Q96,64 120,64 Z"/>
+    <clipPath id="docClip">
+      <use href="#docPath"/>
+    </clipPath>
+  </defs>
+
+  <!-- Body -->
+  <use href="#docPath" fill="url(#docGrad)"/>
+
+  <!-- Everything below is clipped to the document silhouette, so the folded
+       corner (and every glyph) is guaranteed to stay inside the rounded edge -->
+  <g clip-path="url(#docClip)">
+
+    <!-- Folded corner flap -->
+    <path d="M336,80
+             Q336,64 347.3,75.3
+             L404.7,132.7
+             Q416,144 400,144
+             L348,144
+             Q336,144 336,132 Z"
+          fill="#ffffff" opacity="0.22"/>
+    <path d="M347.3,75.3 L404.7,132.7" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Kotlin mark (official orientation, unflipped), centered -->
+    <g transform="translate(196,196)" opacity="0.92">
+      <path d="M0,0 L120,0 L60,60 L120,120 L0,120 Z" fill="#ffffff" fill-opacity="0.85"/>
+    </g>
+
+    <!-- Feature glyphs: scattered in a loose ring around the mark, each with
+         its own tilt and opacity so they read as playful accents, not a grid -->
+
+    <!-- Lightning bolt: synchronous, non-blocking, near-zero I/O (MMKV) -->
+    <g transform="translate(128,148) rotate(-20)" opacity="0.55">
+      <path d="M18,0 L2,30 L16,30 L9,60 L38,24 L22,24 Z" fill="#ffffff"/>
+    </g>
+
+    <!-- Curly braces: store any @Serializable data class, zero boilerplate -->
+    <g transform="translate(330,180) rotate(9)" opacity="0.38">
+      <text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="700" fill="#ffffff">{ }</text>
+    </g>
+
+    <!-- Waves: reactive flow() / stateFlow() per document and field -->
+    <g transform="translate(240,110) rotate(25)" opacity="0.2" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round">
+      <path d="M0,10 C7,0 13,20 20,10 C27,0 33,20 40,10"/>
+      <path d="M0,26 C7,16 13,36 20,26 C27,16 33,36 40,26"/>
+    </g>
+
+    <!-- Key: get() / set() key-value style document access -->
+    <g transform="translate(350,380) rotate(180)" opacity="0.3" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="9" r="8"/>
+      <path d="M16,15 L40,39 M32,31 L38,25 M38,37 L44,31"/>
+    </g>
+
+    <!-- Stacked layers: single common API across Android & iOS / named Collections -->
+    <g transform="translate(140,370) rotate(-20)" opacity="0.48" fill="#ffffff">
+      <rect x="0" y="16" width="44" height="10" rx="3"/>
+      <rect x="6" y="6"  width="44" height="10" rx="3" opacity="0.75"/>
+      <rect x="12" y="-4" width="44" height="10" rx="3" opacity="0.55"/>
+    </g>
+
+  </g>
+</svg>

@@ -1,0 +1,35 @@
+[
+  { "title": "Overview", "href": "/index.html" },
+  { "title": "Installation", "href": "/installation.html" },
+  { "title": "Quick Start", "href": "/quick-start.html" },
+  { "title": "Guide", "children": [
+    { "title": "Opening Documents", "href": "/guide/opening-documents.html" },
+    { "title": "Read & Write", "href": "/guide/read-and-write.html" },
+    { "title": "Reactivity", "href": "/guide/reactivity.html" },
+    { "title": "Field Delegates", "href": "/guide/field-delegates.html" },
+    { "title": "Collections & Testing", "href": "/guide/collections-and-testing.html" },
+    { "title": "Error Handling", "href": "/guide/error-handling.html" }
+  ]},
+  { "title": "Use Cases", "children": [
+    { "title": "Settings & Preferences", "href": "/use-cases/settings-and-preferences.html" },
+    { "title": "Session & User State", "href": "/use-cases/session-and-user-state.html" },
+    { "title": "Caches & Drafts", "href": "/use-cases/caches-and-drafts.html" },
+    { "title": "Reactive UI State", "href": "/use-cases/reactive-ui-state.html" },
+    { "title": "Shared KMP Persistence", "href": "/use-cases/shared-kmp-persistence.html" }
+  ]},
+  { "title": "Concepts", "children": [
+    { "title": "Field Decomposition", "href": "/concepts/field-decomposition.html" },
+    { "title": "Serialization (CBOR)", "href": "/concepts/serialization-cbor.html" },
+    { "title": "Storage SPI", "href": "/concepts/storage-spi.html" },
+    { "title": "Reactivity Model", "href": "/concepts/reactivity-model.html" },
+    { "title": "Concurrency", "href": "/concepts/concurrency.html" }
+  ]},
+  { "title": "Platform Support", "href": "/platform-support.html" },
+  { "title": "Benchmarks", "href": "/benchmarks.html" },
+  { "title": "Sample App", "href": "/sample-app.html" },
+  { "title": "Design Decisions", "children": [
+    { "title": "Overview", "href": "/design-decisions/index.html" }
+  ]},
+  { "title": "API Reference", "href": "/api/", "external": true },
+  { "title": "Contributing", "href": "/contributing.html" }
+]

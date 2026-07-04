@@ -1,0 +1,62 @@
+<h1>Benchmarks</h1>
+
+<p>Documents decomposes a value into one <code>{doc}::{field}</code> key per field and runs a CBOR
+encode/decode per field. These microbenchmarks measure that overhead against using raw MMKV
+directly — encoding the same 5-field value once with CBOR and calling MMKV's byte API.</p>
+
+<p>Sample type:</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class Profile(
+    val id: Long,
+    val name: String,
+    val email: String,
+    val age: Int,
+    val active: Boolean,
+)</code></pre>
+
+<h2>Methodology</h2>
+<p>Each raw-MMKV baseline does the <em>same underlying work</em> as the Documents call it's
+paired with — the same field keys, the same per-field CBOR encode/decode calls, the same
+existence prefix-scan before a read, and the same prefix-scan-then-remove on clear — by hand,
+with no library machinery (no lock, no change bus, no composite encoder). This isolates what the
+abstraction costs on top of doing the identical raw operations manually, rather than comparing
+Documents' per-field decomposition against a single whole-object blob, which would be a different,
+unfair comparison.</p>
+<p>The numbers are captured on-device — this is not a JVM-host benchmark, since MMKV is
+mmap-backed and needs a real device or simulator. They are device- and OS-specific, illustrative
+rather than authoritative, and are not run in CI.</p>
+
+<h2>iOS</h2>
+<table>
+  <thead>
+    <tr><th>Operation</th><th>Documents</th><th>Raw MMKV (same work, by hand)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>set(value)</code> (5 field)</td><td>22.3 µs</td><td>18.8 µs</td></tr>
+    <tr><td><code>get</code> (5 field)</td><td>20.2 µs</td><td>9.1 µs</td></tr>
+    <tr><td><code>update { }</code> (whole-object, full get+set)</td><td>44.2 µs</td><td>28.9 µs</td></tr>
+    <tr><td><code>update(prop, value)</code> (1 field)</td><td>3.9 µs</td><td>2.3 µs</td></tr>
+    <tr><td><code>delete</code> (incl. set, 5 field)</td><td>23.5 µs</td><td>18.8 µs</td></tr>
+    <tr><td>field delegate write (1 field)</td><td>5.2 µs</td><td>2.3 µs</td></tr>
+  </tbody>
+</table>
+<p><em>Device: iPhone 17 Pro simulator · iOS 26.1 · median of 20k iterations, CBOR encoding. The
+whole-object <code>update { }</code> builder always does a full 5-field get followed by a full
+5-field set, even when only one field changed — it's the read-modify-write path, and the raw
+baseline replicates that same round trip rather than a hand-optimized single-key patch, so the
+pairing stays honest. <code>update(prop, value)</code> is the true single-key write with no read —
+it comes in even below field delegate write since it skips the <code>ReadWriteProperty</code>
+object the delegate allocates. <code>delete</code> measures set + delete. Absolute timings are
+simulator (host CPU), not real hardware — compare Documents vs raw MMKV within this table, not
+against other platforms.</em></p>
+
+<h2>Android</h2>
+<p>Pending re-run. An instrumented harness already exists
+(<code>connectedAndroidDeviceTest</code>, same timing-harness shape as iOS); the numbers predate
+the CBOR switch and need a fresh on-device run before they can be published here.</p>
+
+<p>See <a href="/concepts/field-decomposition.html">Field Decomposition</a> for why
+<code>update(prop, value)</code> and field delegates measure so much cheaper than a whole-object
+<code>update { }</code>, or <a href="/guide/read-and-write.html">Read &amp; Write</a> for when to
+reach for each call shape.</p>

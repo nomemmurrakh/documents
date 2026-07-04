@@ -1,0 +1,24 @@
+<h1>Serialization (CBOR)</h1>
+
+<p>A single internal CBOR format sits between the field-walker and the storage layer, encoding
+each <em>field value</em> directly to bytes — no JSON text detour, no intermediate string
+representation at all.</p>
+
+<pre><code class="language-kotlin">// conceptually, per field:
+val bytes: ByteArray = cbor.encodeToByteArray(serializer, fieldValue)
+storage.putBytes("note-1::title", bytes)</code></pre>
+
+<h2>Not a pluggable extension point</h2>
+<p>This is an internal implementation detail, not a public knob — the on-disk format isn't
+configurable in v1. An earlier design considered a pluggable <code>Codec&lt;T&gt;</code>
+abstraction for swapping serialization strategies; that design was superseded before release in
+favor of a single internal CBOR format, which is simpler and removes an entire axis of
+configuration a caller never actually needed. If you've seen a <code>Codec</code> abstraction
+mentioned elsewhere, treat it as historical — it isn't part of the current public surface.</p>
+
+<h2>Why CBOR, not JSON</h2>
+<p>CBOR encodes directly to compact binary — no text serialization, no parsing back out of a
+string — which keeps the format small and the encode/decode step cheap, on top of an already
+memory-mapped storage engine. Since each field is encoded independently (see
+<a href="/concepts/field-decomposition.html">Field Decomposition</a>), the format only ever needs
+to represent one field's value at a time, not a whole document.</p>

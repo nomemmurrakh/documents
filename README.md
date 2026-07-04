@@ -16,13 +16,13 @@ engine on mobile.
 
 ```kotlin
 @Serializable
-data class GameSave(val level: Int = 1, val coins: Int = 0, val unlockedBoss: Boolean = false)
+data class Note(val title: String = "", val body: String = "", val done: Boolean = false)
 
-val save = Documents.document<GameSave>("slot-1")   // one call, you have a document
+val note = Documents.document<Note>("note-1")   // one call, you have a document
 
-save.set(GameSave(level = 1, coins = 0))
-save.update { current -> current.copy(coins = current.coins + 50, level = current.level + 1) }
-save.flow().collect { hud.render(it) }   // the HUD reacts to every write
+note.set(Note(title = "Pick up milk", body = "2%, not whole"))
+note.update(Note::done, true)   // one field, no read
+note.flow().collect { editor.render(it) }   // the editor reacts to every write
 ```
 
 That's the whole story. No schema, no DAO, no `MMKV.initialize`, no serialization plumbing.
@@ -99,16 +99,16 @@ field** (`{doc}::{field}`), so touching one field writes one key — nothing mor
 **CBOR** format. Zero per-type boilerplate, zero schema to babysit.
 
 ```kotlin
-val save = Documents.document<GameSave>("slot-1")
+val note = Documents.document<Note>("note-1")
 
-save.set(GameSave(level = 5, coins = 120))   // write the whole document
-val current: GameSave? = save.get()          // read it back (null if never written)
+note.set(Note(title = "Pick up milk", body = "2%, not whole"))   // write the whole document
+val current: Note? = note.get()                                 // read it back (null if never written)
 
-save.update { current ->                     // partial update, copy-style
-    current.copy(coins = current.coins + 50) // bumps coins, leaves level untouched
+note.update(Note::done, true)   // write just that one key directly, no read
+
+note.update { current ->                          // partial update, copy-style
+    current.copy(title = "Pick up oat milk")       // updates title, leaves body/done untouched
 }
-
-save.update(GameSave::coins, 170)            // or write just that one key directly, no read
 ```
 
 Need a separate file — a wipe-on-logout cache, per-user data, or an encrypted store? Open a named
@@ -116,7 +116,7 @@ Need a separate file — a wipe-on-logout cache, per-user data, or an encrypted 
 
 ```kotlin
 val cache = Documents.collection("cache")     // its own MMKV file
-val draft = cache.document<Draft>("draft")
+val draft = cache.document<Note>("draft")
 ```
 
 ## Install
@@ -141,23 +141,27 @@ import com.nomemmurrakh.documents.document
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Player(val name: String = "", val hp: Int = 100)
-
-@Serializable
-data class GameSave(
-    val level: Int = 1,
-    val coins: Int = 0,
-    val player: Player = Player(),   // nested @Serializable — stored as one sub-blob
+data class Note(
+    val title: String = "",
+    val body: String = "",
+    val done: Boolean = false,
 )
 
-val save = Documents.document<GameSave>("slot-1")
+val note = Documents.document<Note>("note-1")
 
-save.set(GameSave(level = 3, coins = 75, player = Player("Mara", hp = 80)))
-save.update { current -> current.copy(coins = current.coins + 50) }
+note.set(Note(title = "Pick up milk", body = "2%, not whole"))
+note.update(Note::done, true)   // one field, no read
 
-println(save.get())     // GameSave(level=3, coins=125, player=Player(name=Mara, hp=80))
-save.delete()
-println(save.exists())  // false
+note.update { current ->        // several fields, one atomic write
+    current.copy(
+        title = "Pick up oat milk",
+        body = "The barista-approved kind",
+    )
+}
+
+println(note.get())     // Note(title=Pick up oat milk, body=The barista-approved kind, done=true)
+note.delete()
+println(note.exists())  // false
 ```
 
 ## The API, end to end
@@ -166,11 +170,11 @@ println(save.exists())  // false
 
 ```kotlin
 // On the default store — the common case. The reified overload resolves the serializer for you.
-val save = Documents.document<GameSave>("slot-1") {
+val note = Documents.document<Note>("note-1") {
     dispatcher = Dispatchers.Default  // dispatcher for flow/stateFlow collection (optional)
 }
 // ...or pass the serializer explicitly:
-val save2 = Documents.document("slot-1", GameSave.serializer())
+val note2 = Documents.document("note-1", Note.serializer())
 ```
 
 ### Open a collection (a separate file)
@@ -182,11 +186,11 @@ cache, per-user data, or an encryption boundary:
 val cache = Documents.collection("cache") {
     dispatcher = Dispatchers.Default  // dispatcher for flow/stateFlow collection
 }
-val draft = cache.document<Draft>("draft")
+val draft = cache.document<Note>("draft")
 
 // An in-memory collection for tests — no MMKV, no persistence.
 val test = Documents.inMemory()
-val doc = test.document<GameSave>("slot-1")
+val doc = test.document<Note>("note-1")
 ```
 
 **Single-process only.** Storage is always opened in MMKV's single-process mode: concurrent access
@@ -200,12 +204,12 @@ A document `key` can't contain the reserved separator `::` — try it and you'll
 ### Read & write
 
 ```kotlin
-save.get(): GameSave?                       // current value, or null if absent
-save.set(value)                             // replace the whole document
-save.update { current -> ... }              // update: build over the current value (or defaults)
-save.update(GameSave::coins, 170)           // single-field update: writes just that key, no read
-save.delete()                               // remove the document and all its field keys
-save.exists(): Boolean                      // true if any field key is stored
+note.get(): Note?                           // current value, or null if absent
+note.set(value)                             // replace the whole document
+note.update { current -> ... }              // update: build over the current value (or defaults)
+note.update(Note::done, true)               // single-field update: writes just that key, no read
+note.delete()                               // remove the document and all its field keys
+note.exists(): Boolean                      // true if any field key is stored
 ```
 
 Three call shapes carry the intent: `set(value)` **replaces** (a whole object is given),
@@ -222,8 +226,8 @@ write (see "Bind a single field" below).
 ### React to changes
 
 ```kotlin
-save.flow(): Flow<GameSave?>                  // cold; current value, then every committed write
-save.stateFlow(scope): StateFlow<GameSave?>   // hot; shared while there are subscribers
+note.flow(): Flow<Note?>                      // cold; current value, then every committed write
+note.stateFlow(scope): StateFlow<Note?>       // hot; shared while there are subscribers
 ```
 
 `flow()` hands you the current value the moment you collect, then a fresh value after each
@@ -234,28 +238,28 @@ won't wake this one up.
 Straight into Compose:
 
 ```kotlin
-val save by saveDoc.flow().collectAsStateWithLifecycle(initialValue = saveDoc.get())
+val note by noteDoc.flow().collectAsStateWithLifecycle(initialValue = noteDoc.get())
 ```
 
-(`save` is nullable — `null` simply means "not written yet.")
+(`note` is nullable — `null` simply means "not written yet.")
 
 ### Bind a single field
 
 Sometimes you don't want the whole document — just one field:
 
 ```kotlin
-val coinsFlow: Flow<Int> = save.fieldFlow(GameSave::coins, default = 0)
+val doneFlow: Flow<Boolean> = note.fieldFlow(Note::done, default = false)
 
-var coins: Int by save.field(GameSave::coins, default = 0)
-coins += 50       // writes only the coins field's key
-println(coins)    // reads only that key
+var done: Boolean by note.field(Note::done, default = false)
+done = true       // writes only the done field's key
+println(done)     // reads only that key
 ```
 
 A field delegate reads and writes exactly one decomposed key. `fieldFlow` emits the current value
 (or the default if never set), then a new value each time *that* field changes — a change to a
 sibling field stays quiet.
 
-For a one-off write with no delegate to declare, `save.update(GameSave::coins, 170)` does the same
+For a one-off write with no delegate to declare, `note.update(Note::done, true)` does the same
 single-key write directly — the non-delegate sibling to `field()`.
 
 ### When decoding fails

@@ -1,0 +1,47 @@
+<h1>Opening Documents</h1>
+
+<p><code>Documents</code> is the entry point. Open a document directly on the default store, or
+open a named <code>Collection</code> first when a set of documents needs its own MMKV file.</p>
+
+<h2>The default store</h2>
+<p><code>Documents.document&lt;T&gt;(key)</code> is the common case — it opens (get-or-open, not
+"create anew") the document under <code>key</code> in the default store, with no config
+required:</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class Note(val title: String = "", val body: String = "", val done: Boolean = false)
+
+val note = Documents.document&lt;Note&gt;("note-1")</code></pre>
+
+<p>A configuration block is optional and, today, only exposes <code>dispatcher</code> — the
+dispatcher used to collect <code>flow()</code>/<code>stateFlow()</code> (see
+<a href="/guide/reactivity.html">Reactivity</a>):</p>
+
+<pre><code class="language-kotlin">val note = Documents.document&lt;Note&gt;("note-1") {
+    dispatcher = Dispatchers.Default // this is already the default
+}</code></pre>
+
+<h2>Collections — a separate MMKV file</h2>
+<p>Reach for <code>Documents.collection(name)</code> only when a set of documents needs its own
+file — a wipe-on-logout cache, per-user scoping, or an encryption boundary:</p>
+
+<pre><code class="language-kotlin">val drafts = Documents.collection("drafts") {
+    dispatcher = Dispatchers.Default
+}
+val draft = drafts.document&lt;Note&gt;("draft-1")</code></pre>
+
+<p>See <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for the
+single-process constraint that applies to every collection, including the default store.</p>
+
+<h2>The reserved key separator</h2>
+<p>Internally, every document is decomposed into one storage key per field, keyed
+<code>{document}::{field}</code> (see <a href="/concepts/field-decomposition.html">Field
+Decomposition</a>). Because <code>::</code> is reserved for that purpose, a document
+<code>key</code> containing it is rejected with an <code>IllegalArgumentException</code> —
+choose ordinary identifiers like <code>"note-1"</code> or <code>"user"</code>.</p>
+
+<h2>No setup ceremony</h2>
+<p>MMKV initializes itself the first time it's needed — on Android via
+<code>androidx.startup</code>, on iOS via an internal call using the in-process sandbox path. You
+never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>; the first
+<code>Documents.document(...)</code> or <code>Documents.collection(...)</code> call is enough.</p>

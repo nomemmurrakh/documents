@@ -1,0 +1,36 @@
+<h1>Session &amp; User State</h1>
+
+<p>The signed-in user, an auth token, the active profile — state that's scoped to a login session
+rather than the app's durable settings. Keeping it in its own <code>collection</code> keeps it
+separate from data that should survive a logout.</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class Session(
+    val userId: String,
+    val displayName: String,
+    val authToken: String,
+)
+
+val sessionStore = Documents.collection("session")
+val session = sessionStore.document&lt;Session&gt;("current")
+
+// sign in
+session.set(Session(userId = "u_42", displayName = "Mara", authToken = "…"))
+
+// react to sign-in / sign-out anywhere in the UI
+session.flow().collect { current -&gt;
+    isSignedIn = current != null
+}</code></pre>
+
+<p>Logging out deletes the session document — there is no separate "clear the whole collection"
+call in the public API, so sign-out is an explicit <code>delete()</code> on each document that
+should end with the session:</p>
+
+<pre><code class="language-kotlin">fun signOut() {
+    session.delete()
+}</code></pre>
+
+<p>See <a href="/guide/opening-documents.html">Opening Documents</a> for when to reach for a
+named collection versus the default store, and keep in mind the
+<a href="/index.html#single-process-only">single-process constraint</a> that applies to every
+store, including this one.</p>

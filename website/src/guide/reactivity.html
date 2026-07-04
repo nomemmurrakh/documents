@@ -1,0 +1,35 @@
+<h1>Reactivity</h1>
+
+<p>A document exposes its changes as <code>Flow</code>, so a UI layer (or anything else) can react
+every time the stored value changes — no polling, no manual re-reads.</p>
+
+<pre><code class="language-kotlin">note.flow(): Flow&lt;Note?&gt;                  // cold; current value, then every committed write
+note.stateFlow(scope): StateFlow&lt;Note?&gt;   // hot; shared while there are subscribers</code></pre>
+
+<h2><code>flow()</code></h2>
+<p><code>flow()</code> is cold: it hands you the current value the moment you collect, then a
+fresh value after each committed write. Emissions are conflated and fire only once a write is
+durably committed — writing a <em>different</em> document won't wake this one up. Deleting the
+document emits <code>null</code>:</p>
+
+<pre><code class="language-kotlin">note.flow().collect { current -&gt;
+    editor.render(current)
+}</code></pre>
+
+<h2><code>stateFlow(scope)</code></h2>
+<p><code>stateFlow(scope)</code> is hot — it needs a <code>CoroutineScope</code> and stays shared
+while there are subscribers, which suits a ViewModel-owned stream that outlives any single
+collector.</p>
+
+<h2>Straight into Compose</h2>
+<pre><code class="language-kotlin">val current by note.flow().collectAsStateWithLifecycle(initialValue = note.get())</code></pre>
+<p><code>current</code> is nullable — <code>null</code> simply means the note hasn't been written
+yet.</p>
+
+<h2>How it works under the hood</h2>
+<p>MMKV has no native change-listener mechanism, so reactivity is a process-local concern: a
+single change bus emits the affected document's key after every committed write or delete, and
+<code>flow()</code> filters that bus for its own key and re-reads. See
+<a href="/concepts/reactivity-model.html">Reactivity Model</a> for the full mechanism, including
+the important consequence that cross-process change notification is <strong>not</strong>
+provided.</p>

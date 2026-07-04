@@ -1,0 +1,476 @@
+[
+  {
+    "title": "Benchmarks",
+    "href": "/benchmarks.html",
+    "section": "Benchmarks",
+    "text": "Documents decomposes a value into one {doc}::{field} key per field and runs a CBOR encode/decode per field. These microbenchmarks measure that overhead against using raw MMKV directly — encoding the same 5-field value once with CBOR and calling MMKV's byte API. Sample type: @Serializable data class Profile ( val id: Long , val name: String , val email: String , val age: Int , val active: Boolean , )"
+  },
+  {
+    "title": "Benchmarks",
+    "href": "/benchmarks.html",
+    "section": "Methodology",
+    "text": "Each raw-MMKV baseline does the same underlying work as the Documents call it's paired with — the same field keys, the same per-field CBOR encode/decode calls, the same existence prefix-scan before a read, and the same prefix-scan-then-remove on clear — by hand, with no library machinery (no lock, no change bus, no composite encoder). This isolates what the abstraction costs on top of doing the identical raw operations manually, rather than comparing Documents' per-field decomposition against a single whole-object blob, which would be a different, unfair comparison. The numbers are captured on-device — this is not a JVM-host benchmark, since MMKV is mmap-backed and needs a real device or simulator. They are device- and OS-specific, illustrative rather than authoritative, and are not run in CI."
+  },
+  {
+    "title": "Benchmarks",
+    "href": "/benchmarks.html",
+    "section": "iOS",
+    "text": "Operation Documents Raw MMKV (same work, by hand) set(value) (5 field) 22.3 µs 18.8 µs get (5 field) 20.2 µs 9.1 µs update { } (whole-object, full get+set) 44.2 µs 28.9 µs update(prop, value) (1 field) 3.9 µs 2.3 µs delete (incl. set, 5 field) 23.5 µs 18.8 µs field delegate write (1 field) 5.2 µs 2.3 µs Device: iPhone 17 Pro simulator · iOS 26.1 · median of 20k iterations, CBOR encoding. The whole-object update { } builder always does a full 5-field get followed by a full 5-field set, even when only one field changed — it's the read-modify-write path, and the raw baseline replicates that same round trip rather than a hand-optimized single-key patch, so the pairing stays honest. update(prop, value) is the true single-key write with no read — it comes in even below field delegate write since it skips the ReadWriteProperty object the delegate allocates. delete measures set + delete. Absolute timings are simulator (host CPU), not real hardware — compare Documents vs raw MMKV within this table, not against other platforms."
+  },
+  {
+    "title": "Benchmarks",
+    "href": "/benchmarks.html",
+    "section": "Android",
+    "text": "Pending re-run. An instrumented harness already exists ( connectedAndroidDeviceTest , same timing-harness shape as iOS); the numbers predate the CBOR switch and need a fresh on-device run before they can be published here. See Field Decomposition for why update(prop, value) and field delegates measure so much cheaper than a whole-object update { } , or Read & Write for when to reach for each call shape."
+  },
+  {
+    "title": "Concurrency",
+    "href": "/concepts/concurrency.html",
+    "section": "Concurrency",
+    "text": "The document API is fully synchronous and non-suspending . get() , set() , update() , delete() , exists() , and every field delegate are plain function calls — none of them are suspend functions, and none of them require a coroutine scope to call. MMKV is memory-mapped, so a read or write is a memory operation, not I/O — there is nothing to suspend for. // no coroutine scope needed for any of these: note. set ( Note (title = \"Pick up milk\" )) val current = note. get () note.update( Note ::done, true )"
+  },
+  {
+    "title": "Concurrency",
+    "href": "/concepts/concurrency.html",
+    "section": "Writes are serialized per document",
+    "text": "Every write to a given document goes through a lightweight, non-suspending lock scoped to that document — not a coroutine Mutex . This is what makes a multi-field update { current -> ... } atomic from the caller's perspective: the read of the current value and the write of the new one happen as one uninterrupted unit, so a concurrent reader never observes a half-applied update. Because the lock is non-suspending, it composes safely with plain synchronous call sites — there's no risk of it blocking a coroutine dispatcher in a way that would starve other coroutines."
+  },
+  {
+    "title": "Concurrency",
+    "href": "/concepts/concurrency.html",
+    "section": "What is dispatcher-governed",
+    "text": "Only flow() and stateFlow() collection runs on a configurable dispatcher — Dispatchers.Default by default, since re-reading and decoding a value on each change bus emission is CPU-bound work (see Reactivity Model ). This dispatcher only affects how a Flow is collected; it has no bearing on the document operations themselves, which remain synchronous regardless of which dispatcher a caller happens to be on."
+  },
+  {
+    "title": "Field Decomposition",
+    "href": "/concepts/field-decomposition.html",
+    "section": "Field Decomposition",
+    "text": "A document is never stored as one serialized blob. Instead, every top-level field becomes its own MMKV entry, keyed {document}::{field} : // Note(title = \"Pick up milk\", body = \"2%, not whole\", done = false) // stored as: note- 1 ::title -> bytes note- 1 ::body -> bytes note- 1 ::done -> bytes The :: separator is reserved for this purpose, which is why it's rejected in a document key — see Opening Documents ."
+  },
+  {
+    "title": "Field Decomposition",
+    "href": "/concepts/field-decomposition.html",
+    "section": "Why decompose",
+    "text": "Decomposition is what makes field-level reactivity and truly cheap single-field writes possible. update(prop, value) and field delegates each touch exactly one decomposed key — a single putBytes or getBytes call, independent of how many other fields the document has, with no read or re-encoding of anything else. update { current -> ... } is a different story: it's a full read-modify-write of the whole document — every field is decoded on the read side, and every field is re-encoded and rewritten on the write side, even when the builder only changes one of them. See Read & Write for when to reach for each shape, and Benchmarks for the measured cost difference between the two."
+  },
+  {
+    "title": "Field Decomposition",
+    "href": "/concepts/field-decomposition.html",
+    "section": "Nested types",
+    "text": "A field whose type is itself a @Serializable object — like a nested Player inside a save file, or an address inside a user profile — is stored as a single serialized sub-blob under that one field's key, to any nesting depth. Nested types are not decomposed further in v1; only top-level fields get their own key."
+  },
+  {
+    "title": "Field Decomposition",
+    "href": "/concepts/field-decomposition.html",
+    "section": "How fields are discovered",
+    "text": "The library walks each type's fields using kotlinx.serialization's SerialDescriptor — never reflection, which keeps this working identically on Kotlin/Native (iOS) as it does on the JVM. A custom encoder/decoder writes and reads each element to and from its own {doc}::{field} key instead of a single shared output buffer."
+  },
+  {
+    "title": "Reactivity Model",
+    "href": "/concepts/reactivity-model.html",
+    "section": "Reactivity Model",
+    "text": "MMKV has no native change-listener mechanism, so reactivity is entirely a process-local concern built on top of it."
+  },
+  {
+    "title": "Reactivity Model",
+    "href": "/concepts/reactivity-model.html",
+    "section": "The change bus",
+    "text": "A single shared, process-local event stream acts as a change bus: after every committed write or delete, the affected document's key is emitted onto that bus. document.flow() filters the bus for its own key, then re-reads and emits the fresh value — conflated, so a burst of rapid writes doesn't queue up redundant emissions. The initial value is emitted the moment a collector starts collecting, before any new write has happened. note.flow().collect { current -> // fires once immediately with the current value, then again after every committed write } fieldFlow(prop) filters further, down to one field — a change to a sibling field never triggers it. See Field Delegates ."
+  },
+  {
+    "title": "Reactivity Model",
+    "href": "/concepts/reactivity-model.html",
+    "section": "Not cross-process",
+    "text": "Because the change bus is process-local, cross-process change notification is not provided — a write made by another OS process will not show up as an emission on this bus. This is consistent with the single-process constraint that applies to storage generally: this library's reactivity, like its storage, is designed around a single owning process."
+  },
+  {
+    "title": "Serialization (CBOR)",
+    "href": "/concepts/serialization-cbor.html",
+    "section": "Serialization (CBOR)",
+    "text": "A single internal CBOR format sits between the field-walker and the storage layer, encoding each field value directly to bytes — no JSON text detour, no intermediate string representation at all. // conceptually, per field: val bytes: ByteArray = cbor.encodeToByteArray(serializer, fieldValue) storage.putBytes( \"note-1::title\" , bytes)"
+  },
+  {
+    "title": "Serialization (CBOR)",
+    "href": "/concepts/serialization-cbor.html",
+    "section": "Not a pluggable extension point",
+    "text": "This is an internal implementation detail, not a public knob — the on-disk format isn't configurable in v1. An earlier design considered a pluggable Codec<T> abstraction for swapping serialization strategies; that design was superseded before release in favor of a single internal CBOR format, which is simpler and removes an entire axis of configuration a caller never actually needed. If you've seen a Codec abstraction mentioned elsewhere, treat it as historical — it isn't part of the current public surface."
+  },
+  {
+    "title": "Serialization (CBOR)",
+    "href": "/concepts/serialization-cbor.html",
+    "section": "Why CBOR, not JSON",
+    "text": "CBOR encodes directly to compact binary — no text serialization, no parsing back out of a string — which keeps the format small and the encode/decode step cheap, on top of an already memory-mapped storage engine. Since each field is encoded independently (see Field Decomposition ), the format only ever needs to represent one field's value at a time, not a whole document."
+  },
+  {
+    "title": "Storage SPI",
+    "href": "/concepts/storage-spi.html",
+    "section": "Storage SPI",
+    "text": "Underneath the public API sits a minimal interface that makes the storage engine swappable — this is how it's built, not something a consumer of the library implements or configures directly. internal interface Storage { fun getBytes(key: String ): ByteArray ? fun putBytes(key: String , value: ByteArray ) fun remove(key: String ) fun contains(key: String ): Boolean fun keys(prefix: String ): List < String > } Every decomposed field key (see Field Decomposition ) is read and written through exactly these five operations. Two implementations exist: MmkvStorage — wraps a real Tencent MMKV instance. Used in production on both Android and iOS. InMemoryStorage — wraps a plain in-memory map, guarded for concurrent access. Backs Documents.inMemory() , used for unit tests with no real MMKV instance involved — see Collections & Testing . Everything above this interface — the public API, field decomposition, serialization, reactivity — lives in commonMain and has no idea which Storage implementation it's talking to. Only the concrete implementation is platform-specific, which is what keeps the entire public surface KMP-clean. See Shared KMP Persistence and Platform Support ."
+  },
+  {
+    "title": "Contributing",
+    "href": "/contributing.html",
+    "section": "Contributing",
+    "text": "Issues, pull requests, and stars all help — the project lives at github.com/nomemmurrakh/documents . It's licensed under the Apache License 2.0 ."
+  },
+  {
+    "title": "Contributing",
+    "href": "/contributing.html",
+    "section": "What a pull request has to pass",
+    "text": "Every PR runs through CI: A build-and-test matrix — iosSimulatorArm64Test on macOS, testAndroidHostTest on Ubuntu. An ABI check — :documents:checkKotlinAbi , guarding the public binary surface. detekt , Kotlin static analysis."
+  },
+  {
+    "title": "Contributing",
+    "href": "/contributing.html",
+    "section": "Where to start",
+    "text": "Read the Guide and Design Decisions to get oriented in how the library is built and why, then open an issue or a PR on GitHub."
+  },
+  {
+    "title": "Design Decisions",
+    "href": "/design-decisions/index.html",
+    "section": "Design Decisions",
+    "text": "A curated index of the project's Architecture Decision Records — not all twenty reproduced here, just a grouped map of why each matters, linking out to the real ADR files."
+  },
+  {
+    "title": "Design Decisions",
+    "href": "/design-decisions/index.html",
+    "section": "API shape",
+    "text": "ADR-0004 — settled on \"document\" as the user-facing noun. ADR-0007 — Superseded by ADR-0016 an earlier shape for the root factory. ADR-0008 — the update builder returns a new value via copy() , not a mutated receiver. ADR-0016 — Documents as the entry point, Collection as the named-file handle. ADR-0017 — dropped the MergeStrategy enum; the call shape carries the intent instead. ADR-0018 — update(builder) as the verb, plus update(prop, value) for single-field writes."
+  },
+  {
+    "title": "Design Decisions",
+    "href": "/design-decisions/index.html",
+    "section": "Storage & serialization",
+    "text": "ADR-0001 — one MMKV key per top-level field. ADR-0003 — walk fields via SerialDescriptor , never reflection. ADR-0006 — Superseded by ADR-0015 the earlier per-type Codec design. ADR-0015 — a single internal CBOR format, replacing the pluggable Codec abstraction."
+  },
+  {
+    "title": "Design Decisions",
+    "href": "/design-decisions/index.html",
+    "section": "Reactivity & concurrency",
+    "text": "ADR-0002 — an in-memory SharedFlow change bus for reactivity. ADR-0011 — a synchronous document API with a non-suspending write lock; only Flow collection is dispatcher-governed."
+  },
+  {
+    "title": "Design Decisions",
+    "href": "/design-decisions/index.html",
+    "section": "Platform & publishing",
+    "text": "ADR-0005 — publish to Maven Central via macOS CI, not JitPack. ADR-0012 — the library owns MMKV initialization, zero-touch. ADR-0013 — bind MMKV on iOS via the Kotlin CocoaPods plugin. ADR-0019 — dropped multiProcess mode; storage is always single-process. ADR-0020 — aligned the Kotlin package with the Maven groupId."
+  },
+  {
+    "title": "Design Decisions",
+    "href": "/design-decisions/index.html",
+    "section": "Errors & testing",
+    "text": "ADR-0009 — decoding failures surface as DocumentDecodingException . ADR-0010 — field(prop, default) resolves its serializer via a reified inline extension. ADR-0014 — on-device, platform-native benchmark harnesses. For the full history behind any of these, see the complete ADR index on GitHub , or read Contributing for how to propose a new one."
+  },
+  {
+    "title": "Collections & Testing",
+    "href": "/guide/collections-and-testing.html",
+    "section": "Collections & Testing",
+    "text": ""
+  },
+  {
+    "title": "Collections & Testing",
+    "href": "/guide/collections-and-testing.html",
+    "section": "Collections",
+    "text": "A Collection is a named, separate MMKV file — reach for one when a set of documents needs its own lifecycle or access boundary: a wipe-on-logout cache, per-user scoping, or an encryption boundary. See Opening Documents for how to open one."
+  },
+  {
+    "title": "Collections & Testing",
+    "href": "/guide/collections-and-testing.html",
+    "section": "Testing with an in-memory backend",
+    "text": "Documents.inMemory() returns a Collection with identical semantics, backed by an in-memory map instead of a real MMKV file — no device, no simulator, no disk state to clean up between tests: val store = Documents .inMemory() val note = store.document< Note >( \"note-1\" ) note. set ( Note (title = \"Test note\" )) assertEquals( \"Test note\" , note. get ()?.title) Every store here — the default store, every named collection, and the in-memory backend alike — is single-process only; see Overview for the constraint that applies across all of them."
+  },
+  {
+    "title": "Error Handling",
+    "href": "/guide/error-handling.html",
+    "section": "Error Handling",
+    "text": "get() and field reads throw DocumentDecodingException when a stored field can't be decoded — never a bare, low-level exception from the serialization layer. try { val current = note. get () } catch (e: DocumentDecodingException ) { log.warn( \"note-1 field '${e.field}' failed to decode\" , e.cause) } Note In practice this is rare — it only fires if a stored field is genuinely corrupted or was written by an incompatible old version of your app. You don't need a try / catch around every single get() call; reach for one at a boundary that already handles unexpected failures (a repository layer, a top-level error handler), not around every read in your codebase."
+  },
+  {
+    "title": "Error Handling",
+    "href": "/guide/error-handling.html",
+    "section": "What it wraps, and why",
+    "text": "Because a document is decomposed into one MMKV key per field (see Field Decomposition ), a single field can go bad — a corrupted byte range, a stale format from an old app version — while every other field in the same document stays perfectly healthy. DocumentDecodingException names the documentKey , the offending field when there is one, and wraps the underlying cause, which might otherwise have surfaced as a bare SerializationException , IllegalStateException , or IllegalArgumentException from the CBOR format. Your code catches one clean library exception type instead of reaching into the serialization layer's own error hierarchy."
+  },
+  {
+    "title": "Error Handling",
+    "href": "/guide/error-handling.html",
+    "section": "What's not an error",
+    "text": "A document that was simply never written is not a decoding failure — get() returns null for that case, it never throws just because something is missing. See Read & Write ."
+  },
+  {
+    "title": "Field Delegates",
+    "href": "/guide/field-delegates.html",
+    "section": "Field Delegates",
+    "text": "Sometimes you don't want the whole document — just one field, read and written like an ordinary Kotlin property. Field delegates give you that without giving up typed, reactive storage. class NoteEditor { private val note = Documents .document< Note >( \"note-1\" ) var done: Boolean by note.field( Note ::done, default = false ) val doneFlow: Flow < Boolean > = note.fieldFlow( Note ::done, default = false ) }"
+  },
+  {
+    "title": "Field Delegates",
+    "href": "/guide/field-delegates.html",
+    "section": "field(prop, default)",
+    "text": "field(prop, default) returns a ReadWriteProperty backed by a single decomposed key. Reading it returns default if the field was never set; writing it updates only that field's key — nothing else about the document is touched — and emits on the document's flow() too: editor.done = true // writes only the \"done\" field's key println(editor.done) // reads only that key"
+  },
+  {
+    "title": "Field Delegates",
+    "href": "/guide/field-delegates.html",
+    "section": "Why the caller supplies default",
+    "text": "A field's declared default isn't recoverable from a KProperty at runtime, so field() and fieldFlow() both take default explicitly — there's no reflection-based way to ask \"what was the default value of this property in the data class?\" once you're holding a bare property reference."
+  },
+  {
+    "title": "Field Delegates",
+    "href": "/guide/field-delegates.html",
+    "section": "fieldFlow(prop, default)",
+    "text": "Emits the current field value (or default , if never set) on collection, then a new value each time that field changes. A change to a sibling field stays quiet: note.fieldFlow( Note ::done, default = false ).collect { done -> checkbox.setChecked(done) }"
+  },
+  {
+    "title": "Field Delegates",
+    "href": "/guide/field-delegates.html",
+    "section": "Not inside a class with a delegate? Use update(prop, value)",
+    "text": "For a one-off field write with no delegate to declare, plain note.update(Note::done, true) does the same single-key write directly — see Read & Write . It's the non-delegate sibling to field() , for code that doesn't own a var -backed property."
+  },
+  {
+    "title": "Field Delegates",
+    "href": "/guide/field-delegates.html",
+    "section": "When to reach for this",
+    "text": "Field delegates suit settings-style usage — a screen with a handful of independent toggles or values, each bound directly to a property, with no need to read or write the rest of the document. See Settings & Preferences for a fuller example."
+  },
+  {
+    "title": "Guide",
+    "href": "/guide/index.html",
+    "section": "Guide",
+    "text": "Task-oriented walkthroughs of the public API — start here if you want the full picture, not just the quick tour. Opening Documents — documents vs. collections, and why there's no setup step. Read & Write — set , update , and single-field update , and when to reach for each. Reactivity — flow() and stateFlow() , including a Compose-ready snippet. Field Delegates — binding a single field with by , without touching the whole document. Collections & Testing — separate MMKV files, the in-memory backend for tests, and the single-process constraint. Error Handling — what happens when a stored field can't be decoded."
+  },
+  {
+    "title": "Opening Documents",
+    "href": "/guide/opening-documents.html",
+    "section": "Opening Documents",
+    "text": "Documents is the entry point. Open a document directly on the default store, or open a named Collection first when a set of documents needs its own MMKV file."
+  },
+  {
+    "title": "Opening Documents",
+    "href": "/guide/opening-documents.html",
+    "section": "The default store",
+    "text": "Documents.document<T>(key) is the common case — it opens (get-or-open, not \"create anew\") the document under key in the default store, with no config required: @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false ) val note = Documents .document< Note >( \"note-1\" ) A configuration block is optional and, today, only exposes dispatcher — the dispatcher used to collect flow() / stateFlow() (see Reactivity ): val note = Documents .document< Note >( \"note-1\" ) { dispatcher = Dispatchers . Default // this is already the default }"
+  },
+  {
+    "title": "Opening Documents",
+    "href": "/guide/opening-documents.html",
+    "section": "Collections — a separate MMKV file",
+    "text": "Reach for Documents.collection(name) only when a set of documents needs its own file — a wipe-on-logout cache, per-user scoping, or an encryption boundary: val drafts = Documents .collection( \"drafts\" ) { dispatcher = Dispatchers . Default } val draft = drafts.document< Note >( \"draft-1\" ) See Collections & Testing for the single-process constraint that applies to every collection, including the default store."
+  },
+  {
+    "title": "Opening Documents",
+    "href": "/guide/opening-documents.html",
+    "section": "The reserved key separator",
+    "text": "Internally, every document is decomposed into one storage key per field, keyed {document}::{field} (see Field Decomposition ). Because :: is reserved for that purpose, a document key containing it is rejected with an IllegalArgumentException — choose ordinary identifiers like \"note-1\" or \"user\" ."
+  },
+  {
+    "title": "Opening Documents",
+    "href": "/guide/opening-documents.html",
+    "section": "No setup ceremony",
+    "text": "MMKV initializes itself the first time it's needed — on Android via androidx.startup , on iOS via an internal call using the in-process sandbox path. You never call MMKV.initialize() and never pass a Context ; the first Documents.document(...) or Documents.collection(...) call is enough."
+  },
+  {
+    "title": "Reactivity",
+    "href": "/guide/reactivity.html",
+    "section": "Reactivity",
+    "text": "A document exposes its changes as Flow , so a UI layer (or anything else) can react every time the stored value changes — no polling, no manual re-reads. note.flow(): Flow < Note ?> // cold; current value, then every committed write note.stateFlow(scope): StateFlow < Note ?> // hot; shared while there are subscribers"
+  },
+  {
+    "title": "Reactivity",
+    "href": "/guide/reactivity.html",
+    "section": "flow()",
+    "text": "flow() is cold: it hands you the current value the moment you collect, then a fresh value after each committed write. Emissions are conflated and fire only once a write is durably committed — writing a different document won't wake this one up. Deleting the document emits null : note.flow().collect { current -> editor.render(current) }"
+  },
+  {
+    "title": "Reactivity",
+    "href": "/guide/reactivity.html",
+    "section": "stateFlow(scope)",
+    "text": "stateFlow(scope) is hot — it needs a CoroutineScope and stays shared while there are subscribers, which suits a ViewModel-owned stream that outlives any single collector."
+  },
+  {
+    "title": "Reactivity",
+    "href": "/guide/reactivity.html",
+    "section": "Straight into Compose",
+    "text": "val current by note.flow().collectAsStateWithLifecycle(initialValue = note. get ()) current is nullable — null simply means the note hasn't been written yet."
+  },
+  {
+    "title": "Reactivity",
+    "href": "/guide/reactivity.html",
+    "section": "How it works under the hood",
+    "text": "MMKV has no native change-listener mechanism, so reactivity is a process-local concern: a single change bus emits the affected document's key after every committed write or delete, and flow() filters that bus for its own key and re-reads. See Reactivity Model for the full mechanism, including the important consequence that cross-process change notification is not provided."
+  },
+  {
+    "title": "Read & Write",
+    "href": "/guide/read-and-write.html",
+    "section": "Read & Write",
+    "text": "Three call shapes cover reading and writing a document, and each carries a distinct intent — knowing which one to reach for is the API's central nuance. note. get (): Note ? // current value, or null if absent note. set (value) // replace the whole document note.update { current -> ... } // update: build over the current value (or defaults) note.update( Note ::done, true ) // single-field update: writes just that key, no read note.delete() // remove the document and all its field keys note.exists(): Boolean // true if any field key is stored"
+  },
+  {
+    "title": "Read & Write",
+    "href": "/guide/read-and-write.html",
+    "section": "get() — never throws for \"missing\"",
+    "text": "get() returns the current value, or null if the document was never written. A missing document is not an error condition: val current: Note ? = note. get ()"
+  },
+  {
+    "title": "Read & Write",
+    "href": "/guide/read-and-write.html",
+    "section": "set(value) — replace",
+    "text": "Supply a complete object and it replaces the document outright — every field, whether it changed or not: note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" ))"
+  },
+  {
+    "title": "Read & Write",
+    "href": "/guide/read-and-write.html",
+    "section": "update { current -> ... } — update, several fields at once",
+    "text": "The builder receives the current value (or the type's defaults, if the document is absent) as an explicit current parameter and returns a new value via copy() — matching kotlinx.coroutines.flow.MutableStateFlow.update { current -> ... } 's shape. Untouched fields keep exactly the value they had: note.update { current -> current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } This is a read-modify-write that runs under the document's write lock, so a multi-field update is atomic from the caller's perspective — a concurrent reader never observes a half-applied write."
+  },
+  {
+    "title": "Read & Write",
+    "href": "/guide/read-and-write.html",
+    "section": "update(prop, value) — a single field, no read",
+    "text": "When only one field needs to change, update(prop, value) writes just that field's decomposed key directly — no read of the rest of the document: note.update( Note ::done, true ) Reach for update(prop, value) when you're changing exactly one field and don't need the current value to compute the new one; reach for update { current -> ... } when an edit touches more than one field together, or the new value depends on the current one."
+  },
+  {
+    "title": "Read & Write",
+    "href": "/guide/read-and-write.html",
+    "section": "delete() and exists()",
+    "text": "note.delete() // removes the document and all its field keys println(note.exists()) // false See Concurrency for exactly how the per-document write lock keeps a multi-field update atomic, or Field Delegates if you'd rather bind a single field as a property than call update(prop, value) directly."
+  },
+  {
+    "title": "Documents",
+    "href": "/index.html",
+    "section": "Documents",
+    "text": "Typed, reactive documents on top of MMKV — fast and a joy to write. Define a data class, treat it as a document, and get typed reads, copy-style updates, and Flow reactivity — all riding on the fastest key-value engine on mobile. @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false ) val note = Documents .document< Note >( \"note-1\" ) // one call, you have a document note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" )) note.update( Note ::done, true ) // one field, no read note.update { current -> // several fields, one atomic write current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } note.flow().collect { editor.render(it) } // the editor reacts to every write"
+  },
+  {
+    "title": "Documents",
+    "href": "/index.html",
+    "section": "Built for elegancy",
+    "text": "MMKV is ridiculously fast — memory-mapped, protobuf-backed, about as quick as anything else on the platform. But out of the box it hands you a bare cupboard: raw keys, primitives only. Every typed object means hand-rolling serialization and key management again, from scratch, every time. The typed and reactive alternatives buy their comfort back by giving up that speed, so you end up picking a side — fast, or pleasant to use. Documents refuses to pick a side. It's built for elegancy: a clean, idiomatic Kotlin surface — typed documents, property delegates, a copy() -style update DSL, Flow reactivity — sitting directly on top of MMKV, costing you a little CPU for serialization and never a single extra byte of I/O. Clean code on top, MMKV all the way down."
+  },
+  {
+    "title": "Documents",
+    "href": "/index.html",
+    "section": "The problem",
+    "text": "Android and Kotlin Multiplatform apps constantly need to persist a single record of structured data — a logged-in user, a settings object, a session, a draft — and none of the usual tools fit that shape well. SharedPreferences is key-value only, awkward for nested objects, and loads the whole file into memory. Jetpack DataStore is typed, but Proto demands schema files and Preferences is still flat key-value — heavy ceremony just to store one object. SQLite and Room are relational and table-oriented, overkill for a single document with no relations to speak of. And raw MMKV is blisteringly fast but offers no abstraction at all: you're on your own for serialization and key management. There was no library giving a document-oriented, typed, reactive API with MMKV's performance underneath — so Documents is that intersection."
+  },
+  {
+    "title": "Documents",
+    "href": "/index.html",
+    "section": "What it gives you",
+    "text": "A document-oriented public API — get , set , update , delete , exists , flow , stateFlow . Typed persistence of any @Serializable object, with no per-type boilerplate. Reactivity — observers are notified when a document or a single field changes. MMKV-class performance — the abstraction adds CPU/memory cost only, never extra I/O. A fully KMP-compatible public API living in commonMain , with only the storage engine binding per platform. Serialization handled internally via a compact CBOR format — zero schema, zero per-type boilerplate to babysit."
+  },
+  {
+    "title": "Documents",
+    "href": "/index.html",
+    "section": "Single-process only",
+    "text": "Every store — the default store, every named collection, and the in-memory test backend alike — is single-process. Concurrent access to the same store from more than one OS process is not supported and can corrupt it. A background service, an app extension, a second process spawned for any reason — none of these may open the same store as your main process at the same time. This is not a soft caveat or an edge case to work around: if your app needs to share a store across processes, this library is not the right fit for that store today. Design around a single-process owner for each store, or keep multi-process data out of Documents entirely."
+  },
+  {
+    "title": "Documents",
+    "href": "/index.html",
+    "section": "Built by",
+    "text": ""
+  },
+  {
+    "title": "Documents",
+    "href": "/index.html",
+    "section": "Where to next",
+    "text": "Installation — add the dependency, zero setup ceremony. Quick Start — the whole API in one short walkthrough. Guide — task-oriented walkthroughs of every part of the API."
+  },
+  {
+    "title": "Installation",
+    "href": "/installation.html",
+    "section": "Installation",
+    "text": "com.nomemmurrakh:documents is published on Maven Central. Add it to a KMP module's commonMain , or a plain Android module: // build.gradle.kts dependencies { implementation( \"com.nomemmurrakh:documents:0.1.0\" ) }"
+  },
+  {
+    "title": "Installation",
+    "href": "/installation.html",
+    "section": "No setup ceremony",
+    "text": "The library initializes MMKV for you — on Android via androidx.startup , on iOS via an internal initializeMMKV call using the in-process sandbox path on first use. You never call MMKV.initialize() and never pass a Context . Add the dependency, call Documents.document(...) , and go."
+  },
+  {
+    "title": "Installation",
+    "href": "/installation.html",
+    "section": "Supported platforms",
+    "text": "Android and iOS ( arm64 and simulatorArm64 ) today — see Platform Support for the full table and how MMKV is bound on each target."
+  },
+  {
+    "title": "Installation",
+    "href": "/installation.html",
+    "section": "Where it's published",
+    "text": "Maven Central, not JitPack — the standard Gradle dependency declaration above is all a consumer needs, no extra repository entries. Continue to Quick Start →"
+  },
+  {
+    "title": "Platform Support",
+    "href": "/platform-support.html",
+    "section": "Platform Support",
+    "text": "Platform Status Storage engine Android ✅ MMKV iOS — arm64 + simulatorArm64 ✅ MMKV (via CocoaPods) One public API across both platforms — it all lives in commonMain . MMKV is bound on Apple targets through the Kotlin CocoaPods plugin, and the library owns MMKV initialization on both platforms, so consumers never lift a finger. There is no JVM/desktop or wasm target in this release. See Shared KMP Persistence for what this means in practice, and Storage SPI for how the platform- specific binding is isolated behind a minimal internal interface."
+  },
+  {
+    "title": "Quick Start",
+    "href": "/quick-start.html",
+    "section": "Quick Start",
+    "text": "Here's the whole story in one walkthrough — no schema, no DAO, no serialization plumbing to wire up by hand. The example is a single offline note — the kind of \"continue where you left off\" document this library is built for. Start with an @Serializable data class: import com.nomemmurrakh.documents. Documents import com.nomemmurrakh.documents.document import kotlinx.serialization. Serializable @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false , ) Open a document — one call, no config required: val note = Documents .document< Note >( \"note-1\" ) Write the whole object with set when you have a complete value — creating the note for the first time: note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" )) Flip a single field with update(prop, value) — it writes just that one key, no read of the rest of the note: note.update( Note ::done, true ) Edit more than one field at once with update { current -> ... } — the builder receives the current value and returns a new one via copy() , so untouched fields (here, done ) are left exactly as they were: note.update { current -> current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } println(note. get ()) // Note(title=Pick up oat milk, body=The barista-approved kind, done=true) note.delete() println(note.exists()) // false get() returns null if the document was never written — it never throws just because something is missing. The three shapes carry distinct intent: set(value) replaces the whole document, update(prop, value) writes a single field with no read, and update { current -> ... } reads the current value (or the type's defaults if absent) and writes back a new one, atomically, for edits that touch more than one field together."
+  },
+  {
+    "title": "Quick Start",
+    "href": "/quick-start.html",
+    "section": "What's next",
+    "text": "Opening Documents — documents vs. collections, and the automatic MMKV setup. Read & Write — the full distinction between set , update , and single-field update . Reactivity — flow() and stateFlow() , including a Compose-ready snippet. Field Delegates — binding a single field without touching the whole document."
+  },
+  {
+    "title": "Sample App",
+    "href": "/sample-app.html",
+    "section": "Sample App",
+    "text": "A runnable Android sample lives in the repo's sample/ module — a single Compose screen that exercises every claim in the docs, so one run of the app is a real smoke test."
+  },
+  {
+    "title": "Sample App",
+    "href": "/sample-app.html",
+    "section": "What it does",
+    "text": "A default-store document, Documents.document<GameSave>(\"slot-1\") , backs the first section: Reset (set value) — a full set() replacing the whole document. Level +1 (update) and Coins +50 — both go through update { current -> current.copy(...) } . Player hp -10 — an update { } that touches the nested Player sub-blob, proving nested @Serializable types round-trip correctly. delete() — removes the document entirely. Above the buttons, a live readout shows get() and exists() , plus a separate readout bound to fieldFlow(GameSave::coins, default = 0) — proving that a single decomposed field reacts on its own, independent of the whole-document flow. A second section opens a separate Documents.collection(\"cache\") holding a Draft document, with Edit draft and Clear draft buttons. The screen states its own test explicitly: editing the draft must never change the slot-1 readout above — proving the collection is backed by a genuinely separate MMKV file, isolated from the default store."
+  },
+  {
+    "title": "Sample App",
+    "href": "/sample-app.html",
+    "section": "Run it",
+    "text": "Clone the repository and run the sample module (Android only) from Android Studio or via Gradle. See Reactive UI State for the general pattern this sample demonstrates."
+  },
+  {
+    "title": "Caches & Drafts",
+    "href": "/use-cases/caches-and-drafts.html",
+    "section": "Caches & Drafts",
+    "text": "Last-synced payloads, an in-progress form, the \"continue where you left off\" blob — data that's useful but disposable, and should live apart from durable settings so it's easy to reason about (and to wipe) on its own. @Serializable data class SyncState ( val lastSyncedAtEpochMs: Long = 0 , val lastSyncedEtag: String = \"\" , ) @Serializable data class DraftPost ( val title: String = \"\" , val body: String = \"\" , ) val cache = Documents .collection( \"cache\" ) val syncState = cache.document< SyncState >( \"sync-state\" ) val draft = cache.document< DraftPost >( \"compose-draft\" ) The compose screen writes to draft on every keystroke debounce, and reads it back on next launch to restore exactly where the user left off: draft.update { current -> current.copy(body = textField.value) } // next launch val restored = draft. get () ?: DraftPost () Because cache is its own collection — its own MMKV file — clearing it out (a \"reset cache\" action, or a storage-pressure cleanup) never touches durable data living in the default store or another collection. See Collections & Testing for how collections isolate one set of documents from another."
+  },
+  {
+    "title": "Use Cases",
+    "href": "/use-cases/index.html",
+    "section": "Use Cases",
+    "text": "Five shapes of \"one typed, reactive document\" that come up constantly in real apps — each page sketches a realistic example and links back to the Guide pages that cover the mechanics. Settings & Preferences — the classic SharedPreferences / NSUserDefaults job, typed and observable. Session & User State — the signed-in user, auth tokens, the active profile. Caches & Drafts — last-synced payloads, in-progress form drafts, \"continue where you left off.\" Reactive UI State — anything Compose or SwiftUI should re-render on. Shared KMP Persistence — one storage API, Android and iOS reading the same documents."
+  },
+  {
+    "title": "Reactive UI State",
+    "href": "/use-cases/reactive-ui-state.html",
+    "section": "Reactive UI State",
+    "text": "Anything Compose or SwiftUI should re-render on when it changes — a document's flow() gives a UI layer exactly that, with no manual re-reads and no polling. @Serializable data class DownloadState ( val bytesDownloaded: Long = 0 , val totalBytes: Long = 0 , val isComplete: Boolean = false , ) val download = Documents .document< DownloadState >( \"active-download\" ) A background worker updates bytesDownloaded as chunks arrive. It's a single field, so update(prop, value) is the natural fit — one direct write to that key: download.update( DownloadState ::bytesDownloaded, bytesSoFar) A Compose screen collects the same document and redraws on every write, with zero coupling to where the write came from: @Composable fun DownloadProgressBar (download: Document < DownloadState >) { val state by download.flow().collectAsStateWithLifecycle(initialValue = download. get ()) val progress = state?.let { it.bytesDownloaded.toFloat() / it.totalBytes } ?: 0f LinearProgressIndicator (progress = progress) } The real sample app demonstrates this exact pattern end to end — a button press writes to a document, and a separate readout re-renders purely by collecting its flow() . See Reactivity for the full flow() / stateFlow() API."
+  },
+  {
+    "title": "Session & User State",
+    "href": "/use-cases/session-and-user-state.html",
+    "section": "Session & User State",
+    "text": "The signed-in user, an auth token, the active profile — state that's scoped to a login session rather than the app's durable settings. Keeping it in its own collection keeps it separate from data that should survive a logout. @Serializable data class Session ( val userId: String , val displayName: String , val authToken: String , ) val sessionStore = Documents .collection( \"session\" ) val session = sessionStore.document< Session >( \"current\" ) // sign in session. set ( Session (userId = \"u_42\" , displayName = \"Mara\" , authToken = \"…\" )) // react to sign-in / sign-out anywhere in the UI session.flow().collect { current -> isSignedIn = current != null } Logging out deletes the session document — there is no separate \"clear the whole collection\" call in the public API, so sign-out is an explicit delete() on each document that should end with the session: fun signOut() { session.delete() } See Opening Documents for when to reach for a named collection versus the default store, and keep in mind the single-process constraint that applies to every store, including this one."
+  },
+  {
+    "title": "Settings & Preferences",
+    "href": "/use-cases/settings-and-preferences.html",
+    "section": "Settings & Preferences",
+    "text": "The classic SharedPreferences / NSUserDefaults job — theme, locale, feature flags, onboarding state — except typed and observable instead of a flat string-keyed bag. @Serializable enum class Theme { SYSTEM , LIGHT , DARK } @Serializable data class AppSettings ( val theme: Theme = Theme . SYSTEM , val locale: String = \"en-US\" , val hasCompletedOnboarding: Boolean = false , ) class SettingsRepository { private val doc = Documents .document< AppSettings >( \"app-settings\" ) var theme: Theme by doc.field( AppSettings ::theme, default = Theme . SYSTEM ) var locale: String by doc.field( AppSettings ::locale, default = \"en-US\" ) val themeFlow: Flow < Theme > = doc.fieldFlow( AppSettings ::theme, default = Theme . SYSTEM ) } Each setting reads and writes as an ordinary property — flipping theme touches only that field's key, and themeFlow lets a UI layer re-render the instant it changes, with no polling and no re-reading the rest of the settings object. See Field Delegates for the full mechanics of field() and fieldFlow() ."
+  },
+  {
+    "title": "Shared KMP Persistence",
+    "href": "/use-cases/shared-kmp-persistence.html",
+    "section": "Shared KMP Persistence",
+    "text": "One storage API in commonMain — the same document code runs unchanged on Android and iOS, reading and writing through the same MMKV-backed store on both platforms. // commonMain @Serializable data class OfflineQueueItem ( val id: String , val endpoint: String , val payloadJson: String , val attempts: Int = 0 , ) class PendingRequestQueue { private val doc = Documents .document< List < OfflineQueueItem >>( \"pending-requests\" ) fun enqueue(item: OfflineQueueItem ) { doc.update { current -> (current ?: emptyList()) + item } } fun observe(): Flow < List < OfflineQueueItem >> = doc.flow().map { it ?: emptyList() } } PendingRequestQueue is written once, in commonMain , and used identically from an Android ViewModel and an iOS view model — there is no platform-specific persistence code to write or keep in sync, because the entire public API and its logic live in commonMain . Only the underlying Storage implementation differs per platform, and that's an internal detail the library owns. See Storage SPI and Platform Support for how each target is bound."
+  }
+]

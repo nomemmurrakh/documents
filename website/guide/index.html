@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
+<link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<meta property="og:title" content="Documents">
+<meta property="og:description" content="A document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta property="og:image" content="/assets/img/og-image.png">
+<meta property="og:type" content="website">
+<title>Guide · Documents</title>
+<link rel="stylesheet" href="/assets/css/main.css">
+
+</head>
+<body>
+<header class="site-header">
+  <div class="site-header__start">
+    <button id="sidebar-toggle" class="icon-button" type="button" aria-expanded="false" aria-controls="sidebar">
+      <span class="visually-hidden">Toggle navigation</span>
+      <svg class="icon" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <path d="M2 5h16M2 10h16M2 15h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <a class="site-header__brand" href="/index.html">
+      <img src="/assets/img/logo.svg" alt="" width="52" height="52">
+      <span class="site-header__title">Documents</span>
+    </a>
+  </div>
+
+  <div class="site-header__search">
+    <form role="search" action="/index.html" method="get" id="search-form">
+      <label class="visually-hidden" for="search-input">Search documentation</label>
+      <input type="search" id="search-input" name="q" placeholder="Search docs…" autocomplete="off">
+      <div id="search-results" class="search-results" hidden></div>
+    </form>
+  </div>
+
+  <div class="site-header__end">
+    <a class="site-header__github" href="https://github.com/nomemmurrakh/documents" target="_blank" rel="noopener">
+      <svg class="icon" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+          0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01
+          1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95
+          0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0
+          1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0
+          3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01
+          8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+      </svg>
+      <span class="visually-hidden">GitHub</span>
+      <span class="gh-star-count" aria-live="polite">
+        <svg class="icon icon--star" width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1
+            .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.79L8 12.347l-3.766 1.98a.75.75 0 0
+            1-1.088-.79l.72-4.192L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+        </svg>
+        <span id="gh-star-count-value"></span>
+      </span>
+    </a>
+    <a class="site-header__api" href="/api/" target="_blank" rel="noopener">
+      API Reference
+      <svg class="icon icon--sm" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M6.22 3.22a.75.75 0 0 1 1.06 0l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1
+          1-1.06-1.06L9.44 8 6.22 4.78a.75.75 0 0 1 0-1.06Z"/>
+      </svg>
+    </a>
+  </div>
+</header>
+
+<div class="layout">
+<nav id="sidebar" class="sidebar" aria-label="Documentation sections">
+  <ul class="nav-root">
+    <li><a href="/index.html">Overview</a></li>
+<li><a href="/installation.html">Installation</a></li>
+<li><a href="/quick-start.html">Quick Start</a></li>
+<li class="nav-group">
+        <span class="nav-group__title">Guide</span>
+        <ul class="nav-group__list"><li><a href="/guide/opening-documents.html">Opening Documents</a></li>
+<li><a href="/guide/read-and-write.html">Read & Write</a></li>
+<li><a href="/guide/reactivity.html">Reactivity</a></li>
+<li><a href="/guide/field-delegates.html">Field Delegates</a></li>
+<li><a href="/guide/collections-and-testing.html">Collections & Testing</a></li>
+<li><a href="/guide/error-handling.html">Error Handling</a></li></ul>
+      </li>
+<li class="nav-group">
+        <span class="nav-group__title">Use Cases</span>
+        <ul class="nav-group__list"><li><a href="/use-cases/settings-and-preferences.html">Settings & Preferences</a></li>
+<li><a href="/use-cases/session-and-user-state.html">Session & User State</a></li>
+<li><a href="/use-cases/caches-and-drafts.html">Caches & Drafts</a></li>
+<li><a href="/use-cases/reactive-ui-state.html">Reactive UI State</a></li>
+<li><a href="/use-cases/shared-kmp-persistence.html">Shared KMP Persistence</a></li></ul>
+      </li>
+<li class="nav-group">
+        <span class="nav-group__title">Concepts</span>
+        <ul class="nav-group__list"><li><a href="/concepts/field-decomposition.html">Field Decomposition</a></li>
+<li><a href="/concepts/serialization-cbor.html">Serialization (CBOR)</a></li>
+<li><a href="/concepts/storage-spi.html">Storage SPI</a></li>
+<li><a href="/concepts/reactivity-model.html">Reactivity Model</a></li>
+<li><a href="/concepts/concurrency.html">Concurrency</a></li></ul>
+      </li>
+<li><a href="/platform-support.html">Platform Support</a></li>
+<li><a href="/benchmarks.html">Benchmarks</a></li>
+<li><a href="/sample-app.html">Sample App</a></li>
+<li class="nav-group">
+        <span class="nav-group__title">Design Decisions</span>
+        <ul class="nav-group__list"><li><a href="/design-decisions/index.html">Overview</a></li></ul>
+      </li>
+<li><a href="/api/" target="_blank" rel="noopener">API Reference</a></li>
+<li><a href="/contributing.html">Contributing</a></li>
+  </ul>
+</nav>
+
+<main id="main-content" class="main-content" tabindex="-1">
+<h1>Guide</h1>
+<p>Task-oriented walkthroughs of the public API — start here if you want the full picture, not
+just the quick tour.</p>
+
+<ul>
+  <li><a href="/guide/opening-documents.html">Opening Documents</a> — documents vs. collections,
+      and why there's no setup step.</li>
+  <li><a href="/guide/read-and-write.html">Read &amp; Write</a> — <code>set</code>,
+      <code>update</code>, and single-field <code>update</code>, and when to reach for each.</li>
+  <li><a href="/guide/reactivity.html">Reactivity</a> — <code>flow()</code> and
+      <code>stateFlow()</code>, including a Compose-ready snippet.</li>
+  <li><a href="/guide/field-delegates.html">Field Delegates</a> — binding a single field with
+      <code>by</code>, without touching the whole document.</li>
+  <li><a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> — separate MMKV
+      files, the in-memory backend for tests, and the single-process constraint.</li>
+  <li><a href="/guide/error-handling.html">Error Handling</a> — what happens when a stored field
+      can't be decoded.</li>
+</ul>
+
+</main>
+<nav id="toc" class="toc" aria-label="On this page" hidden>
+  <details id="toc-details" open>
+    <summary class="toc__title">On this page</summary>
+    <ol id="toc-list" class="toc__list"></ol>
+  </details>
+</nav>
+
+</div>
+<footer class="site-footer">
+  <p class="site-footer__license">
+    Documents is licensed under the
+    <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
+  </p>
+  <p class="site-footer__cta">
+    Built for elegance, and better with your help —
+    <a href="/contributing.html">contribute on GitHub</a>.
+  </p>
+</footer>
+
+<script src="/assets/js/sidebar-toggle.js" defer></script>
+<script src="/assets/js/scroll-restore.js" defer></script>
+<script src="/assets/js/toc-scrollspy.js" defer></script>
+<script type="module" src="/assets/js/github-stats.js"></script>
+<script src="/assets/js/search.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<h1>Quick Start</h1>
+
+<p>Here's the whole story in one walkthrough — no schema, no DAO, no serialization plumbing to
+wire up by hand. The example is a single offline note — the kind of "continue where you left off"
+document this library is built for.</p>
+
+<p>Start with an <code>@Serializable</code> data class:</p>
+
+<pre><code class="language-kotlin">import com.nomemmurrakh.documents.Documents
+import com.nomemmurrakh.documents.document
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Note(
+    val title: String = "",
+    val body: String = "",
+    val done: Boolean = false,
+)</code></pre>
+
+<p>Open a document — one call, no config required:</p>
+
+<pre><code class="language-kotlin">val note = Documents.document&lt;Note&gt;("note-1")</code></pre>
+
+<p>Write the whole object with <code>set</code> when you have a complete value — creating the note
+for the first time:</p>
+
+<pre><code class="language-kotlin">note.set(Note(title = "Pick up milk", body = "2%, not whole"))</code></pre>
+
+<p>Flip a single field with <code>update(prop, value)</code> — it writes just that one key, no
+read of the rest of the note:</p>
+
+<pre><code class="language-kotlin">note.update(Note::done, true)</code></pre>
+
+<p>Edit more than one field at once with <code>update { current -&gt; ... }</code> — the builder
+receives the current value and returns a new one via <code>copy()</code>, so untouched fields
+(here, <code>done</code>) are left exactly as they were:</p>
+
+<pre><code class="language-kotlin">note.update { current -&gt;
+    current.copy(
+        title = "Pick up oat milk",
+        body = "The barista-approved kind",
+    )
+}
+
+println(note.get()) // Note(title=Pick up oat milk, body=The barista-approved kind, done=true)
+note.delete()
+println(note.exists()) // false</code></pre>
+
+<p><code>get()</code> returns <code>null</code> if the document was never written — it never
+throws just because something is missing. The three shapes carry distinct intent:
+<code>set(value)</code> replaces the whole document, <code>update(prop, value)</code> writes a
+single field with no read, and <code>update { current -&gt; ... }</code> reads the current value (or
+the type's defaults if absent) and writes back a new one, atomically, for edits that touch more
+than one field together.</p>
+
+<h2>What's next</h2>
+<ul>
+  <li><a href="/guide/opening-documents.html">Opening Documents</a> — documents vs. collections,
+      and the automatic MMKV setup.</li>
+  <li><a href="/guide/read-and-write.html">Read &amp; Write</a> — the full distinction between
+      <code>set</code>, <code>update</code>, and single-field <code>update</code>.</li>
+  <li><a href="/guide/reactivity.html">Reactivity</a> — <code>flow()</code> and
+      <code>stateFlow()</code>, including a Compose-ready snippet.</li>
+  <li><a href="/guide/field-delegates.html">Field Delegates</a> — binding a single field without
+      touching the whole document.</li>
+</ul>

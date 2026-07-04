@@ -1,0 +1,48 @@
+<h1>Design Decisions</h1>
+
+<p>A curated index of the project's Architecture Decision Records — not all twenty reproduced
+here, just a grouped map of why each matters, linking out to the real ADR files.</p>
+
+<h2>API shape</h2>
+<ul>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0004-vocabulary.md">ADR-0004</a> — settled on "document" as the user-facing noun.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0007-documents-root-factory.md">ADR-0007</a> — <span class="badge badge--superseded">Superseded by ADR-0016</span> an earlier shape for the root factory.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0008-update-builder-returns-copy.md">ADR-0008</a> — the update builder returns a new value via <code>copy()</code>, not a mutated receiver.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0016-documents-entry-point-and-collections.md">ADR-0016</a> — <code>Documents</code> as the entry point, <code>Collection</code> as the named-file handle.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0017-drop-merge-strategy.md">ADR-0017</a> — dropped the <code>MergeStrategy</code> enum; the call shape carries the intent instead.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0018-update-verb-and-single-field-update.md">ADR-0018</a> — <code>update(builder)</code> as the verb, plus <code>update(prop, value)</code> for single-field writes.</li>
+</ul>
+
+<h2>Storage &amp; serialization</h2>
+<ul>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0001-field-decomposition.md">ADR-0001</a> — one MMKV key per top-level field.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0003-serialdescriptor-walking.md">ADR-0003</a> — walk fields via <code>SerialDescriptor</code>, never reflection.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0006-codec-holds-serializer.md">ADR-0006</a> — <span class="badge badge--superseded">Superseded by ADR-0015</span> the earlier per-type <code>Codec</code> design.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0015-cbor-internal-format.md">ADR-0015</a> — a single internal CBOR format, replacing the pluggable <code>Codec</code> abstraction.</li>
+</ul>
+
+<h2>Reactivity &amp; concurrency</h2>
+<ul>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0002-sharedflow-reactivity.md">ADR-0002</a> — an in-memory <code>SharedFlow</code> change bus for reactivity.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0011-synchronous-api-nonsuspend-lock.md">ADR-0011</a> — a synchronous document API with a non-suspending write lock; only <code>Flow</code> collection is dispatcher-governed.</li>
+</ul>
+
+<h2>Platform &amp; publishing</h2>
+<ul>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0005-publishing-maven-central.md">ADR-0005</a> — publish to Maven Central via macOS CI, not JitPack.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0012-automatic-mmkv-initialization.md">ADR-0012</a> — the library owns MMKV initialization, zero-touch.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0013-ios-mmkv-via-cocoapods.md">ADR-0013</a> — bind MMKV on iOS via the Kotlin CocoaPods plugin.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0019-drop-multiprocess-mode.md">ADR-0019</a> — dropped <code>multiProcess</code> mode; storage is always single-process.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0020-align-package-with-groupid.md">ADR-0020</a> — aligned the Kotlin package with the Maven groupId.</li>
+</ul>
+
+<h2>Errors &amp; testing</h2>
+<ul>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0009-document-decoding-exception.md">ADR-0009</a> — decoding failures surface as <code>DocumentDecodingException</code>.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0010-field-delegate-serializer.md">ADR-0010</a> — <code>field(prop, default)</code> resolves its serializer via a reified inline extension.</li>
+  <li><a href="https://github.com/nomemmurrakh/documents/blob/master/docs/adr/0014-on-device-benchmarks.md">ADR-0014</a> — on-device, platform-native benchmark harnesses.</li>
+</ul>
+
+<p>For the full history behind any of these, see the
+<a href="https://github.com/nomemmurrakh/documents/tree/master/docs/adr" target="_blank" rel="noopener">complete ADR index on GitHub</a>,
+or read <a href="/contributing.html">Contributing</a> for how to propose a new one.</p>

@@ -1,0 +1,30 @@
+<h1>Concurrency</h1>
+
+<p>The document API is fully <strong>synchronous and non-suspending</strong>.
+<code>get()</code>, <code>set()</code>, <code>update()</code>, <code>delete()</code>,
+<code>exists()</code>, and every field delegate are plain function calls — none of them are
+<code>suspend</code> functions, and none of them require a coroutine scope to call. MMKV is
+memory-mapped, so a read or write is a memory operation, not I/O — there is nothing to suspend
+for.</p>
+
+<pre><code class="language-kotlin">// no coroutine scope needed for any of these:
+note.set(Note(title = "Pick up milk"))
+val current = note.get()
+note.update(Note::done, true)</code></pre>
+
+<h2>Writes are serialized per document</h2>
+<p>Every write to a given document goes through a lightweight, non-suspending lock scoped to that
+document — not a coroutine <code>Mutex</code>. This is what makes a multi-field
+<code>update { current -> ... }</code> atomic from the caller's perspective: the read of the
+current value and the write of the new one happen as one uninterrupted unit, so a concurrent
+reader never observes a half-applied update. Because the lock is non-suspending, it composes
+safely with plain synchronous call sites — there's no risk of it blocking a coroutine dispatcher
+in a way that would starve other coroutines.</p>
+
+<h2>What <em>is</em> dispatcher-governed</h2>
+<p>Only <code>flow()</code> and <code>stateFlow()</code> <em>collection</em> runs on a
+configurable dispatcher — <code>Dispatchers.Default</code> by default, since re-reading and
+decoding a value on each change bus emission is CPU-bound work (see
+<a href="/concepts/reactivity-model.html">Reactivity Model</a>). This dispatcher only affects how
+a <code>Flow</code> is collected; it has no bearing on the document operations themselves, which
+remain synchronous regardless of which dispatcher a caller happens to be on.</p>
