@@ -22,7 +22,7 @@ val doc = Documents.document<User>("user") {
 
 // A separate MMKV file, for a distinct lifecycle/access pattern.
 val cache = Documents.collection("cache") {
-    multiProcess = false // default
+    dispatcher = Dispatchers.Default // default
 }
 val draft = cache.document<Draft>("draft")
 ```
@@ -30,9 +30,9 @@ val draft = cache.document<Draft>("draft")
 - `document<T>(key)` with no block must work and use sensible defaults; it opens (get-or-open,
   not "create anew") the document under `key` in the default store.
 - `collection(name)` maps `name` to the underlying MMKV instance id; open a collection only for a
-  wipe-on-logout cache, per-user scoping, multi-process sharing, or an encryption boundary.
-- The default store's config exposes `dispatcher` only; a collection's config exposes
-  `multiProcess` and `dispatcher`.
+  wipe-on-logout cache, per-user scoping, or an encryption boundary. Collections are
+  **single-process only** — there is no supported way to share a store across OS processes.
+- Both the default store's config and a collection's config expose `dispatcher` only.
 - MMKV is initialized automatically (Android via `androidx.startup`; iOS via `initializeMMKV`
   with the in-process sandbox path on first use). Consumers never call `MMKV.initialize` or pass a
   `Context` — see [ADR-0012](adr/0012-automatic-mmkv-initialization.md) (and [ADR-0013](adr/0013-ios-mmkv-via-cocoapods.md) for the iOS CocoaPods binding).
@@ -170,7 +170,7 @@ val doc = store.document<SettingsData>("settings")
 ```
 Documents
   .document<T>(key, block?): Document<T>      // default store; block configures dispatcher
-  .collection(name, block?): Collection       // named MMKV file; block configures multiProcess, dispatcher
+  .collection(name, block?): Collection       // named MMKV file; block configures dispatcher
   .inMemory(): Collection
 
 Collection
