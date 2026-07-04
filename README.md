@@ -1,5 +1,8 @@
 # Documents
 
+[![CI](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml/badge.svg?branch=master)](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml)
+[![License](https://img.shields.io/github/license/nomemmurrakh/documents)](LICENSE)
+
 **Typed, reactive documents on top of MMKV — fast *and* a joy to write.**
 
 A document-oriented Kotlin Multiplatform storage library backed by
@@ -19,6 +22,30 @@ save.flow().collect { hud.render(it) }   // the HUD reacts to every write
 ```
 
 That's the whole story. No schema, no DAO, no `MMKV.initialize`, no serialization plumbing.
+
+---
+
+## Contents
+
+- [Why this exists](#why-this-exists)
+- [What to use it for](#what-to-use-it-for)
+- [How it feels](#how-it-feels)
+- [Install](#install)
+- [Quick start](#quick-start)
+- [The API, end to end](#the-api-end-to-end)
+  - [Open a document](#open-a-document)
+  - [Open a collection (a separate file)](#open-a-collection-a-separate-file)
+  - [Read & write](#read--write)
+  - [React to changes](#react-to-changes)
+  - [Bind a single field](#bind-a-single-field)
+  - [When decoding fails](#when-decoding-fails)
+- [Under the hood](#under-the-hood)
+- [Benchmarks](#benchmarks)
+  - [iOS](#ios)
+  - [Android](#android)
+- [Platform support](#platform-support)
+- [Try the sample](#try-the-sample)
+- [License](#license)
 
 ---
 
