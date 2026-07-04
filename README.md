@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="brand/exports/logo-256.png" width="112" height="112" alt="Documents logo">
+</div>
+
 # Documents
 
 [![CI](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml/badge.svg?branch=master)](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml)
