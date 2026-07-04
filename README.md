@@ -1,13 +1,9 @@
 <div align="center">
-  <img src="brand/exports/logo-256.png" width="112" height="112" alt="Documents logo">
+  <img src="brand/exports/social-preview.png" alt="Documents — Typed, reactive documents on MMKV. Kotlin Multiplatform, Android & iOS.">
 </div>
-
-# Documents
 
 [![CI](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml/badge.svg?branch=master)](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml)
 [![License](https://img.shields.io/github/license/nomemmurrakh/documents)](LICENSE)
-
-**Typed, reactive documents on top of MMKV**
 
 A document-oriented Kotlin Multiplatform storage library backed by
 [MMKV](https://github.com/Tencent/MMKV). Define a data class, treat it as a document, and get
