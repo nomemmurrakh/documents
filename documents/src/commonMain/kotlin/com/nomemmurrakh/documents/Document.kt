@@ -6,12 +6,12 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -79,6 +79,7 @@ public interface Document<T> {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
+@Suppress("TooManyFunctions") // implements the full Document<T> public API surface
 internal class DocumentImpl<T>(
     private val key: String,
     private val serializer: KSerializer<T>,

@@ -24,6 +24,7 @@ internal class DocumentEncoder(
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder =
         FieldCompositeEncoder(documentKey, storage, cbor)
 
+    @Suppress("TooManyFunctions") // implements the full CompositeEncoder SPI
     private class FieldCompositeEncoder(
         private val documentKey: String,
         private val storage: Storage,

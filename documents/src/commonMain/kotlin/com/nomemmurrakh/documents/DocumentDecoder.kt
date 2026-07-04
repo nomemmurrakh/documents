@@ -27,6 +27,7 @@ internal class DocumentDecoder(
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder =
         FieldCompositeDecoder(documentKey, storage, cbor)
 
+    @Suppress("TooManyFunctions") // implements the full CompositeDecoder SPI
     private class FieldCompositeDecoder(
         private val documentKey: String,
         private val storage: Storage,
@@ -113,14 +114,15 @@ internal class DocumentDecoder(
             deserializer: DeserializationStrategy<T?>,
             previousValue: T?,
         ): T? {
-            val raw = bytes(descriptor, index) ?: return null
-            if (raw.size == 1 && raw[0] == CBOR_NULL) return null
-            return decode(descriptor.getElementName(index), deserializer, raw)
+            val raw = bytes(descriptor, index)
+            val isCborNull = raw != null && raw.size == 1 && raw[0] == CBOR_NULL
+            return if (raw == null || isCborNull) null else decode(descriptor.getElementName(index), deserializer, raw)
         }
 
         override fun decodeInlineElement(descriptor: SerialDescriptor, index: Int): Decoder {
             throw UnsupportedOperationException(
-                "Inline value class field '$documentKey${descriptor.getElementName(index)}' is not supported by Documents v1",
+                "Inline value class field '$documentKey${descriptor.getElementName(index)}' " +
+                    "is not supported by Documents v1",
             )
         }
 

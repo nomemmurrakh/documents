@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.startup.Initializer
 import com.tencent.mmkv.MMKV
 
+// Android init happens via androidx.startup (DocumentsInitializer below), not here.
+@Suppress("EmptyFunctionBlock")
 internal actual fun ensureInitialized() {
 }
 
