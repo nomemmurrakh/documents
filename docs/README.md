@@ -15,6 +15,7 @@ Internal design documentation for `Documents`. For installation and usage, see t
 | [tasks.md](tasks.md) | Ordered implementation checklist |
 | [test-plan.md](test-plan.md) | Intent-driven test plan by feature area |
 | [CHANGELOG.md](CHANGELOG.md) | Released and unreleased changes (Keep a Changelog format) |
+| [website-plans/](website-plans/) | Build plans for the docs website (`website/`), numbered in build order |
 
 ## Contributing
 
