@@ -256,7 +256,7 @@ the same 5-field value once with CBOR and calling MMKV's byte API.
 
 The numbers are captured on-device (Documents vs raw MMKV is not a JVM-host benchmark — MMKV is
 mmap-backed and needs a real device/simulator). They are device- and OS-specific and are not run
-in CI. See [ADR-0014](docs/0014-on-device-benchmarks.md).
+in CI. See [ADR-0014](docs/adr/0014-on-device-benchmarks.md).
 
 Sample type:
 

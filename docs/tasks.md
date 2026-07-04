@@ -15,7 +15,7 @@ have tests before moving on. This is also the source for `good first issue` labe
       source sets. Kotlin + `org.jetbrains.kotlin.plugin.serialization`.
 - [ ] **T0.2** Enable `explicitApi()` strict. Add `binary-compatibility-validator`.
 - [ ] **T0.3** Publishing setup — **Maven Central, not JitPack** (JitPack builds on Linux
-      only and cannot compile Apple klibs; see ADR-0005). Sub-tasks:
+      only and cannot compile Apple klibs; see [ADR-0005](adr/0005-publishing-maven-central.md)). Sub-tasks:
   - [ ] **T0.3a** Apply `com.vanniktech.maven.publish`. Configure coordinates
         (`groupId = "com.nomemmurrakh"`, `artifactId = "documents"`, `version`), POM metadata
         (name, description, url, license, developer, scm), and GPG signing from an in-memory
@@ -57,13 +57,13 @@ have tests before moving on. This is also the source for `good first issue` labe
 
 - [ ] **T5.1** `Document<T>`: `get`, `set(REPLACE)`, `delete`, `exists`. Tests.
       Also delivers the `Documents` root factory (`create`, `inMemory`, `document<T>`) that
-      api-design §1/§7/§10 requires to obtain a `Document<T>` — see ADR-0007.
+      api-design §1/§7/§10 requires to obtain a `Document<T>` — see [ADR-0007](adr/0007-documents-root-factory.md).
 - [ ] **T5.2** `set(MergeStrategy.UPDATE) { }` builder; UPDATE on missing doc starts from
       defaults. Tests. Builder is `T.() -> T` returning a `copy()`, not a mutated receiver — see
-      ADR-0008 (api-design §3/§10 corrected to match).
+      [ADR-0008](adr/0008-update-builder-returns-copy.md) (api-design §3/§10 corrected to match).
 - [ ] **T5.3** `DocumentDecodingException` with key/field/cause. Tests for the failure path.
       Wraps both corrupt-bytes (`SerializationException` cause) and missing-required-field on a
-      partially-present doc; `field` is nullable — see ADR-0009.
+      partially-present doc; `field` is nullable — see [ADR-0009](adr/0009-document-decoding-exception.md).
 
 ## Phase 6 — Reactivity
 
@@ -88,7 +88,7 @@ have tests before moving on. This is also the source for `good first issue` labe
 
 - [x] **T9.1** Microbenchmark write/read vs raw MMKV; record in README. On-device, one shared
       `TimeSource.Monotonic` timing loop on both platforms (`androidDeviceTest` + `iosTest`), not CI
-      — Jetpack Microbenchmark was tried and dropped, see ADR-0014. Cases: `set(REPLACE)`, `get`, `set(UPDATE)`, `delete`,
+      — Jetpack Microbenchmark was tried and dropped, see [ADR-0014](adr/0014-on-device-benchmarks.md). Cases: `set(REPLACE)`, `get`, `set(UPDATE)`, `delete`,
       field-delegate write, each vs raw MMKV. Results table in `README.md` (fill in after running on
       device). No public ABI change (benchmarks are test-source-only); `checkLegacyAbi` unmoved.
 - [x] **T9.2a** iOS: rewrote the raw-MMKV baselines in `DocumentsBenchmark.kt` to do the same
@@ -108,20 +108,20 @@ have tests before moving on. This is also the source for `good first issue` labe
 ## Phase 10 — iOS storage (v1.0; ships with Android)
 
 Implements the iOS `Storage` so the cross-platform consumer contract is real, not contract-only.
-Resolves the ADR-0012 follow-up. MMKV is bound on Apple via the Kotlin CocoaPods plugin — see
-ADR-0013. Each task below states its dependencies explicitly; tasks without a stated dependency are
+Resolves the [ADR-0012](adr/0012-automatic-mmkv-initialization.md) follow-up. MMKV is bound on Apple via the Kotlin CocoaPods plugin — see
+[ADR-0013](adr/0013-ios-mmkv-via-cocoapods.md). Each task below states its dependencies explicitly; tasks without a stated dependency are
 independent. The iOS `Storage` impl is `internal`, so the published common ABI must not move —
-`checkLegacyAbi` stays green throughout (see ADR-0012).
+`checkLegacyAbi` stays green throughout (see [ADR-0012](adr/0012-automatic-mmkv-initialization.md)).
 
 - [x] **T10.1** *(independent)* Add the Kotlin CocoaPods plugin and declare `pod("MMKV")` in
       `documents/build.gradle.kts`; reuse the existing `mmkv` version ref in
       `gradle/libs.versions.toml` for the pod version, and set `ios.deploymentTarget`. The plugin
-      generates the MMKV cinterop bindings — see ADR-0013. Acceptance: the cinterop / `podGen` task
+      generates the MMKV cinterop bindings — see [ADR-0013](adr/0013-ios-mmkv-via-cocoapods.md). Acceptance: the cinterop / `podGen` task
       succeeds and `cocoapods.MMKV.*` symbols resolve from `iosMain`.
 - [x] **T10.2** *(depends on T10.1)* Replace the no-op iOS `ensureInitialized()` actual in
       `PlatformStorage.ios.kt` with a once-guarded `MMKV.initializeMMKV(rootDir)` using the
-      in-process app sandbox path (no `Context` — preserves the zero-touch contract from ADR-0012).
-      Resolves the ADR-0012 follow-up. Acceptance: init runs exactly once and is idempotent across
+      in-process app sandbox path (no `Context` — preserves the zero-touch contract from [ADR-0012](adr/0012-automatic-mmkv-initialization.md)).
+      Resolves the [ADR-0012](adr/0012-automatic-mmkv-initialization.md) follow-up. Acceptance: init runs exactly once and is idempotent across
       repeated `create` calls.
 - [x] **T10.3** *(depends on T10.1)* Implement `MmkvStorage` in `iosMain` against the
       `internal interface Storage`, mapping each method to the MMKV Obj-C API
@@ -144,7 +144,7 @@ independent. The iOS `Storage` impl is `internal`, so the published common ABI m
 ## Phase 11 — Binary format & codec cleanup (pre-v0.1.0 tag)
 
 Settle the on-disk format before tagging, while changing it is still a code change and not a data
-migration. Decision recorded in ADR-0015 (supersedes ADR-0006).
+migration. Decision recorded in [ADR-0015](adr/0015-cbor-internal-format.md) (supersedes [ADR-0006](adr/0006-codec-holds-serializer.md)).
 
 - [x] **T11.1** Switch the on-disk format from JSON to a single internal CBOR instance
       (`Cbor { ignoreUnknownKeys = true }`), encoding field values straight to bytes

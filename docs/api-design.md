@@ -11,7 +11,7 @@
 ## 1. Opening documents
 
 `Documents` is the entry point. Open a document directly on the default store, or open a named
-`Collection` when a set of documents needs its own MMKV file. See ADR-0016.
+`Collection` when a set of documents needs its own MMKV file. See [ADR-0016](adr/0016-documents-entry-point-and-collections.md).
 
 ```kotlin
 // Default store — the common case.
@@ -35,8 +35,8 @@ val draft = cache.document<Draft>("draft")
   `multiProcess` and `dispatcher`.
 - MMKV is initialized automatically (Android via `androidx.startup`; iOS via `initializeMMKV`
   with the in-process sandbox path on first use). Consumers never call `MMKV.initialize` or pass a
-  `Context` — see ADR-0012 (and ADR-0013 for the iOS CocoaPods binding).
-- Field values are serialized with a single internal CBOR format (see ADR-0015); the on-disk
+  `Context` — see [ADR-0012](adr/0012-automatic-mmkv-initialization.md) (and [ADR-0013](adr/0013-ios-mmkv-via-cocoapods.md) for the iOS CocoaPods binding).
+- Field values are serialized with a single internal CBOR format (see [ADR-0015](adr/0015-cbor-internal-format.md)); the on-disk
   format is not configurable and is not a public extension point in v1.
 
 ## 2. Declaring a document
@@ -83,15 +83,15 @@ user.delete()
 
 ### Update vs. replace vs. single-field update
 
-Three call shapes, three intents; no strategy enum (see ADR-0017, extended by ADR-0018).
+Three call shapes, three intents; no strategy enum (see [ADR-0017](adr/0017-drop-merge-strategy.md), extended by [ADR-0018](adr/0018-update-verb-and-single-field-update.md)).
 
 - `set(value)` **replaces** the whole document — a complete object is supplied.
 - `update { current -> ... }` **updates** it — the builder receives the current value (or the
   type's defaults when the document is absent) as an explicit parameter and returns the new
-  value, idiomatically via `copy()` (ADR-0008, ADR-0018). Untouched fields retain their persisted
+  value, idiomatically via `copy()` ([ADR-0008](adr/0008-update-builder-returns-copy.md), [ADR-0018](adr/0018-update-verb-and-single-field-update.md)). Untouched fields retain their persisted
   value. This is a read-modify-write under the document's write lock.
 - `update(prop, value)` **updates a single field directly** — no read, no decode of the rest of
-  the document; it writes exactly one decomposed key (ADR-0018).
+  the document; it writes exactly one decomposed key ([ADR-0018](adr/0018-update-verb-and-single-field-update.md)).
 
 ## 4. Reactivity
 
@@ -124,7 +124,7 @@ class Settings {
 - Writing a field updates only that field's key and emits on the document's flow.
 - `fieldFlow(prop, default)` emits the current field value (or `default` if never set) on
   collection, then the new value each time that field changes. A field's declared default is
-  not recoverable from a `KProperty` at runtime, so the caller supplies it — see ADR-0010.
+  not recoverable from a `KProperty` at runtime, so the caller supplies it — see [ADR-0010](adr/0010-field-delegate-serializer.md).
 - `update(prop, value)` (§3) is a related but distinct single-field write: it is a plain function
   call with no `ReadWriteProperty`/`by` involved, for one-off field writes outside a class that
   owns a `var`-backed delegate.
@@ -133,7 +133,7 @@ class Settings {
 
 Serialization is internal. Each field value is encoded to bytes with a single internal CBOR
 format and stored under its decomposed key. The on-disk format is not configurable and is not
-a public extension point in v1 — see ADR-0015.
+a public extension point in v1 — see [ADR-0015](adr/0015-cbor-internal-format.md).
 
 ## 7. Testability
 
@@ -150,7 +150,7 @@ val doc = store.document<SettingsData>("settings")
 - Document operations (`get`/`set`/`delete`/`exists`, field delegates) are **synchronous and
   non-blocking** — MMKV is memory-mapped, so a read/write is a memory operation, not I/O.
 - Writes to a document are serialized by a non-suspending reentrant lock, so a concurrent
-  reader never observes a half-applied multi-field `UPDATE` (see ADR-0011).
+  reader never observes a half-applied multi-field `UPDATE` (see [ADR-0011](adr/0011-synchronous-api-nonsuspend-lock.md)).
 - `flow()`/`stateFlow()` collection runs on a configurable dispatcher (default
   `Dispatchers.Default`, since the work is CPU-bound); `flow()` is safe to collect from any
   dispatcher and emissions are conflated.

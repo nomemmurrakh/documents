@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-06-21
+**Amends:** ADR-0008 (builder shape)
 
 ## Context
 

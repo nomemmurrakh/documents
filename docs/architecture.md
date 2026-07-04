@@ -69,7 +69,7 @@ user::theme   -> bytes
 Key format: `{documentKey}::{fieldName}`. The `::` separator is reserved and rejected
 in document keys.
 
-**Why decompose** (see ADR-0001): partial updates touch only changed keys, field-level
+**Why decompose** (see [ADR-0001](adr/0001-field-decomposition.md)): partial updates touch only changed keys, field-level
 flows are possible, and we avoid read-modify-write of the whole object on every field set.
 
 ## 4. Walking fields with SerialDescriptor
@@ -95,7 +95,7 @@ A single internal CBOR format sits between the field-walker and `Storage`, seria
 `decodeFromByteArray` — no text intermediate). A field whose type is itself a `@Serializable`
 object is stored as a serialized sub-blob under its single field key in v1 (nested
 decomposition is a possible later optimization, not a v1 goal). The format is internal and not
-a public extension point — see ADR-0015 (which supersedes the earlier `Codec<T>` abstraction).
+a public extension point — see [ADR-0015](adr/0015-cbor-internal-format.md) (which supersedes the earlier `Codec<T>` abstraction).
 
 ## 6. Reactivity
 

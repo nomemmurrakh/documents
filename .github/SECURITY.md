@@ -26,6 +26,6 @@ public disclosure.
 
 ## Scope notes
 
-- The library does not encrypt data at rest in v1 (see `docs/roadmap.md`); applications
+- The library does not encrypt data at rest in v1 (see [`docs/roadmap.md`](../docs/roadmap.md)); applications
   storing sensitive data should account for this.
 - Reactivity notifications are process-local; do not rely on them as a security boundary.

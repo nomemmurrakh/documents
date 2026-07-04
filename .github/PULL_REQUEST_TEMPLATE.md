@@ -14,8 +14,8 @@ What does this PR do and why? Link the related issue (`Closes #…`).
 
 ## Checklist
 
-- [ ] Read the relevant design docs (`docs/api-design.md`, `docs/architecture.md`)
-- [ ] Tests added/updated, derived from `docs/test-plan.md`
+- [ ] Read the relevant design docs ([`docs/api-design.md`](../docs/api-design.md), [`docs/architecture.md`](../docs/architecture.md))
+- [ ] Tests added/updated, derived from [`docs/test-plan.md`](../docs/test-plan.md)
 - [ ] `./gradlew check` passes
 - [ ] `./gradlew apiCheck` passes
 - [ ] `explicitApi()` strict — no violations

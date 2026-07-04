@@ -73,5 +73,5 @@ Explicitly out of scope for the first release — do **not** build these:
 ## 7. Open questions
 
 - Final vocabulary: keep "document" as the user-facing noun, or `store` / `vault`?
-  (Decision tracked in ADR-0004.)
+  (Decision tracked in [ADR-0004](adr/0004-vocabulary.md).)
 - Default dispatcher for suspend operations — `Dispatchers.IO` vs caller-provided?

@@ -6,9 +6,9 @@ Thanks for your interest in contributing. This guide gets you productive quickly
 
 Read the design docs so your contribution fits the intended direction:
 
-- [`docs/PRD.md`](docs/PRD.md) — goals and **non-goals**.
-- [`docs/api-design.md`](docs/api-design.md) — the public surface (the source of truth).
-- [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr) — how and why.
+- [`docs/PRD.md`](../docs/PRD.md) — goals and **non-goals**.
+- [`docs/api-design.md`](../docs/api-design.md) — the public surface (the source of truth).
+- [`docs/architecture.md`](../docs/architecture.md) and [`docs/adr/`](../docs/adr) — how and why.
 
 ## Local setup
 
@@ -37,7 +37,7 @@ API dump.
 
 ## Tests
 
-- Add tests derived from [`docs/test-plan.md`](docs/test-plan.md).
+- Add tests derived from [`docs/test-plan.md`](../docs/test-plan.md).
 - Prefer `commonTest` against `InMemoryStorage`; use `androidTest` only for MMKV-specific
   behavior.
 - New behavior without tests will not be merged.
@@ -53,7 +53,7 @@ API dump.
 
 ## Good first issues
 
-Look for the `good first issue` label. The tasks in [`docs/tasks.md`](docs/tasks.md) are a
+Look for the `good first issue` label. The tasks in [`docs/tasks.md`](../docs/tasks.md) are a
 good map of self-contained units.
 
 ## Reporting bugs / proposing features

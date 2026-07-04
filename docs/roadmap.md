@@ -11,20 +11,20 @@ Versioning follows SemVer. Breaking changes only in major releases; deprecation 
 
 The minimum that delivers the product thesis.
 
-- `Documents.document<T>(key)` (default store) + `Documents.collection(name)` (named file), zero-config defaults (ADR-0016)
+- `Documents.document<T>(key)` (default store) + `Documents.collection(name)` (named file), zero-config defaults ([ADR-0016](adr/0016-documents-entry-point-and-collections.md))
 - `Document<T>`: `get`, `set(value)`, `set { }` (update), `delete`, `exists`
 - Field decomposition + `SerialDescriptor` encoder/decoder
-- Single internal CBOR format (ADR-0015)
+- Single internal CBOR format ([ADR-0015](adr/0015-cbor-internal-format.md))
 - `flow()` / `stateFlow()` via the SharedFlow change bus
 - Field delegates: `field(prop, default)`, `fieldFlow(prop)`
 - `InMemoryStorage` + `Documents.inMemory()` for tests
 - Android `MmkvStorage`
-- iOS `MmkvStorage` (MMKV bound via the Kotlin CocoaPods plugin — see ADR-0013)
+- iOS `MmkvStorage` (MMKV bound via the Kotlin CocoaPods plugin — see [ADR-0013](adr/0013-ios-mmkv-via-cocoapods.md))
 - `explicitApi()` strict, binary-compatibility validator, full KDoc, README, sample
 
 ## v1.x — Hardening
 
-- Benchmarks vs raw MMKV published in README (DONE — on-device, ADR-0014); vs DataStore /
+- Benchmarks vs raw MMKV published in README (DONE — on-device, [ADR-0014](adr/0014-on-device-benchmarks.md)); vs DataStore /
   SharedPreferences still to come
 - More merge strategies if demand appears (e.g. `MERGE_DEEP`)
 

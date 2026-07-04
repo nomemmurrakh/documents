@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-07-02
+**Amends:** ADR-0008 (receiver style and verb)
 
 ## Context
 
