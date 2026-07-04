@@ -81,5 +81,5 @@
 
 ## 11. API governance (CI)
 
-- `checkLegacyAbi` (Kotlin built-in ABI validation) passes — no unintended public API changes.
+- `checkKotlinAbi` (Kotlin built-in ABI validation) passes — no unintended public API changes.
 - `explicitApi()` strict produces no violations.

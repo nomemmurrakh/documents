@@ -17,13 +17,13 @@ Read the design docs so your contribution fits the intended direction:
 - Clone, then import into Android Studio / IntelliJ IDEA.
 
 ```bash
-./gradlew build      # build all targets
-./gradlew check      # run all tests + lint
-./gradlew apiCheck   # verify public API hasn't changed unexpectedly
+./gradlew build            # build all targets
+./gradlew check            # run all tests + lint
+./gradlew checkKotlinAbi   # verify public API hasn't changed unexpectedly
 ```
 
-If you intentionally change the public API, run `./gradlew apiDump` and commit the updated
-API dump.
+If you intentionally change the public API, run `./gradlew updateKotlinAbi` and commit the
+updated API dump.
 
 ## Code style
 
@@ -47,7 +47,7 @@ API dump.
 - Branch naming: `feat/…`, `fix/…`, `docs/…`, `chore/…`.
 - Keep PRs focused — one logical change. Reference the related issue.
 - Conventional Commit messages (`feat:`, `fix:`, `docs:`…) are appreciated.
-- CI (build + tests + `apiCheck`) must pass.
+- CI (build + tests + `checkKotlinAbi`) must pass.
 - For anything touching the public API, explain the impact and the deprecation plan if it's
   a breaking change. Breaking changes land only in major releases.
 

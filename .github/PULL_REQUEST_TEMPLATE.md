@@ -9,7 +9,7 @@ What does this PR do and why? Link the related issue (`Closes #…`).
 ## Public API impact
 
 - [ ] No public API change
-- [ ] Public API changed — `apiDump` run and committed
+- [ ] Public API changed — `updateKotlinAbi` run and committed
 - [ ] Breaking change — described below with a deprecation plan (lands only in a major release)
 
 ## Checklist
@@ -17,7 +17,7 @@ What does this PR do and why? Link the related issue (`Closes #…`).
 - [ ] Read the relevant design docs ([`docs/api-design.md`](../docs/api-design.md), [`docs/architecture.md`](../docs/architecture.md))
 - [ ] Tests added/updated, derived from [`docs/test-plan.md`](../docs/test-plan.md)
 - [ ] `./gradlew check` passes
-- [ ] `./gradlew apiCheck` passes
+- [ ] `./gradlew checkKotlinAbi` passes
 - [ ] `explicitApi()` strict — no violations
 - [ ] KDoc added on any new public entry points
 - [ ] No inline comments

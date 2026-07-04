@@ -40,10 +40,10 @@ MMKV. Read these before writing code, in order:
 
 - Build: `./gradlew build`
 - Tests: `./gradlew check`
-- API governance: `./gradlew checkLegacyAbi` (Kotlin built-in ABI validation, experimental);
-  regenerate the reference dump with `./gradlew updateLegacyAbi`.
+- API governance: `./gradlew checkKotlinAbi` (Kotlin built-in ABI validation);
+  regenerate the reference dump with `./gradlew updateKotlinAbi`.
 
 ## Definition of done for a task
 
-Compiles, has tests derived from `docs/test-plan.md`, passes `checkLegacyAbi`, public surface
+Compiles, has tests derived from `docs/test-plan.md`, passes `checkKotlinAbi`, public surface
 matches `docs/api-design.md`, no comments, KDoc on new public entry points.

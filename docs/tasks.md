@@ -82,7 +82,7 @@ have tests before moving on. This is also the source for `good first issue` labe
 - [ ] **T8.2** Per-document write mutex for atomic multi-field UPDATE.
 - [ ] **T8.3** KDoc on every public entry point.
 - [ ] **T8.4** Runnable Android sample (`:sample`) — 10-line getting started.
-- [ ] **T8.5** Generate and check API dump (`apiDump`).
+- [ ] **T8.5** Generate and check API dump (`updateKotlinAbi`).
 
 ## Phase 9 — Benchmarks (v1.x, optional for first tag)
 

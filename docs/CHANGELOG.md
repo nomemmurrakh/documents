@@ -55,4 +55,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   configuration property. The serialization format is now a single internal CBOR instance with
   no public extension point ([ADR-0015](adr/0015-cbor-internal-format.md)).
 
-[Unreleased]: https://github.com/nomemlabs/documents/commits/main
+[Unreleased]: https://github.com/nomemmurrakh/documents/commits/master
