@@ -5,6 +5,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.cbor.Cbor
 
+@Suppress("LongParameterList") // each parameter is an independently required piece of the encode call
 @OptIn(ExperimentalSerializationApi::class)
 internal fun <T> encodeDocument(
     documentKey: String,

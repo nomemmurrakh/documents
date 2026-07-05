@@ -70,7 +70,11 @@ public interface Collection {
      *
      * @throws IllegalArgumentException when [key] contains the reserved key separator.
      */
-    public fun <T> document(key: String, serializer: KSerializer<T>, config: DocumentConfig.() -> Unit = {}): Document<T>
+    public fun <T> document(
+        key: String,
+        serializer: KSerializer<T>,
+        config: DocumentConfig.() -> Unit = {},
+    ): Document<T>
 }
 
 /**

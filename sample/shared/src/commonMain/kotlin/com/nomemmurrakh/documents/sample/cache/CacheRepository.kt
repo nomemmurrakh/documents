@@ -18,7 +18,7 @@ class CacheRepository {
         syncState.update { current ->
             current.copy(
                 lastSyncedAtEpochMs = Clock.System.now().toEpochMilliseconds(),
-                lastSyncedEtag = "etag-${Random.nextInt(100000, 999999)}",
+                lastSyncedEtag = "etag-${Random.nextInt(from = 100000, until = 999999)}",
             )
         }
     }

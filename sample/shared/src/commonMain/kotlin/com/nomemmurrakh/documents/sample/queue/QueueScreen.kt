@@ -42,7 +42,7 @@ fun QueueScreen(onBack: () -> Unit) {
             Button(onClick = {
                 queue.enqueue(
                     OfflineQueueItem(
-                        id = "req-${Random.nextInt(1000, 9999)}",
+                        id = "req-${Random.nextInt(from = 1000, until = 9999)}",
                         endpoint = "/sync",
                         payloadJson = "{}",
                     ),

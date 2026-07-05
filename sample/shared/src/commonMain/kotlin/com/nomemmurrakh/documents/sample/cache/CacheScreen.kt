@@ -35,7 +35,7 @@ fun CacheScreen(onBack: () -> Unit) {
     var draftBody by remember { mutableStateOf(repository.draft.get()?.body ?: "") }
 
     LaunchedEffect(draftBody) {
-        delay(300)
+        delay(timeMillis = 300)
         repository.draft.update { current -> current.copy(body = draftBody) }
     }
 

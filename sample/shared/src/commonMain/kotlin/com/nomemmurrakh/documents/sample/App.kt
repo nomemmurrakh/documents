@@ -22,7 +22,7 @@ fun App() {
 
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize().safeContentPadding()) {
-            when (val current = screen) {
+            when (screen) {
                 Screen.Home -> HomeScreen(onSelect = { screen = it })
                 Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Home })
                 Screen.Session -> SessionScreen(onBack = { screen = Screen.Home })

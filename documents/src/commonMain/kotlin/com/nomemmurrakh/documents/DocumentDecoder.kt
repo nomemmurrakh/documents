@@ -40,6 +40,7 @@ internal class DocumentDecoder(
 
         private var nextIndex = 0
 
+        @Suppress("ThrowsCount") // one rethrow per caught exception type, per the FieldDecorator failure contract
         private fun bytes(descriptor: SerialDescriptor, index: Int): ByteArray? {
             val fieldName = descriptor.getElementName(index)
             val raw = storage.getBytes(Keys.field(documentKey, fieldName)) ?: return null

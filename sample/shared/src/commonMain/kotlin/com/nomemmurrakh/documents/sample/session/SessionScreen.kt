@@ -54,9 +54,9 @@ fun SessionScreen(onBack: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = {
                 repository.signIn(
-                    userId = "u_${Random.nextInt(1000, 9999)}",
+                    userId = "u_${Random.nextInt(from = 1000, until = 9999)}",
                     displayName = "Mara",
-                    authToken = "token-${Random.nextInt(100000, 999999)}",
+                    authToken = "token-${Random.nextInt(from = 100000, until = 999999)}",
                 )
                 decryptionProof = null
             }) { Text("Sign in") }
@@ -101,6 +101,6 @@ private fun tryDecryptWithWrongKey(repository: SessionRepository): String {
         "Unexpected: decrypted with the wrong key. This should not happen."
     } catch (e: DocumentDecodingException) {
         "Confirmed: a different AES key fails to decrypt the stored authToken " +
-            "(${e.message?.take(60)}...) — the bytes on disk are ciphertext."
+            "(${e.message?.take(n = 60)}...) — the bytes on disk are ciphertext."
     }
 }

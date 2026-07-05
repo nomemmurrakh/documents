@@ -79,7 +79,7 @@ public interface Document<T> {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-@Suppress("TooManyFunctions") // implements the full Document<T> public API surface
+@Suppress("TooManyFunctions", "LongParameterList") // implements the full Document<T> public API surface
 internal class DocumentImpl<T>(
     private val key: String,
     private val serializer: KSerializer<T>,
