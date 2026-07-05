@@ -210,6 +210,36 @@
     "text": "Documents.inMemory() returns a Collection with identical semantics, backed by an in-memory map instead of a real MMKV file — no device, no simulator, no disk state to clean up between tests: val store = Documents .inMemory() val note = store.document< Note >( \"note-1\" ) note. set ( Note (title = \"Test note\" )) assertEquals( \"Test note\" , note. get ()?.title) Every store here — the default store, every named collection, and the in-memory backend alike — is single-process only; see Overview for the constraint that applies across all of them."
   },
   {
+    "title": "Declaring Your Data Class",
+    "href": "/guide/declaring-data-classes.html",
+    "section": "Declaring Your Data Class",
+    "text": "Every Document<T> is backed by an @Serializable class you write. How you declare that class's properties — nullable or not, with a constructor default or without — decides what happens the first time update() runs against a document that hasn't been written yet. Get this wrong and the failure shows up as a runtime crash on a button tap, not a compile error."
+  },
+  {
+    "title": "Declaring Your Data Class",
+    "href": "/guide/declaring-data-classes.html",
+    "section": "The rule",
+    "text": "Documents never invents a value for a field. It only ever uses one of two sources: a value you already stored, or a default you already declared in the constructor. When neither exists, it fails loudly instead of guessing — there is no \"correct\" placeholder the library could make up for a field like title: String or count: Int . @Serializable data class Note ( val title: String = \"\" , val count: Int = 0 ) // safe: every field has a default Every field in a document type should have either a constructor default or a nullable type ( = null ). A field with neither is only safe once you're certain the document is always set() before it's ever update() -d."
+  },
+  {
+    "title": "Declaring Your Data Class",
+    "href": "/guide/declaring-data-classes.html",
+    "section": "Why this matters: update() on an absent document",
+    "text": "update { current -> ... } needs a baseline to run the builder against. If the document already exists, that baseline is the current value. If it doesn't exist yet — nothing has ever been set() for this key — the baseline comes from decoding the type as if every field were absent, which only works for fields that have somewhere to fall back to: Field has a constructor default ( val count: Int = 0 ) — the default is used. This works. Field is nullable with no default ( val nickname: String? ) — it resolves to null . This also works; nullability itself is a built-in fallback. Field is non-null with no default ( val title: String ) — there is nothing to fall back to. update() throws DocumentDecodingException . This is the same rule whether the missing field is a String , an Int , a nested @Serializable type, or an enum — the library has no way to know what value you consider \"correct\" for a required field, so it never guesses on your behalf."
+  },
+  {
+    "title": "Declaring Your Data Class",
+    "href": "/guide/declaring-data-classes.html",
+    "section": "A first-run crash, concretely",
+    "text": "This type looks reasonable and compiles fine: @Serializable data class Note ( val title: String , val count: Int ) // no defaults, both non-null It works perfectly for set() and get() . But call update() on it before it's ever been written — for example, incrementing a counter on the very first button tap in a fresh app install — and it crashes: val document = Documents .document< Note >( \"note\" ) // Crashes if \"note\" was never set() before — there's no stored title // and no default to fall back to. document.update { it.copy(count = it.count + 1 ) } com.nomemmurrakh.documents.DocumentDecodingException: Failed to decode field 'title' of document 'note' Note That message is more generic than it should be — it reads identically to a genuinely corrupted field (see Error Handling ), even though this case has a distinct, knowable cause: a missing constructor default. A clearer, dedicated message for this specific case is planned; until then, if you see DocumentDecodingException the very first time you call update() on a document, suspect a missing default before suspecting corrupted data. The fix is either of: // Give every field a constructor default data class Note ( val title: String = \"\" , val count: Int = 0 ) // Or make the field nullable, which defaults to null data class Note ( val title: String ?, val count: Int = 0 ) // Or guarantee set() runs before update() ever does document. set ( Note (title = \"Untitled\" , count = 0 )) document.update { it.copy(count = it.count + 1 ) } // safe now"
+  },
+  {
+    "title": "Declaring Your Data Class",
+    "href": "/guide/declaring-data-classes.html",
+    "section": "What \"optional\" means here",
+    "text": "This has nothing to do with Kotlin's own optional-parameter syntax beyond the fact that it's what triggers it: a field only gets treated as having a fallback when the constructor supplies a default value expression. A type can be non-nullable and still be safe as long as it has a default; a type can be nullable and safe with no default at all, because null itself is a valid fallback. The two are independent — pick whichever reads better for the field's meaning. See Opening Documents for what else T can and can't be, and Read & Write for the full get / set / update picture."
+  },
+  {
     "title": "Error Handling",
     "href": "/guide/error-handling.html",
     "section": "Error Handling",
@@ -226,6 +256,12 @@
     "href": "/guide/error-handling.html",
     "section": "What's not an error",
     "text": "A document that was simply never written is not a decoding failure — get() returns null for that case, it never throws just because something is missing. See Read & Write ."
+  },
+  {
+    "title": "Error Handling",
+    "href": "/guide/error-handling.html",
+    "section": "A distinct case: update() on a never-written document",
+    "text": "update() can also throw DocumentDecodingException the very first time it runs against a document that's never been set() — but the cause there isn't corruption, it's a data class field with no constructor default and no nullability to fall back on. The exception message is identical to a genuine decode failure today, which makes it easy to mistake for one. See Declaring Data Classes for why this happens and how to avoid it."
   },
   {
     "title": "Field Decorators",
@@ -297,7 +333,7 @@
     "title": "Guide",
     "href": "/guide/index.html",
     "section": "Guide",
-    "text": "Task-oriented walkthroughs of the public API — start here if you want the full picture, not just the quick tour. Opening Documents — documents vs. collections, and why there's no setup step. Read & Write — set , update , and single-field update , and when to reach for each. Reactivity — flow() and stateFlow() , including a Compose-ready snippet. Field Delegates — binding a single field with by , without touching the whole document. Collections & Testing — separate MMKV files, the in-memory backend for tests, and the single-process constraint. Error Handling — what happens when a stored field can't be decoded."
+    "text": "Task-oriented walkthroughs of the public API — start here if you want the full picture, not just the quick tour. Opening Documents — documents vs. collections, and why there's no setup step. Declaring Data Classes — nullability vs. constructor defaults, and the first-run crash to avoid. Read & Write — set , update , and single-field update , and when to reach for each. Reactivity — flow() and stateFlow() , including a Compose-ready snippet. Field Delegates — binding a single field with by , without touching the whole document. Collections & Testing — separate MMKV files, the in-memory backend for tests, and the single-process constraint. Error Handling — what happens when a stored field can't be decoded."
   },
   {
     "title": "Opening Documents",
@@ -321,7 +357,7 @@
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
     "section": "What T can be",
-    "text": "T must be a @Serializable class (or enum, or primitive) — not a top-level List or other collection type. Field decomposition (see Field Decomposition ) keys each stored value off the type's declared properties, which a bare list doesn't have; opening Documents.document<List<T>>(key) throws DocumentDecodingException immediately. A list works correctly as a field inside a class instead — wrap it: @Serializable data class QueueState ( val items: List < OfflineQueueItem > = emptyList()) val queue = Documents .document< QueueState >( \"pending-requests\" )"
+    "text": "T must be a @Serializable class (or enum, or primitive) — not a top-level List or other collection type. Field decomposition (see Field Decomposition ) keys each stored value off the type's declared properties, which a bare list doesn't have; opening Documents.document<List<T>>(key) throws DocumentDecodingException immediately. A list works correctly as a field inside a class instead — wrap it: @Serializable data class QueueState ( val items: List < OfflineQueueItem > = emptyList()) val queue = Documents .document< QueueState >( \"pending-requests\" ) See Declaring Data Classes for the rules around which fields need a constructor default or a nullable type to stay safe under update() ."
   },
   {
     "title": "Opening Documents",
@@ -514,6 +550,12 @@
     "href": "/troubleshooting.html",
     "section": "iOS: missing MMKV dependency",
     "text": "Undefined symbol: _OBJC_CLASS_$_MMKV Your iOS app links the Documents framework but hasn't declared MMKV itself as a dependency of the app target. Documents depends on MMKV, but embedding the Documents framework doesn't automatically pull MMKV's native binary along with it — your app needs to add MMKV directly, via CocoaPods or Swift Package Manager, the same way it adds any other native dependency. See MMKV's own iOS setup guide for both paths."
+  },
+  {
+    "title": "Troubleshooting",
+    "href": "/troubleshooting.html",
+    "section": "Crash on the first update() call: DocumentDecodingException",
+    "text": "DocumentDecodingException: Failed to decode field 'title' of document 'note' This is the single most common first-run surprise with this library, and it usually has nothing to do with corrupted data. It fires when update() runs against a document that has never been set() , and at least one field in your @Serializable data class is both non-nullable and has no constructor default — for example data class Note(val title: String, val count: Int) . With nothing stored yet and no default to fall back to, the library has no value to seed that field with, so it throws instead of guessing. The message is generic today — it reads exactly like a genuinely corrupted field would (see Error Handling ) — so it's easy to mistake for a data integrity bug rather than a missing default. A clearer, dedicated message for this specific case is planned. Fix it by giving every field either a constructor default or a nullable type: data class Note ( val title: String = \"\" , val count: Int = 0 ) See Declaring Data Classes for the full rule and more examples."
   },
   {
     "title": "Caches & Drafts",

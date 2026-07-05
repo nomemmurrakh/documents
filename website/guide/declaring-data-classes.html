@@ -11,7 +11,7 @@
 <meta property="og:description" content="A document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <meta property="og:image" content="/assets/img/og-image.png">
 <meta property="og:type" content="website">
-<title>Installation · Documents</title>
+<title>Declaring Your Data Class · Documents</title>
 <link rel="stylesheet" href="/assets/css/main.css">
 
 </head>
@@ -73,13 +73,13 @@
 <nav id="sidebar" class="sidebar" aria-label="Documentation sections">
   <ul class="nav-root">
     <li><a href="/index.html">Overview</a></li>
-<li><a href="/installation.html" aria-current="page">Installation</a></li>
+<li><a href="/installation.html">Installation</a></li>
 <li><a href="/quick-start.html">Quick Start</a></li>
 <li><a href="/troubleshooting.html">Troubleshooting</a></li>
 <li class="nav-group">
         <span class="nav-group__title">Guide</span>
         <ul class="nav-group__list"><li><a href="/guide/opening-documents.html">Opening Documents</a></li>
-<li><a href="/guide/declaring-data-classes.html">Declaring Data Classes</a></li>
+<li><a href="/guide/declaring-data-classes.html" aria-current="page">Declaring Data Classes</a></li>
 <li><a href="/guide/read-and-write.html">Read & Write</a></li>
 <li><a href="/guide/reactivity.html">Reactivity</a></li>
 <li><a href="/guide/field-delegates.html">Field Delegates</a></li>
@@ -117,50 +117,97 @@
 </nav>
 
 <main id="main-content" class="main-content" tabindex="-1">
-<h1>Installation</h1>
+<h1>Declaring Your Data Class</h1>
 
-<p><code>com.nomemmurrakh:documents</code> is published on Maven Central. Add it to a KMP module's
-<code>commonMain</code>, or a plain Android module:</p>
+<p>Every <code>Document&lt;T&gt;</code> is backed by an <code>@Serializable</code> class you write.
+How you declare that class's properties — nullable or not, with a constructor default or without
+— decides what happens the first time <code>update()</code> runs against a document that hasn't
+been written yet. Get this wrong and the failure shows up as a runtime crash on a button tap, not a
+compile error.</p>
 
-<pre><code class="language-kotlin"><span class="tok-comment">// build.gradle.kts</span>
-dependencies {
-    implementation(<span class="tok-string">"com.nomemmurrakh:documents:0.1.0"</span>)
-}</code></pre>
+<h2>The rule</h2>
+<p><code>Documents</code> never invents a value for a field. It only ever uses one of two sources:
+a value you already stored, or a default you already declared in the constructor. When neither
+exists, it fails loudly instead of guessing — there is no "correct" placeholder the library could
+make up for a field like <code>title: String</code> or <code>count: Int</code>.</p>
 
-<div class="callout callout--note">
-  <div class="callout__title">iOS: linking MMKV</div>
-  <p>On iOS, your app also needs MMKV added to its own target — via CocoaPods or Swift Package
-  Manager — the same way as any other native dependency. See
-  <a href="/troubleshooting.html#ios-missing-mmkv-dependency">Troubleshooting</a> for the link
-  error this causes if it's missing.</p>
-</div>
+<pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
+<span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> count: <span class="tok-type">Int</span> = <span class="tok-number">0</span>) <span class="tok-comment">// safe: every field has a default</span></code></pre>
 
-<h2>No setup ceremony</h2>
-<p>The library initializes MMKV for you — on Android via <code>androidx.startup</code>, on iOS via
-an internal <code>initializeMMKV</code> call using the in-process sandbox path on first use. You
-never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>. Add the
-dependency, call <code>Documents.document(...)</code>, and go.</p>
+<p>Every field in a document type should have either a constructor default or a nullable type
+(<code>= null</code>). A field with neither is only safe once you're certain the document is
+always <code>set()</code> before it's ever <code>update()</code>-d.</p>
+
+<h2>Why this matters: <code>update()</code> on an absent document</h2>
+<p><code>update { current -> ... }</code> needs a baseline to run the builder against. If the
+document already exists, that baseline is the current value. If it doesn't exist yet — nothing has
+ever been <code>set()</code> for this key — the baseline comes from decoding the type as if every
+field were absent, which only works for fields that have somewhere to fall back to:</p>
+
+<ul>
+  <li><strong>Field has a constructor default</strong> (<code>val count: Int = 0</code>) — the
+  default is used. This works.</li>
+  <li><strong>Field is nullable with no default</strong> (<code>val nickname: String?</code>) — it
+  resolves to <code>null</code>. This also works; nullability itself is a built-in fallback.</li>
+  <li><strong>Field is non-null with no default</strong> (<code>val title: String</code>) — there
+  is nothing to fall back to. <code>update()</code> throws
+  <code>DocumentDecodingException</code>.</li>
+</ul>
+
+<p>This is the same rule whether the missing field is a <code>String</code>, an <code>Int</code>, a
+nested <code>@Serializable</code> type, or an enum — the library has no way to know what value you
+consider "correct" for a required field, so it never guesses on your behalf.</p>
+
+<h2>A first-run crash, concretely</h2>
+<p>This type looks reasonable and compiles fine:</p>
+
+<pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
+<span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span>, <span class="tok-keyword">val</span> count: <span class="tok-type">Int</span>) <span class="tok-comment">// no defaults, both non-null</span></code></pre>
+
+<p>It works perfectly for <code>set()</code> and <code>get()</code>. But call <code>update()</code>
+on it before it's ever been written — for example, incrementing a counter on the very first button
+tap in a fresh app install — and it crashes:</p>
+
+<pre><code class="language-kotlin"><span class="tok-keyword">val</span> document = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note"</span>)
+
+<span class="tok-comment">// Crashes if "note" was never set() before — there's no stored title</span>
+<span class="tok-comment">// and no default to fall back to.</span>
+document.update { it.copy(count = it.count + <span class="tok-number">1</span>) }</code></pre>
+
+<pre><code>com.nomemmurrakh.documents.DocumentDecodingException: Failed to decode field 'title' of document 'note'</code></pre>
 
 <div class="callout callout--note">
   <div class="callout__title">Note</div>
-  <p>On Android, this works by merging a <code>&lt;provider
-  android:name="androidx.startup.InitializationProvider"&gt;</code> entry into your app's manifest.
-  You don't need to add anything yourself — just don't remove or override that merged entry (for
-  example with a conflicting <code>tools:node="remove"</code> targeting
-  <code>InitializationProvider</code>), or MMKV won't initialize and document access will fail at
-  runtime.</p>
+  <p>That message is more generic than it should be — it reads identically to a genuinely corrupted
+  field (see <a href="/guide/error-handling.html">Error Handling</a>), even though this case has a
+  distinct, knowable cause: a missing constructor default. A clearer, dedicated message for this
+  specific case is planned; until then, if you see <code>DocumentDecodingException</code> the very
+  first time you call <code>update()</code> on a document, suspect a missing default before
+  suspecting corrupted data.</p>
 </div>
 
-<h2>Supported platforms</h2>
-<p>Android and iOS (<code>arm64</code> and <code>simulatorArm64</code>) today — see
-<a href="/platform-support.html">Platform Support</a> for the full table and how MMKV is bound on
-each target.</p>
+<p>The fix is either of:</p>
 
-<h2>Where it's published</h2>
-<p>Maven Central, not JitPack — the standard Gradle dependency declaration above is all a consumer
-needs, no extra repository entries.</p>
+<pre><code class="language-kotlin"><span class="tok-comment">// Give every field a constructor default</span>
+<span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> count: <span class="tok-type">Int</span> = <span class="tok-number">0</span>)
 
-<p><a href="/quick-start.html">Continue to Quick Start →</a></p>
+<span class="tok-comment">// Or make the field nullable, which defaults to null</span>
+<span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span>?, <span class="tok-keyword">val</span> count: <span class="tok-type">Int</span> = <span class="tok-number">0</span>)
+
+<span class="tok-comment">// Or guarantee set() runs before update() ever does</span>
+document.<span class="tok-keyword">set</span>(<span class="tok-type">Note</span>(title = <span class="tok-string">"Untitled"</span>, count = <span class="tok-number">0</span>))
+document.update { it.copy(count = it.count + <span class="tok-number">1</span>) } <span class="tok-comment">// safe now</span></code></pre>
+
+<h2>What "optional" means here</h2>
+<p>This has nothing to do with Kotlin's own optional-parameter syntax beyond the fact that it's
+what triggers it: a field only gets treated as having a fallback when the constructor supplies a
+default value expression. A type can be non-nullable and still be safe as long as it has a default;
+a type can be nullable and safe with no default at all, because <code>null</code> itself is a valid
+fallback. The two are independent — pick whichever reads better for the field's meaning.</p>
+
+<p>See <a href="/guide/opening-documents.html">Opening Documents</a> for what else <code>T</code>
+can and can't be, and <a href="/guide/read-and-write.html">Read &amp; Write</a> for the full
+<code>get</code>/<code>set</code>/<code>update</code> picture.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>

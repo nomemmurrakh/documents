@@ -47,6 +47,10 @@ data class QueueState(val items: List&lt;OfflineQueueItem&gt; = emptyList())
 
 val queue = Documents.document&lt;QueueState&gt;("pending-requests")</code></pre>
 
+<p>See <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for the rules around
+which fields need a constructor default or a nullable type to stay safe under
+<code>update()</code>.</p>
+
 <h2>The reserved key separator</h2>
 <p>Internally, every document is decomposed into one storage key per field, keyed
 <code>{document}::{field}</code> (see <a href="/concepts/field-decomposition.html">Field

@@ -5,6 +5,7 @@
   { "title": "Troubleshooting", "href": "/troubleshooting.html" },
   { "title": "Guide", "children": [
     { "title": "Opening Documents", "href": "/guide/opening-documents.html" },
+    { "title": "Declaring Data Classes", "href": "/guide/declaring-data-classes.html" },
     { "title": "Read & Write", "href": "/guide/read-and-write.html" },
     { "title": "Reactivity", "href": "/guide/reactivity.html" },
     { "title": "Field Delegates", "href": "/guide/field-delegates.html" },

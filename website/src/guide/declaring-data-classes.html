@@ -1,0 +1,91 @@
+<h1>Declaring Your Data Class</h1>
+
+<p>Every <code>Document&lt;T&gt;</code> is backed by an <code>@Serializable</code> class you write.
+How you declare that class's properties — nullable or not, with a constructor default or without
+— decides what happens the first time <code>update()</code> runs against a document that hasn't
+been written yet. Get this wrong and the failure shows up as a runtime crash on a button tap, not a
+compile error.</p>
+
+<h2>The rule</h2>
+<p><code>Documents</code> never invents a value for a field. It only ever uses one of two sources:
+a value you already stored, or a default you already declared in the constructor. When neither
+exists, it fails loudly instead of guessing — there is no "correct" placeholder the library could
+make up for a field like <code>title: String</code> or <code>count: Int</code>.</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class Note(val title: String = "", val count: Int = 0) // safe: every field has a default</code></pre>
+
+<p>Every field in a document type should have either a constructor default or a nullable type
+(<code>= null</code>). A field with neither is only safe once you're certain the document is
+always <code>set()</code> before it's ever <code>update()</code>-d.</p>
+
+<h2>Why this matters: <code>update()</code> on an absent document</h2>
+<p><code>update { current -> ... }</code> needs a baseline to run the builder against. If the
+document already exists, that baseline is the current value. If it doesn't exist yet — nothing has
+ever been <code>set()</code> for this key — the baseline comes from decoding the type as if every
+field were absent, which only works for fields that have somewhere to fall back to:</p>
+
+<ul>
+  <li><strong>Field has a constructor default</strong> (<code>val count: Int = 0</code>) — the
+  default is used. This works.</li>
+  <li><strong>Field is nullable with no default</strong> (<code>val nickname: String?</code>) — it
+  resolves to <code>null</code>. This also works; nullability itself is a built-in fallback.</li>
+  <li><strong>Field is non-null with no default</strong> (<code>val title: String</code>) — there
+  is nothing to fall back to. <code>update()</code> throws
+  <code>DocumentDecodingException</code>.</li>
+</ul>
+
+<p>This is the same rule whether the missing field is a <code>String</code>, an <code>Int</code>, a
+nested <code>@Serializable</code> type, or an enum — the library has no way to know what value you
+consider "correct" for a required field, so it never guesses on your behalf.</p>
+
+<h2>A first-run crash, concretely</h2>
+<p>This type looks reasonable and compiles fine:</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class Note(val title: String, val count: Int) // no defaults, both non-null</code></pre>
+
+<p>It works perfectly for <code>set()</code> and <code>get()</code>. But call <code>update()</code>
+on it before it's ever been written — for example, incrementing a counter on the very first button
+tap in a fresh app install — and it crashes:</p>
+
+<pre><code class="language-kotlin">val document = Documents.document&lt;Note&gt;("note")
+
+// Crashes if "note" was never set() before — there's no stored title
+// and no default to fall back to.
+document.update { it.copy(count = it.count + 1) }</code></pre>
+
+<pre><code>com.nomemmurrakh.documents.DocumentDecodingException: Failed to decode field 'title' of document 'note'</code></pre>
+
+<div class="callout callout--note">
+  <div class="callout__title">Note</div>
+  <p>That message is more generic than it should be — it reads identically to a genuinely corrupted
+  field (see <a href="/guide/error-handling.html">Error Handling</a>), even though this case has a
+  distinct, knowable cause: a missing constructor default. A clearer, dedicated message for this
+  specific case is planned; until then, if you see <code>DocumentDecodingException</code> the very
+  first time you call <code>update()</code> on a document, suspect a missing default before
+  suspecting corrupted data.</p>
+</div>
+
+<p>The fix is either of:</p>
+
+<pre><code class="language-kotlin">// Give every field a constructor default
+data class Note(val title: String = "", val count: Int = 0)
+
+// Or make the field nullable, which defaults to null
+data class Note(val title: String?, val count: Int = 0)
+
+// Or guarantee set() runs before update() ever does
+document.set(Note(title = "Untitled", count = 0))
+document.update { it.copy(count = it.count + 1) } // safe now</code></pre>
+
+<h2>What "optional" means here</h2>
+<p>This has nothing to do with Kotlin's own optional-parameter syntax beyond the fact that it's
+what triggers it: a field only gets treated as having a fallback when the constructor supplies a
+default value expression. A type can be non-nullable and still be safe as long as it has a default;
+a type can be nullable and safe with no default at all, because <code>null</code> itself is a valid
+fallback. The two are independent — pick whichever reads better for the field's meaning.</p>
+
+<p>See <a href="/guide/opening-documents.html">Opening Documents</a> for what else <code>T</code>
+can and can't be, and <a href="/guide/read-and-write.html">Read &amp; Write</a> for the full
+<code>get</code>/<code>set</code>/<code>update</code> picture.</p>

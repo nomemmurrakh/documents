@@ -37,3 +37,11 @@ failure.</p>
 <p>A document that was simply never written is not a decoding failure — <code>get()</code>
 returns <code>null</code> for that case, it never throws just because something is missing. See
 <a href="/guide/read-and-write.html">Read &amp; Write</a>.</p>
+
+<h2>A distinct case: <code>update()</code> on a never-written document</h2>
+<p><code>update()</code> can also throw <code>DocumentDecodingException</code> the very first time
+it runs against a document that's never been <code>set()</code> — but the cause there isn't
+corruption, it's a data class field with no constructor default and no nullability to fall back on.
+The exception message is identical to a genuine decode failure today, which makes it easy to
+mistake for one. See <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for why
+this happens and how to avoid it.</p>

@@ -12,3 +12,27 @@ dependency of the app target. <code>Documents</code> depends on MMKV, but embedd
 your app needs to add MMKV directly, via CocoaPods or Swift Package Manager, the same way it adds
 any other native dependency. See MMKV's own
 <a href="https://github.com/Tencent/MMKV/wiki/iOS_setup">iOS setup guide</a> for both paths.</p>
+
+<h2>Crash on the first <code>update()</code> call: <code>DocumentDecodingException</code></h2>
+
+<pre><code>DocumentDecodingException: Failed to decode field 'title' of document 'note'</code></pre>
+
+<p>This is the single most common first-run surprise with this library, and it usually has nothing
+to do with corrupted data. It fires when <code>update()</code> runs against a document that has
+never been <code>set()</code>, and at least one field in your <code>@Serializable</code> data class
+is both non-nullable <em>and</em> has no constructor default — for example
+<code>data class Note(val title: String, val count: Int)</code>. With nothing stored yet and no
+default to fall back to, the library has no value to seed that field with, so it throws instead of
+guessing.</p>
+
+<p>The message is generic today — it reads exactly like a genuinely corrupted field would (see
+<a href="/guide/error-handling.html">Error Handling</a>) — so it's easy to mistake for a data
+integrity bug rather than a missing default. A clearer, dedicated message for this specific case is
+planned.</p>
+
+<p>Fix it by giving every field either a constructor default or a nullable type:</p>
+
+<pre><code class="language-kotlin">data class Note(val title: String = "", val count: Int = 0)</code></pre>
+
+<p>See <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for the full rule and
+more examples.</p>
