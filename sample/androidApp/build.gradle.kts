@@ -33,6 +33,7 @@ android {
         targetSdk = libs.versions.androidTargetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+        signingConfig = signingConfigs.getByName("debug")
     }
     packaging {
         resources {
@@ -41,7 +42,8 @@ android {
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
     compileOptions {
