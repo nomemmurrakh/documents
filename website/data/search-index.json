@@ -320,6 +320,12 @@
   {
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
+    "section": "What T can be",
+    "text": "T must be a @Serializable class (or enum, or primitive) — not a top-level List or other collection type. Field decomposition (see Field Decomposition ) keys each stored value off the type's declared properties, which a bare list doesn't have; opening Documents.document<List<T>>(key) throws DocumentDecodingException immediately. A list works correctly as a field inside a class instead — wrap it: @Serializable data class QueueState ( val items: List < OfflineQueueItem > = emptyList()) val queue = Documents .document< QueueState >( \"pending-requests\" )"
+  },
+  {
+    "title": "Opening Documents",
+    "href": "/guide/opening-documents.html",
     "section": "The reserved key separator",
     "text": "Internally, every document is decomposed into one storage key per field, keyed {document}::{field} (see Field Decomposition ). Because :: is reserved for that purpose, a document key containing it is rejected with an IllegalArgumentException — choose ordinary identifiers like \"note-1\" or \"user\" ."
   },
@@ -441,7 +447,7 @@
     "title": "Installation",
     "href": "/installation.html",
     "section": "Installation",
-    "text": "com.nomemmurrakh:documents is published on Maven Central. Add it to a KMP module's commonMain , or a plain Android module: // build.gradle.kts dependencies { implementation( \"com.nomemmurrakh:documents:0.1.0\" ) }"
+    "text": "com.nomemmurrakh:documents is published on Maven Central. Add it to a KMP module's commonMain , or a plain Android module: // build.gradle.kts dependencies { implementation( \"com.nomemmurrakh:documents:0.1.0\" ) } iOS: linking MMKV On iOS, your app also needs MMKV added to its own target — via CocoaPods or Swift Package Manager — the same way as any other native dependency. See Troubleshooting for the link error this causes if it's missing."
   },
   {
     "title": "Installation",
@@ -465,7 +471,7 @@
     "title": "Platform Support",
     "href": "/platform-support.html",
     "section": "Platform Support",
-    "text": "Platform Status Storage engine Android ✅ MMKV iOS — arm64 + simulatorArm64 ✅ MMKV (via CocoaPods) One public API across both platforms — it all lives in commonMain . MMKV is bound on Apple targets through the Kotlin CocoaPods plugin, and the library owns MMKV initialization on both platforms, so consumers never lift a finger. There is no JVM/desktop or wasm target in this release. See Shared KMP Persistence for what this means in practice, and Storage SPI for how the platform- specific binding is isolated behind a minimal internal interface."
+    "text": "Platform Status Storage engine Android ✅ MMKV iOS — arm64 + simulatorArm64 ✅ MMKV (via CocoaPods) One public API across both platforms — it all lives in commonMain . MMKV is bound on Apple targets through the Kotlin CocoaPods plugin, and the library owns MMKV initialization on both platforms, so consumers never lift a finger on that front. There is no JVM/desktop or wasm target in this release. See Shared KMP Persistence for what this means in practice, and Storage SPI for how the platform- specific binding is isolated behind a minimal internal interface."
   },
   {
     "title": "Quick Start",
@@ -483,19 +489,31 @@
     "title": "Sample App",
     "href": "/sample-app.html",
     "section": "Sample App",
-    "text": "A runnable Android sample lives in the repo's sample/android/ module — a single Compose screen that exercises every claim in the docs, so one run of the app is a real smoke test."
+    "text": "A runnable Compose Multiplatform sample lives in the repo's sample/ folder — sample/shared/ holds one shared UI and business logic for both platforms, sample/androidApp/ is a thin Android wrapper, and sample/iosApp/ is a real Xcode project that embeds the shared Kotlin framework (via Gradle's embedAndSignAppleFrameworkForXcode task — no CocoaPods on the sample's own side). It runs on both Android and iOS."
   },
   {
     "title": "Sample App",
     "href": "/sample-app.html",
     "section": "What it does",
-    "text": "A default-store document, Documents.document<GameSave>(\"slot-1\") , backs the first section: Reset (set value) — a full set() replacing the whole document. Level +1 (update) and Coins +50 — both go through update { current -> current.copy(...) } . Player hp -10 — an update { } that touches the nested Player sub-blob, proving nested @Serializable types round-trip correctly. delete() — removes the document entirely. Above the buttons, a live readout shows get() and exists() , plus a separate readout bound to fieldFlow(GameSave::coins, default = 0) — proving that a single decomposed field reacts on its own, independent of the whole-document flow. A second section opens a separate Documents.collection(\"cache\") holding a Draft document, with Edit draft and Clear draft buttons. The screen states its own test explicitly: editing the draft must never change the slot-1 readout above — proving the collection is backed by a genuinely separate MMKV file, isolated from the default store."
+    "text": "A home screen lists five use cases, each a real, working screen backed by the real Documents API: Settings & Preferences — typed, observable app settings. A SettingsRepository wraps Documents.document<AppSettings>(\"app-settings\") , using field() / fieldFlow() delegates for theme (SYSTEM/LIGHT/DARK) and locale ; changing either persists instantly and updates the screen's own reactive readout with no manual refresh. Session & User State — sign in/out, with an encrypted auth token. A SessionRepository opens Documents.collection(\"session\") configured with a real FieldDecorator ( AesGcmFieldDecorator , AES-GCM via cryptography-kotlin ) wrapping authToken . A \"Prove authToken is encrypted at rest\" action opens a second document with a different AES key and shows the decrypt failure — concrete proof the stored bytes are ciphertext, not the plaintext token. Caches & Drafts — a draft that survives relaunch, in its own store. A CacheRepository opens Documents.collection(\"cache\") holding SyncState and DraftPost ; the draft text field writes on a debounce and restores on screen entry. An isolation check on the same screen shows the Settings screen's theme value (a different collection) staying untouched when \"Clear cache\" runs. Reactive UI State — a simulated download driving a live progress bar. A coroutine ticker calls update(DownloadState::bytesDownloaded, bytesSoFar) repeatedly; a LinearProgressIndicator re-renders purely by collecting the document's flow() , with zero polling and zero coupling to where the write came from. Shared KMP Persistence — one offline queue, identical code on both platforms. A PendingRequestQueue wraps Documents.document<QueueState>(\"pending-requests\") (the queue's items live inside a small wrapper class, not as a bare List document root — see Opening Documents for why) with \"Enqueue mock request\" and \"Clear queue\" actions and a live list. This screen's own code is entirely commonMain — nothing platform-specific was written to make it work on both Android and iOS."
   },
   {
     "title": "Sample App",
     "href": "/sample-app.html",
     "section": "Run it",
-    "text": "Clone the repository and run the sample:android module (Android only) from Android Studio or via Gradle. See Reactive UI State for the general pattern this sample demonstrates."
+    "text": "Clone the repository. For Android, run the sample/androidApp module from Android Studio or via Gradle. For iOS, open sample/iosApp/iosApp.xcodeproj in Xcode and run. See Use Cases for the documented pattern each screen demonstrates."
+  },
+  {
+    "title": "Troubleshooting",
+    "href": "/troubleshooting.html",
+    "section": "Troubleshooting",
+    "text": "Common build and runtime errors, and what they usually mean."
+  },
+  {
+    "title": "Troubleshooting",
+    "href": "/troubleshooting.html",
+    "section": "iOS: missing MMKV dependency",
+    "text": "Undefined symbol: _OBJC_CLASS_$_MMKV Your iOS app links the Documents framework but hasn't declared MMKV itself as a dependency of the app target. Documents depends on MMKV, but embedding the Documents framework doesn't automatically pull MMKV's native binary along with it — your app needs to add MMKV directly, via CocoaPods or Swift Package Manager, the same way it adds any other native dependency. See MMKV's own iOS setup guide for both paths."
   },
   {
     "title": "Caches & Drafts",
@@ -537,6 +555,6 @@
     "title": "Shared KMP Persistence",
     "href": "/use-cases/shared-kmp-persistence.html",
     "section": "Shared KMP Persistence",
-    "text": "One storage API in commonMain — the same document code runs unchanged on Android and iOS, reading and writing through the same MMKV-backed store on both platforms. // commonMain @Serializable data class OfflineQueueItem ( val id: String , val endpoint: String , val payloadJson: String , val attempts: Int = 0 , ) class PendingRequestQueue { private val doc = Documents .document< List < OfflineQueueItem >>( \"pending-requests\" ) fun enqueue(item: OfflineQueueItem ) { doc.update { current -> (current ?: emptyList()) + item } } fun observe(): Flow < List < OfflineQueueItem >> = doc.flow().map { it ?: emptyList() } } PendingRequestQueue is written once, in commonMain , and used identically from an Android ViewModel and an iOS view model — there is no platform-specific persistence code to write or keep in sync, because the entire public API and its logic live in commonMain . Only the underlying Storage implementation differs per platform, and that's an internal detail the library owns. See Storage SPI and Platform Support for how each target is bound."
+    "text": "One storage API in commonMain — the same document code runs unchanged on Android and iOS, reading and writing through the same MMKV-backed store on both platforms. // commonMain @Serializable data class OfflineQueueItem ( val id: String , val endpoint: String , val payloadJson: String , val attempts: Int = 0 , ) @Serializable data class QueueState ( val items: List < OfflineQueueItem > = emptyList(), ) class PendingRequestQueue { private val doc = Documents .document< QueueState >( \"pending-requests\" ) fun enqueue(item: OfflineQueueItem ) { doc.update { current -> current.copy(items = current.items + item) } } fun observe(): Flow < List < OfflineQueueItem >> = doc.flow().map { it?.items ?: emptyList() } } Note the queue is wrapped in a QueueState class rather than opened as Documents.document<List<OfflineQueueItem>>(\"pending-requests\") directly — a top-level List is not a supported document root type today (field decomposition keys off a class's declared properties, which a bare list doesn't have); a list works correctly only as a field inside a @Serializable class, as shown here. See Opening Documents for the full constraint. PendingRequestQueue is written once, in commonMain , and used identically from an Android ViewModel and an iOS view model — there is no platform-specific persistence code to write or keep in sync, because the entire public API and its logic live in commonMain . Only the underlying Storage implementation differs per platform, and that's an internal detail the library owns. See Storage SPI and Platform Support for how each target is bound."
   }
 ]

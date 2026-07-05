@@ -75,6 +75,7 @@
     <li><a href="/index.html">Overview</a></li>
 <li><a href="/installation.html">Installation</a></li>
 <li><a href="/quick-start.html">Quick Start</a></li>
+<li><a href="/troubleshooting.html">Troubleshooting</a></li>
 <li class="nav-group">
         <span class="nav-group__title">Guide</span>
         <ul class="nav-group__list"><li><a href="/guide/opening-documents.html">Opening Documents</a></li>
@@ -129,16 +130,28 @@ and iOS, reading and writing through the same MMKV-backed store on both platform
     <span class="tok-keyword">val</span> attempts: <span class="tok-type">Int</span> = <span class="tok-number">0</span>,
 )
 
+<span class="tok-annotation">@Serializable</span>
+<span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">QueueState</span>(
+    <span class="tok-keyword">val</span> items: <span class="tok-type">List</span>&lt;<span class="tok-type">OfflineQueueItem</span>&gt; = emptyList(),
+)
+
 <span class="tok-keyword">class</span> <span class="tok-type">PendingRequestQueue</span> {
-    <span class="tok-keyword">private</span> <span class="tok-keyword">val</span> doc = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">List</span>&lt;<span class="tok-type">OfflineQueueItem</span>&gt;&gt;(<span class="tok-string">"pending-requests"</span>)
+    <span class="tok-keyword">private</span> <span class="tok-keyword">val</span> doc = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">QueueState</span>&gt;(<span class="tok-string">"pending-requests"</span>)
 
     <span class="tok-keyword">fun</span> enqueue(item: <span class="tok-type">OfflineQueueItem</span>) {
-        doc.update { current -&gt; (current ?: emptyList()) + item }
+        doc.update { current -&gt; current.copy(items = current.items + item) }
     }
 
     <span class="tok-keyword">fun</span> observe(): <span class="tok-type">Flow</span>&lt;<span class="tok-type">List</span>&lt;<span class="tok-type">OfflineQueueItem</span>&gt;&gt; =
-        doc.flow().map { it ?: emptyList() }
+        doc.flow().map { it?.items ?: emptyList() }
 }</code></pre>
+
+<p>Note the queue is wrapped in a <code>QueueState</code> class rather than opened as
+<code>Documents.document&lt;List&lt;OfflineQueueItem&gt;&gt;("pending-requests")</code> directly —
+a top-level <code>List</code> is not a supported document root type today (field decomposition
+keys off a class's declared properties, which a bare list doesn't have); a list works correctly
+only as a field inside a <code>@Serializable</code> class, as shown here. See
+<a href="/guide/opening-documents.html">Opening Documents</a> for the full constraint.</p>
 
 <p><code>PendingRequestQueue</code> is written once, in <code>commonMain</code>, and used
 identically from an Android <code>ViewModel</code> and an iOS view model — there is no

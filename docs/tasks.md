@@ -11,19 +11,22 @@ have tests before moving on. This is also the source for `good first issue` labe
 
 ## Phase 0 — Project scaffolding
 
-- [ ] **T0.1** KMP library module: `commonMain`, `androidMain`, `commonTest`, `androidTest`
-      source sets. Kotlin + `org.jetbrains.kotlin.plugin.serialization`.
-- [ ] **T0.2** Enable `explicitApi()` strict. Add `binary-compatibility-validator`.
-- [ ] **T0.3** Publishing setup — **Maven Central, not JitPack** (JitPack builds on Linux
+- [x] **T0.1** KMP library module: `commonMain`, `androidMain`, `commonTest`,
+      `androidHostTest`/`androidDeviceTest` source sets (the AGP-KMP plugin's naming for what
+      this task calls "androidTest"). Kotlin + `org.jetbrains.kotlin.plugin.serialization`.
+- [x] **T0.2** Enable `explicitApi()` strict. ABI validation via Kotlin's built-in
+      `abiValidation()` (`documents/api/documents.klib.api`), not the standalone
+      `kotlinx-binary-compatibility-validator` plugin — an intentional substitution, not a gap.
+- [x] **T0.3** Publishing setup — **Maven Central, not JitPack** (JitPack builds on Linux
       only and cannot compile Apple klibs; see [ADR-0005](adr/0005-publishing-maven-central.md)). Sub-tasks:
-  - [ ] **T0.3a** Apply `com.vanniktech.maven.publish`. Configure coordinates
+  - [x] **T0.3a** Apply `com.vanniktech.maven.publish`. Configure coordinates
         (`groupId = "com.nomemmurrakh"`, `artifactId = "documents"`, `version`), POM metadata
         (name, description, url, license, developer, scm), and GPG signing from an in-memory
         key supplied via CI secrets.
-  - [ ] **T0.3b** Add `.github/workflows/publish.yml`, triggered on release tag, running on
+  - [x] **T0.3b** Add `.github/workflows/publish.yml`, triggered on release tag, running on
         `macos-latest` (builds all targets — Android, JVM, **and** Apple), calling
         `./gradlew publishAllPublicationsToMavenCentral`.
-  - [ ] **T0.3c** Keep plain `maven-publish` only for `publishToMavenLocal` (fast local test
+  - [x] **T0.3c** Keep plain `maven-publish` only for `publishToMavenLocal` (fast local test
         loop). Do **not** target JitPack for the multiplatform artifact.
   - [ ] **T0.3d** *(human prerequisite, not Claude Code)* Verify the Central Portal namespace
         and add `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `SIGNING_KEY`,
@@ -31,58 +34,66 @@ have tests before moving on. This is also the source for `good first issue` labe
 
 ## Phase 1 — Storage SPI
 
-- [ ] **T1.1** Define `internal interface Storage` (getBytes/putBytes/remove/contains/keys).
-- [ ] **T1.2** `InMemoryStorage` in `commonMain` (concurrency-guarded map). Tests.
-- [ ] **T1.3** `MmkvStorage` in `androidMain` wrapping a named MMKV instance.
+- [x] **T1.1** Define `internal interface Storage` (getBytes/putBytes/remove/contains/keys).
+- [x] **T1.2** `InMemoryStorage` in `commonMain` (concurrency-guarded map). Tests.
+- [x] **T1.3** `MmkvStorage` in `androidMain` wrapping a named MMKV instance.
 
 ## Phase 2 — Key scheme
 
-- [ ] **T2.1** Key construction `{doc}::{field}`; reject `::` in document keys. Pure-function
+- [x] **T2.1** Key construction `{doc}::{field}`; reject `::` in document keys. Pure-function
       tests for round-trip and rejection.
 
 ## Phase 3 — Codec layer
 
-- [ ] **T3.1** `interface Codec<T>` (encode/decode).
-- [ ] **T3.2** `KotlinxCodec` default, serializing individual field values. Tests for
-      primitives, enums, nullable, and a nested `@Serializable` sub-blob.
+- [x] **T3.1** `interface Codec<T>` (encode/decode). **Superseded by T11.2** — `Codec<T>`/
+      `KotlinxCodec` were later deleted entirely in favor of a single internal CBOR format;
+      confirmed absent from the current codebase.
+- [x] **T3.2** `KotlinxCodec` default, serializing individual field values. Tests for
+      primitives, enums, nullable, and a nested `@Serializable` sub-blob. **Superseded by
+      T11.2**, same as T3.1.
 
 ## Phase 4 — Decomposition (hardest)
 
-- [ ] **T4.1** Custom `CompositeEncoder` writing each element to `{doc}::{field}` via
+- [x] **T4.1** Custom `CompositeEncoder` writing each element to `{doc}::{field}` via
       `SerialDescriptor`. Tests round-tripping a multi-field data class.
-- [ ] **T4.2** Custom `CompositeDecoder` reading per-field; handle absent keys (defaults /
+- [x] **T4.2** Custom `CompositeDecoder` reading per-field; handle absent keys (defaults /
       nullable), `DECODE_DONE`, `UNKNOWN_NAME`. Tests for partial / missing fields.
 
 ## Phase 5 — Document API
 
-- [ ] **T5.1** `Document<T>`: `get`, `set(REPLACE)`, `delete`, `exists`. Tests.
+- [x] **T5.1** `Document<T>`: `get`, `set(REPLACE)`, `delete`, `exists`. Tests.
       Also delivers the `Documents` root factory (`create`, `inMemory`, `document<T>`) that
       api-design §1/§7/§10 requires to obtain a `Document<T>` — see [ADR-0007](adr/0007-documents-root-factory.md).
-- [ ] **T5.2** `set(MergeStrategy.UPDATE) { }` builder; UPDATE on missing doc starts from
+- [x] **T5.2** `set(MergeStrategy.UPDATE) { }` builder; UPDATE on missing doc starts from
       defaults. Tests. Builder is `T.() -> T` returning a `copy()`, not a mutated receiver — see
       [ADR-0008](adr/0008-update-builder-returns-copy.md) (api-design §3/§10 corrected to match).
-- [ ] **T5.3** `DocumentDecodingException` with key/field/cause. Tests for the failure path.
+- [x] **T5.3** `DocumentDecodingException` with key/field/cause. Tests for the failure path.
       Wraps both corrupt-bytes (`SerializationException` cause) and missing-required-field on a
       partially-present doc; `field` is nullable — see [ADR-0009](adr/0009-document-decoding-exception.md).
 
 ## Phase 6 — Reactivity
 
-- [ ] **T6.1** `MutableSharedFlow<String>` change bus; emit affected key after commit.
-- [ ] **T6.2** `flow()` — initial value + conflated change emissions; null on delete. Tests.
-- [ ] **T6.3** `stateFlow(scope)`. Tests.
+- [x] **T6.1** `MutableSharedFlow<String>` change bus; emit affected key after commit.
+- [x] **T6.2** `flow()` — initial value + conflated change emissions; null on delete. Tests.
+- [x] **T6.3** `stateFlow(scope)`. Tests.
 
 ## Phase 7 — Field delegates
 
-- [ ] **T7.1** `field(prop, default)` `ReadWriteProperty` backed by one key. Tests.
-- [ ] **T7.2** `fieldFlow(prop)`. Tests.
+- [x] **T7.1** `field(prop, default)` `ReadWriteProperty` backed by one key. Tests.
+- [x] **T7.2** `fieldFlow(prop)`. Tests.
 
 ## Phase 8 — Polish
 
-- [ ] **T8.1** Dispatcher configuration (default `Dispatchers.IO`).
-- [ ] **T8.2** Per-document write mutex for atomic multi-field UPDATE.
-- [ ] **T8.3** KDoc on every public entry point.
-- [ ] **T8.4** Runnable Android sample (`:sample`) — 10-line getting started.
-- [ ] **T8.5** Generate and check API dump (`updateKotlinAbi`).
+- [x] **T8.1** Dispatcher configuration. Default is `Dispatchers.Default`, not `Dispatchers.IO`
+      as originally written here — the work is CPU-bound serialization, not I/O; matches
+      `api-design.md`'s documented default. Intentional, documented deviation from this task's
+      original wording.
+- [x] **T8.2** Per-document write mutex for atomic multi-field UPDATE.
+- [x] **T8.3** KDoc on every public entry point.
+- [x] **T8.4** Runnable Android + iOS sample (`sample/shared`, `sample/androidApp`,
+      `sample/iosApp`) — 5 use-case screens (settings, session/encryption, caches & drafts,
+      reactive UI, shared KMP persistence), not just a 10-line getting started.
+- [x] **T8.5** Generate and check API dump (`updateKotlinAbi`).
 
 ## Phase 9 — Benchmarks (v1.x, optional for first tag)
 

@@ -18,4 +18,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "documents"
 include(":documents")
-include(":sample:android")
+include(":sample:shared")
+include(":sample:androidApp")

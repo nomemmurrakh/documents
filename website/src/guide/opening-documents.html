@@ -33,6 +33,20 @@ val draft = drafts.document&lt;Note&gt;("draft-1")</code></pre>
 <p>See <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for the
 single-process constraint that applies to every collection, including the default store.</p>
 
+<h2>What <code>T</code> can be</h2>
+<p><code>T</code> must be a <code>@Serializable</code> class (or enum, or primitive) — not a
+top-level <code>List</code> or other collection type. Field decomposition (see
+<a href="/concepts/field-decomposition.html">Field Decomposition</a>) keys each stored value off
+the type's declared properties, which a bare list doesn't have; opening
+<code>Documents.document&lt;List&lt;T&gt;&gt;(key)</code> throws
+<code>DocumentDecodingException</code> immediately. A list works correctly as a field
+<em>inside</em> a class instead — wrap it:</p>
+
+<pre><code class="language-kotlin">@Serializable
+data class QueueState(val items: List&lt;OfflineQueueItem&gt; = emptyList())
+
+val queue = Documents.document&lt;QueueState&gt;("pending-requests")</code></pre>
+
 <h2>The reserved key separator</h2>
 <p>Internally, every document is decomposed into one storage key per field, keyed
 <code>{document}::{field}</code> (see <a href="/concepts/field-decomposition.html">Field

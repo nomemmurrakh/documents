@@ -44,9 +44,12 @@ so consumers never lift a finger.
 
 ## Try the sample
 
-A runnable Android sample lives in [`sample/android/`](sample/android/) — a tiny Compose settings screen wired to
-a single `Documents` document, with buttons that flip the theme and bump a launch counter, both
-persisting instantly. Clone, run, tap. 👀
+A runnable Compose Multiplatform sample lives in [`sample/`](sample/) — one shared UI in
+[`sample/shared/`](sample/shared/) running natively on both Android
+([`sample/androidApp/`](sample/androidApp/)) and iOS ([`sample/iosApp/`](sample/iosApp/)), with a
+screen for each documented [use case](https://documents.nomemmurrakh.com/use-cases/index.html):
+settings, session/auth (with real field-level encryption), caches & drafts, a reactive progress
+bar, and a shared-persistence offline queue. Clone, run, tap — on both platforms. 👀
 
 ## License
 

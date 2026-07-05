@@ -29,6 +29,12 @@ the CBOR switch and need a fresh run. Do not fabricate or estimate Android numbe
 
 ## `website/sample-app.html`
 
+> **Superseded.** The section below describes the original `sample/android` app (`MainActivity.kt`'s
+> `GameSave`/`Player`/`Draft` smoke test), which has since been replaced by a real 5-screen Compose
+> Multiplatform app (Android + iOS) across `sample/shared`, `sample/androidApp`, and
+> `sample/iosApp`. `website/src/sample-app.html` has been rewritten to match. Left as-written below
+> as a historical record of this phase's original task, not a current spec.
+
 Walk through the real `sample/` Compose app (package `com.nomemmurrakh.documents.sample`,
 `MainActivity.kt`'s `DemoScreen`), describing only what the code actually does:
 - A default-store document `Documents.document<GameSave>("slot-1")` with a "Reset (set value)"

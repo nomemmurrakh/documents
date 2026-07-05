@@ -12,16 +12,28 @@ data class OfflineQueueItem(
     val attempts: Int = 0,
 )
 
+@Serializable
+data class QueueState(
+    val items: List&lt;OfflineQueueItem&gt; = emptyList(),
+)
+
 class PendingRequestQueue {
-    private val doc = Documents.document&lt;List&lt;OfflineQueueItem&gt;&gt;("pending-requests")
+    private val doc = Documents.document&lt;QueueState&gt;("pending-requests")
 
     fun enqueue(item: OfflineQueueItem) {
-        doc.update { current -&gt; (current ?: emptyList()) + item }
+        doc.update { current -&gt; current.copy(items = current.items + item) }
     }
 
     fun observe(): Flow&lt;List&lt;OfflineQueueItem&gt;&gt; =
-        doc.flow().map { it ?: emptyList() }
+        doc.flow().map { it?.items ?: emptyList() }
 }</code></pre>
+
+<p>Note the queue is wrapped in a <code>QueueState</code> class rather than opened as
+<code>Documents.document&lt;List&lt;OfflineQueueItem&gt;&gt;("pending-requests")</code> directly —
+a top-level <code>List</code> is not a supported document root type today (field decomposition
+keys off a class's declared properties, which a bare list doesn't have); a list works correctly
+only as a field inside a <code>@Serializable</code> class, as shown here. See
+<a href="/guide/opening-documents.html">Opening Documents</a> for the full constraint.</p>
 
 <p><code>PendingRequestQueue</code> is written once, in <code>commonMain</code>, and used
 identically from an Android <code>ViewModel</code> and an iOS view model — there is no

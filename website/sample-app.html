@@ -75,6 +75,7 @@
     <li><a href="/index.html">Overview</a></li>
 <li><a href="/installation.html">Installation</a></li>
 <li><a href="/quick-start.html">Quick Start</a></li>
+<li><a href="/troubleshooting.html">Troubleshooting</a></li>
 <li class="nav-group">
         <span class="nav-group__title">Guide</span>
         <ul class="nav-group__list"><li><a href="/guide/opening-documents.html">Opening Documents</a></li>
@@ -117,37 +118,56 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Sample App</h1>
 
-<p>A runnable Android sample lives in the repo's <code>sample/android/</code> module — a single
-Compose screen that exercises every claim in the docs, so one run of the app is a real smoke
-test.</p>
+<p>A runnable Compose Multiplatform sample lives in the repo's <code>sample/</code> folder —
+<code>sample/shared/</code> holds one shared UI and business logic for both platforms,
+<code>sample/androidApp/</code> is a thin Android wrapper, and <code>sample/iosApp/</code> is a
+real Xcode project that embeds the shared Kotlin framework (via Gradle's
+<code>embedAndSignAppleFrameworkForXcode</code> task — no CocoaPods on the sample's own side). It
+runs on both Android and iOS.</p>
 
 <h2>What it does</h2>
-<p>A default-store document, <code>Documents.document&lt;GameSave&gt;("slot-1")</code>, backs the
-first section:</p>
-<ul>
-  <li><strong>Reset (set value)</strong> — a full <code>set()</code> replacing the whole
-      document.</li>
-  <li><strong>Level +1 (update)</strong> and <strong>Coins +50</strong> — both go through
-      <code>update { current -> current.copy(...) }</code>.</li>
-  <li><strong>Player hp -10</strong> — an <code>update { }</code> that touches the nested
-      <code>Player</code> sub-blob, proving nested <code>@Serializable</code> types round-trip
-      correctly.</li>
-  <li><strong>delete()</strong> — removes the document entirely.</li>
-</ul>
-<p>Above the buttons, a live readout shows <code>get()</code> and <code>exists()</code>, plus a
-separate readout bound to <code>fieldFlow(GameSave::coins, default = 0)</code> — proving that a
-single decomposed field reacts on its own, independent of the whole-document flow.</p>
+<p>A home screen lists five use cases, each a real, working screen backed by the real
+<code>Documents</code> API:</p>
 
-<p>A second section opens a separate <code>Documents.collection("cache")</code> holding a
-<code>Draft</code> document, with <strong>Edit draft</strong> and <strong>Clear draft</strong>
-buttons. The screen states its own test explicitly: editing the draft must never change the
-<code>slot-1</code> readout above — proving the collection is backed by a genuinely separate MMKV
-file, isolated from the default store.</p>
+<ul>
+  <li><strong>Settings &amp; Preferences</strong> — typed, observable app settings. A
+      <code>SettingsRepository</code> wraps <code>Documents.document&lt;AppSettings&gt;("app-settings")</code>,
+      using <code>field()</code>/<code>fieldFlow()</code> delegates for <code>theme</code>
+      (SYSTEM/LIGHT/DARK) and <code>locale</code>; changing either persists instantly and updates
+      the screen's own reactive readout with no manual refresh.</li>
+  <li><strong>Session &amp; User State</strong> — sign in/out, with an encrypted auth token. A
+      <code>SessionRepository</code> opens <code>Documents.collection("session")</code> configured
+      with a real <code>FieldDecorator</code> (<code>AesGcmFieldDecorator</code>, AES-GCM via
+      <a href="https://github.com/whyoleg/cryptography-kotlin">cryptography-kotlin</a>) wrapping
+      <code>authToken</code>. A "Prove authToken is encrypted at rest" action opens a second
+      document with a different AES key and shows the decrypt failure — concrete proof the stored
+      bytes are ciphertext, not the plaintext token.</li>
+  <li><strong>Caches &amp; Drafts</strong> — a draft that survives relaunch, in its own store. A
+      <code>CacheRepository</code> opens <code>Documents.collection("cache")</code> holding
+      <code>SyncState</code> and <code>DraftPost</code>; the draft text field writes on a
+      debounce and restores on screen entry. An isolation check on the same screen shows the
+      Settings screen's <code>theme</code> value (a different collection) staying untouched when
+      "Clear cache" runs.</li>
+  <li><strong>Reactive UI State</strong> — a simulated download driving a live progress bar. A
+      coroutine ticker calls <code>update(DownloadState::bytesDownloaded, bytesSoFar)</code>
+      repeatedly; a <code>LinearProgressIndicator</code> re-renders purely by collecting the
+      document's <code>flow()</code>, with zero polling and zero coupling to where the write came
+      from.</li>
+  <li><strong>Shared KMP Persistence</strong> — one offline queue, identical code on both
+      platforms. A <code>PendingRequestQueue</code> wraps
+      <code>Documents.document&lt;QueueState&gt;("pending-requests")</code> (the queue's items live
+      inside a small wrapper class, not as a bare <code>List</code> document root — see
+      <a href="/guide/opening-documents.html">Opening Documents</a> for why) with "Enqueue mock
+      request" and "Clear queue" actions and a live list. This screen's own code is entirely
+      <code>commonMain</code> — nothing platform-specific was written to make it work on both
+      Android and iOS.</li>
+</ul>
 
 <h2>Run it</h2>
-<p>Clone the repository and run the <code>sample:android</code> module (Android only) from Android
-Studio or via Gradle. See <a href="/use-cases/reactive-ui-state.html">Reactive UI State</a> for the
-general pattern this sample demonstrates.</p>
+<p>Clone the repository. For Android, run the <code>sample/androidApp</code> module from Android
+Studio or via Gradle. For iOS, open
+<code>sample/iosApp/iosApp.xcodeproj</code> in Xcode and run. See
+<a href="/use-cases/index.html">Use Cases</a> for the documented pattern each screen demonstrates.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>

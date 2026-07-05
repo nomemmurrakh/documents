@@ -66,6 +66,18 @@ val user: Document<User> = store.document("user")
 
 `Document<T>` is the core user-facing type. `T` must be `@Serializable`.
 
+**`T` must be a `@Serializable` class (or enum/primitive), not a top-level `List`/collection
+type.** Field decomposition (§1, [ADR-0001](adr/0001-field-decomposition.md)) keys each stored
+value off `SerialDescriptor.elementsCount`/`getElementName(index)`, which for a class means "one
+key per declared property" — but for `kotlinx.serialization`'s built-in list/collection
+descriptors, `elementsCount` is fixed at `1` and unrelated to the collection's runtime size. A
+document opened as `Documents.document<List<T>>(key)` throws `DocumentDecodingException` on the
+very first read (including the implicit read `update {}` does to find its baseline for an absent
+document) — this is not a soft limitation, it fails immediately, every time. A `List<T>` works
+correctly only as a field *inside* a `@Serializable` class (its own single sub-blob key, §5) —
+wrap it: `data class QueueState(val items: List<T> = emptyList())`, then
+`Documents.document<QueueState>(key)`.
+
 ## 3. Document operations
 
 ```kotlin

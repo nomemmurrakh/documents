@@ -75,6 +75,7 @@
     <li><a href="/index.html">Overview</a></li>
 <li><a href="/installation.html">Installation</a></li>
 <li><a href="/quick-start.html">Quick Start</a></li>
+<li><a href="/troubleshooting.html">Troubleshooting</a></li>
 <li class="nav-group">
         <span class="nav-group__title">Guide</span>
         <ul class="nav-group__list"><li><a href="/guide/opening-documents.html" aria-current="page">Opening Documents</a></li>
@@ -149,6 +150,20 @@ file — a wipe-on-logout cache, per-user scoping, or an encryption boundary:</p
 
 <p>See <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for the
 single-process constraint that applies to every collection, including the default store.</p>
+
+<h2>What <code>T</code> can be</h2>
+<p><code>T</code> must be a <code>@Serializable</code> class (or enum, or primitive) — not a
+top-level <code>List</code> or other collection type. Field decomposition (see
+<a href="/concepts/field-decomposition.html">Field Decomposition</a>) keys each stored value off
+the type's declared properties, which a bare list doesn't have; opening
+<code>Documents.document&lt;List&lt;T&gt;&gt;(key)</code> throws
+<code>DocumentDecodingException</code> immediately. A list works correctly as a field
+<em>inside</em> a class instead — wrap it:</p>
+
+<pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
+<span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">QueueState</span>(<span class="tok-keyword">val</span> items: <span class="tok-type">List</span>&lt;<span class="tok-type">OfflineQueueItem</span>&gt; = emptyList())
+
+<span class="tok-keyword">val</span> queue = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">QueueState</span>&gt;(<span class="tok-string">"pending-requests"</span>)</code></pre>
 
 <h2>The reserved key separator</h2>
 <p>Internally, every document is decomposed into one storage key per field, keyed

@@ -1,0 +1,14 @@
+<h1>Troubleshooting</h1>
+
+<p>Common build and runtime errors, and what they usually mean.</p>
+
+<h2>iOS: missing MMKV dependency</h2>
+
+<pre><code>Undefined symbol: _OBJC_CLASS_$_MMKV</code></pre>
+
+<p>Your iOS app links the <code>Documents</code> framework but hasn't declared MMKV itself as a
+dependency of the app target. <code>Documents</code> depends on MMKV, but embedding the
+<code>Documents</code> framework doesn't automatically pull MMKV's native binary along with it —
+your app needs to add MMKV directly, via CocoaPods or Swift Package Manager, the same way it adds
+any other native dependency. See MMKV's own
+<a href="https://github.com/Tencent/MMKV/wiki/iOS_setup">iOS setup guide</a> for both paths.</p>

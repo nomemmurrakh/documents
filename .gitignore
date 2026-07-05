@@ -23,16 +23,35 @@ local.properties
 
 # Apple / Xcode / CocoaPods
 xcuserdata
-*.xcworkspace
 Pods
 *.podspec
 DerivedData
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
 
-# Signing & secrets — never commit private keys or credentials
+# Node (website/scripts tooling)
+node_modules/
+
+# Claude Code runtime/session state (machine-local, not shared config)
+.claude/
+
+# Signing & secrets — never commit private keys, credentials, or provisioning material
 *.gpg
 *.jks
 *.keystore
 *.p12
+*.p8
 *.pem
+*.cer
+*.mobileprovision
 keystore.properties
 secring.gpg
+.env
+.env.*
+*.env
+!.env.example

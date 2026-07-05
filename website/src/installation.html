@@ -8,6 +8,14 @@ dependencies {
     implementation("com.nomemmurrakh:documents:0.1.0")
 }</code></pre>
 
+<div class="callout callout--note">
+  <div class="callout__title">iOS: linking MMKV</div>
+  <p>On iOS, your app also needs MMKV added to its own target — via CocoaPods or Swift Package
+  Manager — the same way as any other native dependency. See
+  <a href="/troubleshooting.html#ios-missing-mmkv-dependency">Troubleshooting</a> for the link
+  error this causes if it's missing.</p>
+</div>
+
 <h2>No setup ceremony</h2>
 <p>The library initializes MMKV for you — on Android via <code>androidx.startup</code>, on iOS via
 an internal <code>initializeMMKV</code> call using the in-process sandbox path on first use. You
