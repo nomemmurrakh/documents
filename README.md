@@ -49,7 +49,14 @@ A runnable Compose Multiplatform sample lives in [`sample/`](sample/) — one sh
 ([`sample/androidApp/`](sample/androidApp/)) and iOS ([`sample/iosApp/`](sample/iosApp/)), with a
 screen for each documented [use case](https://documents.nomemmurrakh.com/use-cases/index.html):
 settings, session/auth (with real field-level encryption), caches & drafts, a reactive progress
-bar, and a shared-persistence offline queue. Clone, run, tap — on both platforms. 👀
+bar, and a shared-persistence offline queue. Clone, run, tap — on both platforms.
+
+## Roadmap
+
+- Rich error messages to differentiate causes
+- IDE plugin to view MMKV files as collections & documents
+- Add Desktop target support
+- Add Web target support
 
 ## License
 
