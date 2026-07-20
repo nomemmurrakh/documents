@@ -7,9 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2AE6335D2FFA287100ECE872 /* MMKV in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE6335C2FFA287100ECE872 /* MMKV */; };
-		2AE633612FFA287100ECE872 /* MMKVCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE633602FFA287100ECE872 /* MMKVCore */; };
+		2A879426300EABA2000EC46B /* MMKV in Frameworks */ = {isa = PBXBuildFile; productRef = 2A879425300EABA2000EC46B /* MMKV */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2A87941C300E986D000EC46B /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2AE633592FFA1F1300ECE872 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -47,8 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2AE633612FFA287100ECE872 /* MMKVCore in Frameworks */,
-				2AE6335D2FFA287100ECE872 /* MMKV in Frameworks */,
+				2A879426300EABA2000EC46B /* MMKV in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,6 +103,7 @@
 				A7B9D7C429C50D9059A31B2F /* Sources */,
 				15880D6A1D993C1EE57103F1 /* Frameworks */,
 				835E0E4B93BB43BEADD83FB9 /* Resources */,
+				2A87941C300E986D000EC46B /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -102,8 +114,7 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
-				2AE6335C2FFA287100ECE872 /* MMKV */,
-				2AE633602FFA287100ECE872 /* MMKVCore */,
+				2A879425300EABA2000EC46B /* MMKV */,
 			);
 			productName = iosApp;
 			productReference = B3B2CE7A35F058F74C5911DC /* sample.app */;
@@ -134,7 +145,7 @@
 			mainGroup = 19327D6C54E911C290BB04F1;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				2AE6335B2FFA287100ECE872 /* XCRemoteSwiftPackageReference "MMKV" */,
+				2A879424300EABA2000EC46B /* XCRemoteSwiftPackageReference "MMKV" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B998FC39FC31049DE919BBDA /* Products */;
@@ -265,6 +276,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = S243TY4R49;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -394,26 +406,21 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		2AE6335B2FFA287100ECE872 /* XCRemoteSwiftPackageReference "MMKV" */ = {
+		2A879424300EABA2000EC46B /* XCRemoteSwiftPackageReference "MMKV" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Tencent/MMKV.git";
 			requirement = {
-				branch = master;
-				kind = branch;
+				kind = exactVersion;
+				version = 2.4.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		2AE6335C2FFA287100ECE872 /* MMKV */ = {
+		2A879425300EABA2000EC46B /* MMKV */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 2AE6335B2FFA287100ECE872 /* XCRemoteSwiftPackageReference "MMKV" */;
+			package = 2A879424300EABA2000EC46B /* XCRemoteSwiftPackageReference "MMKV" */;
 			productName = MMKV;
-		};
-		2AE633602FFA287100ECE872 /* MMKVCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2AE6335B2FFA287100ECE872 /* XCRemoteSwiftPackageReference "MMKV" */;
-			productName = MMKVCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
