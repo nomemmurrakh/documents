@@ -28,9 +28,11 @@ have tests before moving on. This is also the source for `good first issue` labe
         `./gradlew publishAllPublicationsToMavenCentral`.
   - [x] **T0.3c** Keep plain `maven-publish` only for `publishToMavenLocal` (fast local test
         loop). Do **not** target JitPack for the multiplatform artifact.
-  - [ ] **T0.3d** *(human prerequisite, not Claude Code)* Verify the Central Portal namespace
+  - [x] **T0.3d** *(human prerequisite, not Claude Code)* Verify the Central Portal namespace
         and add `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `SIGNING_KEY`,
-        `SIGNING_KEY_PASSWORD` as repo secrets before the first publish.
+        `SIGNING_KEY_PASSWORD` as repo secrets before the first publish. **Done** — namespace
+        `com.nomemmurrakh` verified via DNS TXT, secrets set. `com.nomemmurrakh:documents:0.1.0`
+        published to Maven Central on 2026-07-05 (GitHub release `v0.1.0` → `publish.yml`).
 
 ## Phase 1 — Storage SPI
 
