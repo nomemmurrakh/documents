@@ -27,3 +27,4 @@ place with its status updated to point at the ADR that replaced it.
 | [0020](0020-align-package-with-groupid.md) | Align Kotlin package with Maven groupId (`com.nomemmurrakh`) | Accepted | 2026-07-03 |
 | [0021](0021-field-decorator-extension-point.md) | `FieldDecorator` — a bytes-in/bytes-out extension point for field values | Accepted | 2026-07-04 |
 | [0022](0022-process-wide-store-runtime.md) | A process-wide store runtime shares the change bus and write locks | Accepted (amends [0002](0002-sharedflow-reactivity.md), [0011](0011-synchronous-api-nonsuspend-lock.md)) | 2026-10-20 |
+| [0023](0023-decoding-failure-messages.md) | Distinct messages for each cause of a decoding failure | Accepted (amends [0009](0009-document-decoding-exception.md)) | 2026-10-20 |

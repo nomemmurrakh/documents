@@ -254,3 +254,22 @@ their updates. Full design and rationale in
       store name share a change bus, including across separate `Documents.collection(name)`
       calls), `architecture.md` (the runtime layer and the decisions log), and
       `test-plan.md` (the cross-instance cases from T13.2).
+
+## Phase 14 — Distinct decoding failure messages
+
+Gives each cause of a `DocumentDecodingException` its own message, so a reader can tell a missing
+default from a stale document, damaged bytes, or a misconfigured decorator. Full design and the
+exact messages in [ADR-0023](adr/0023-decoding-failure-messages.md). No public API change.
+
+- [x] **T14.1** Add the four messages. Have the decoder tell case A from case B by
+      recognizing `EmptyStorage`, which `defaults()` decodes against. Split
+      `readField` into separate unwrap and decode steps so a decorator failure is reported
+      separately from a decode failure. Add internal factory functions for the four messages.
+      Tests: one per case (A, B, C, D) asserting the key phrases and that `documentKey`, `field`,
+      and `cause` are unchanged; C and D through both `get()` and a field delegate; messages never
+      include the cause's own text. Acceptance: `check` passes on JVM and iOS simulator and
+      `checkKotlinAbi` passes with no `updateKotlinAbi` needed.
+- [x] **T14.2** *(depends on T14.1)* Update `DocumentDecodingException`'s KDoc, `api-design.md`
+      §9, and `test-plan.md` §7. Update the Troubleshooting, Declaring Data Classes, and Error
+      Handling pages, which currently say a clearer message is planned. Strike the roadmap item in
+      the README and add "(v0.2.0)".

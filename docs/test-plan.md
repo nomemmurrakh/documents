@@ -66,6 +66,11 @@
 
 - Corrupt / undecodable bytes throw `DocumentDecodingException` naming the document key and
   field, with the underlying cause attached.
+- Each cause has its own message ([ADR-0023](adr/0023-decoding-failure-messages.md)): `update()`
+  on a never-written document with a field that has no default, a stored document missing a
+  required field, corrupt bytes (through `get()` and a field delegate), and a failing decorator
+  (through `get()` and a field delegate).
+- A message never includes the cause's own text.
 - Using `::` in a document key is rejected with a clear message.
 
 ## 8. Concurrency

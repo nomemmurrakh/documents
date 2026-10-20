@@ -183,6 +183,10 @@ val doc = store.document<SettingsData>("settings")
   field, and underlying cause (never a bare low-level decode exception — a corrupt CBOR field
   may surface from the format as `SerializationException`, `IllegalStateException`, or
   `IllegalArgumentException`; all are wrapped).
+- The message differs by cause ([ADR-0023](adr/0023-decoding-failure-messages.md)): `update()` on
+  a never-written document with a field that has no default, a stored document missing a required
+  field, bytes that could not be read as the field's type, and a failing `FieldDecorator`. Messages
+  name the cause's exception class but never its text.
 - Using a non-`@Serializable` `T` is a compile-time error where possible, otherwise a
   clear runtime `IllegalArgumentException` at `document()` time.
 
