@@ -174,16 +174,13 @@ the very first button tap in a fresh app install, when you increment a counter:<
 <span class="tok-comment">// and no default to fall back to.</span>
 document.update { it.copy(count = it.count + <span class="tok-number">1</span>) }</code></pre>
 
-<pre><code>com.nomemmurrakh.documents.DocumentDecodingException: Failed to decode field 'title' of document 'note'</code></pre>
+<pre><code>com.nomemmurrakh.documents.DocumentDecodingException: Cannot update document 'note' because it has not been written yet and field 'title' has no default value. Give 'title' a default in the constructor (`val title: String = ...`), make it nullable (`val title: String?`), or call `set()` with a full value before `update()`.</code></pre>
 
 <div class="callout callout--note">
   <div class="callout__title">Note</div>
-  <p>This message is more generic than it should be. It reads the same as the message for a
-  genuinely corrupted field (see <a href="/guide/error-handling.html">Error Handling</a>), even
-  though this case has a known cause: a missing constructor default. A clearer message for this
-  specific case is planned. Until then, if you see <code>DocumentDecodingException</code> the
-  first time you call <code>update()</code> on a document, suspect a missing default before you
-  suspect corrupted data.</p>
+  <p>The message names the field that needs a default and says how to fix it. Other
+  <code>DocumentDecodingException</code> messages mean something different, such as a damaged
+  value. See <a href="/guide/error-handling.html">Error Handling</a> for what each one means.</p>
 </div>
 
 <h2>How to fix it</h2>

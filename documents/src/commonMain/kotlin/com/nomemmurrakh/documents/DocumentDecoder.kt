@@ -47,34 +47,36 @@ internal class DocumentDecoder(
             return try {
                 applyUnwrap(decorators, fieldName, raw)
             } catch (cause: SerializationException) {
-                throw DocumentDecodingException(documentKey, fieldName, cause)
+                throw decoratorFailed(documentKey, fieldName, cause)
             } catch (cause: IllegalStateException) {
-                throw DocumentDecodingException(documentKey, fieldName, cause)
+                throw decoratorFailed(documentKey, fieldName, cause)
             } catch (cause: IllegalArgumentException) {
-                throw DocumentDecodingException(documentKey, fieldName, cause)
+                throw decoratorFailed(documentKey, fieldName, cause)
             }
         }
 
         private fun <T> read(descriptor: SerialDescriptor, index: Int, deserializer: DeserializationStrategy<T>): T {
             val field = descriptor.getElementName(index)
-            val raw = bytes(descriptor, index)
-                ?: throw DocumentDecodingException(
-                    documentKey,
-                    field,
-                    cause = null,
-                )
+            val raw = bytes(descriptor, index) ?: throw missingField(field, deserializer.descriptor.serialName)
             return decode(field, deserializer, raw)
         }
+
+        private fun missingField(field: String, typeName: String): DocumentDecodingException =
+            if (storage === EmptyStorage) {
+                missingFieldOnNewDocument(documentKey, field, typeName)
+            } else {
+                missingFieldOnStoredDocument(documentKey, field)
+            }
 
         private fun <T> decode(field: String, deserializer: DeserializationStrategy<T>, bytes: ByteArray): T =
             try {
                 cbor.decodeFromByteArray(deserializer, bytes)
             } catch (cause: SerializationException) {
-                throw DocumentDecodingException(documentKey, field, cause)
+                throw unreadableField(documentKey, field, deserializer.descriptor.serialName, cause)
             } catch (cause: IllegalStateException) {
-                throw DocumentDecodingException(documentKey, field, cause)
+                throw unreadableField(documentKey, field, deserializer.descriptor.serialName, cause)
             } catch (cause: IllegalArgumentException) {
-                throw DocumentDecodingException(documentKey, field, cause)
+                throw unreadableField(documentKey, field, deserializer.descriptor.serialName, cause)
             }
 
         override fun decodeElementIndex(descriptor: SerialDescriptor): Int {

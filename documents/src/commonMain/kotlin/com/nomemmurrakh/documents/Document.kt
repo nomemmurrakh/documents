@@ -126,17 +126,30 @@ internal class DocumentImpl<T>(
 
     internal fun <V> readField(fieldName: String, default: V, serializer: KSerializer<V>): V = lock.withLock {
         val raw = storage.getBytes(Keys.field(key, fieldName)) ?: return default
-        try {
-            val unwrapped = applyUnwrap(decorators, fieldName, raw)
-            cbor.decodeFromByteArray(serializer, unwrapped)
-        } catch (cause: SerializationException) {
-            throw DocumentDecodingException(key, fieldName, cause)
-        } catch (cause: IllegalStateException) {
-            throw DocumentDecodingException(key, fieldName, cause)
-        } catch (cause: IllegalArgumentException) {
-            throw DocumentDecodingException(key, fieldName, cause)
-        }
+        decodeField(fieldName, serializer, unwrapField(fieldName, raw))
     }
+
+    private fun unwrapField(fieldName: String, raw: ByteArray): ByteArray =
+        try {
+            applyUnwrap(decorators, fieldName, raw)
+        } catch (cause: SerializationException) {
+            throw decoratorFailed(key, fieldName, cause)
+        } catch (cause: IllegalStateException) {
+            throw decoratorFailed(key, fieldName, cause)
+        } catch (cause: IllegalArgumentException) {
+            throw decoratorFailed(key, fieldName, cause)
+        }
+
+    private fun <V> decodeField(fieldName: String, serializer: KSerializer<V>, bytes: ByteArray): V =
+        try {
+            cbor.decodeFromByteArray(serializer, bytes)
+        } catch (cause: SerializationException) {
+            throw unreadableField(key, fieldName, serializer.descriptor.serialName, cause)
+        } catch (cause: IllegalStateException) {
+            throw unreadableField(key, fieldName, serializer.descriptor.serialName, cause)
+        } catch (cause: IllegalArgumentException) {
+            throw unreadableField(key, fieldName, serializer.descriptor.serialName, cause)
+        }
 
     internal fun <V> writeField(fieldName: String, value: V, serializer: KSerializer<V>): Unit = lock.withLock {
         val bytes = applyWrap(decorators, fieldName, cbor.encodeToByteArray(serializer, value))

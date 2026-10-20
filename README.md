@@ -34,7 +34,8 @@ live there.
 >
 > Version 0.2.0 makes it safe to open the same document in more than one place. In v0.1.0, a
 > write was only seen by the instance that made it, so every part of an app had to share a single
-> instance. That is no longer needed.
+> instance. Sharing a single instance is no longer required, but it is still the recommended
+> approach when it is practical.
 >
 > - **Instances stay in sync.** A write through one instance now reaches `flow()`, `stateFlow()`,
 >   and `fieldFlow()` on every other instance of the same document. This holds whether the
@@ -42,10 +43,14 @@ live there.
 >   from separate `Documents.collection(name)` calls.
 > - **Updates are not lost.** If two instances of the same document call `update` at the same
 >   time, both changes are applied one after the other.
+> - **Clearer error messages.** Each cause of a `DocumentDecodingException` now has its own message
+>   that says what went wrong and how to fix it.
 > - **Nothing to change in your code.** The public API is the same as in v0.1.0.
 >
-> See [Opening Documents](https://documents.nomemmurrakh.com/guide/opening-documents.html) for
-> details.
+> [Opening Documents](https://documents.nomemmurrakh.com/guide/opening-documents.html) explains how
+> to open the same document more than once. The
+> [Reactivity Model](https://documents.nomemmurrakh.com/concepts/reactivity-model.html) explains how
+> the instances stay in sync.
 
 ---
 
@@ -86,7 +91,7 @@ Clone the repository, run it, and tap through it on either platform.
 
 ## Roadmap
 
-- Rich error messages to differentiate causes
+- ~~Rich error messages to differentiate causes~~ Done in v0.2.0.
 - ~~IDE plugin to view MMKV files as collections & documents~~ Done in
   [Documents Inspector](https://github.com/nomemmurrakh/documents-inspector) v0.1.0.
 - Add Desktop target support

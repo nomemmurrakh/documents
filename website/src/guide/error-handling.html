@@ -46,11 +46,27 @@ It looks like any other decode failure.</p>
 <p>A document that was simply never written is not a decoding failure. <code>get()</code> returns
 <code>null</code> in that case. See <a href="/guide/read-and-write.html">Read &amp; Write</a>.</p>
 
-<h2>A different case: <code>update()</code> on a never-written document</h2>
-<p><code>update()</code> can also throw <code>DocumentDecodingException</code> the first time it
-runs on a document that has never been written with <code>set()</code>. The cause here is not
-corruption. A field in your data class has no constructor default and is not nullable, so there is
-nothing to fall back on. Today the exception message is the same as for a real decode failure,
-which makes it easy to mistake for one. See
-<a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for why this happens and
-how to avoid it.</p>
+<h2>What each message means</h2>
+<p>A <code>DocumentDecodingException</code> has one of four messages. Each one starts differently
+and says what to do:</p>
+<ul>
+  <li><strong>"Cannot update document 'note' because it has not been written yet…"</strong> The
+      first <code>update()</code> ran on a document that was never written, and a field has no
+      constructor default and is not nullable. Give the field a default, make it nullable, or call
+      <code>set()</code> first. See
+      <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a>.</li>
+  <li><strong>"Document 'note' is missing a stored value for required field 'title'…"</strong> A
+      stored document has no value for a required field. It was probably written by a different
+      version of your data class. Give the field a default or make it nullable so older data still
+      loads.</li>
+  <li><strong>"Field 'title' of document 'note' could not be read as kotlin.String…"</strong> The
+      stored bytes are corrupted, or were written by an incompatible version of your data
+      class.</li>
+  <li><strong>"A field decorator failed to unwrap field 'authToken'…"</strong> A
+      <code>FieldDecorator</code> threw while reading. Check that the decorators, their order, and
+      any keys match the ones used when the value was written.</li>
+</ul>
+<p>The last two messages include the name of the underlying exception, such as
+<code>SerializationException</code>, but not its text. A decoder error can quote stored data, and a
+stored value must not end up in a log. The full exception is on <code>cause</code> if you need
+it.</p>

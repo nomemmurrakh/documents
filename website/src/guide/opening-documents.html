@@ -43,17 +43,17 @@ val draft = drafts.document&lt;Note&gt;("draft-1")</code></pre>
 <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for details.</p>
 
 <h2>Opening the same document more than once</h2>
-<p>Opening a document is cheap, and you can do it as often as you like. You do not need to keep
-one instance and pass it around. All instances of the same document on the same store behave as
-one document:</p>
+<p>When it is practical, keep a single instance of a document and share it. Dependency injection
+is a good way to do that. It is not required, though. Opening a document is cheap, and all
+instances of the same document on the same store behave as one document:</p>
 <ul>
   <li>A write through one instance shows up in <code>flow()</code> on the others.</li>
   <li>If two instances call <code>update</code> at the same moment, the changes are applied one
       after the other, so neither is lost.</li>
 </ul>
-<p>Dependency injection is still a good way to organize your code, but your data stays correct
-without it. The <a href="/concepts/reactivity-model.html">Reactivity Model</a> explains how this
-works.</p>
+<p>So your data stays correct even if two parts of your app open the same document separately.
+The <a href="/concepts/reactivity-model.html">Reactivity Model</a> explains how the instances stay
+in sync.</p>
 <p>Each instance has its own configuration. The <code>dispatcher</code> can differ between
 instances. Use the same <code>decorators</code> for every instance of a document, because the
 bytes written by one instance must be readable by the others.</p>

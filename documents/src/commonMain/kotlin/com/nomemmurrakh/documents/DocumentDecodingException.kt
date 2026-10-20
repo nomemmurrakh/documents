@@ -9,6 +9,11 @@ package com.nomemmurrakh.documents
  * `SerializationException` so that callers never have to depend on the serialization layer's
  * error types.
  *
+ * The message says which of four causes applies: an `update` on a never-written document where a
+ * field has no default value, a stored document missing a required field, stored bytes that could
+ * not be read as the field's type, or a [FieldDecorator] that failed while unwrapping. The message
+ * names the cause's exception class but never its text, which can quote stored data.
+ *
  * @property documentKey the key of the document whose decode failed.
  * @property field the field whose stored value could not be decoded, or `null` when no single
  *   field is implicated.
@@ -17,7 +22,8 @@ public class DocumentDecodingException internal constructor(
     public val documentKey: String,
     public val field: String?,
     cause: Throwable?,
-) : RuntimeException(messageFor(documentKey, field), cause)
+    detail: String? = null,
+) : RuntimeException(detail ?: messageFor(documentKey, field), cause)
 
 private fun messageFor(documentKey: String, field: String?): String =
     if (field == null) {

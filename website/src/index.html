@@ -4,7 +4,8 @@
   <div class="callout__title">What's new in v0.2.0</div>
   <p>Version 0.2.0 makes it safe to open the same document in more than one place. In v0.1.0, a
   write was only seen by the instance that made it, so every part of an app had to share a single
-  instance. That is no longer needed.</p>
+  instance. Sharing a single instance is no longer required, but it is still the recommended
+  approach when it is practical.</p>
   <ul>
     <li><strong>Instances stay in sync.</strong> A write through one instance now reaches
         <code>flow()</code>, <code>stateFlow()</code>, and <code>fieldFlow()</code> on every other
@@ -13,11 +14,15 @@
         <code>Documents.collection(name)</code> calls.</li>
     <li><strong>Updates are not lost.</strong> If two instances of the same document call
         <code>update</code> at the same time, both changes are applied one after the other.</li>
+    <li><strong>Clearer error messages.</strong> Each cause of a
+        <code>DocumentDecodingException</code> now has its own message that says what went wrong
+        and how to fix it.</li>
     <li><strong>Nothing to change in your code.</strong> The public API is the same as in
         v0.1.0.</li>
   </ul>
-  <p>To see how this works, read <a href="/guide/opening-documents.html">Opening Documents</a>
-  and the <a href="/concepts/reactivity-model.html">Reactivity Model</a>.</p>
+  <p><a href="/guide/opening-documents.html">Opening Documents</a> explains how to open the same
+  document more than once. The <a href="/concepts/reactivity-model.html">Reactivity Model</a>
+  explains how the instances stay in sync.</p>
 </div>
 
 <h2>Overview</h2>
