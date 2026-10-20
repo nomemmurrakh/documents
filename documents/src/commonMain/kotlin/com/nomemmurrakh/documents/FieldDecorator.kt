@@ -16,7 +16,7 @@ package com.nomemmurrakh.documents
  * [IllegalStateException], or [IllegalArgumentException] to report a failure (for example, a
  * wrong key or corrupted input); it surfaces to callers as [DocumentDecodingException].
  *
- * An encryption-flavored implementation should bind its output to [fieldName] as associated
+ * An encryption-flavored implementation should bind its output to the `fieldName` as associated
  * data (for example, `fieldName.encodeToByteArray()`), so a ciphertext moved from one field's
  * key to another no longer decrypts.
  */

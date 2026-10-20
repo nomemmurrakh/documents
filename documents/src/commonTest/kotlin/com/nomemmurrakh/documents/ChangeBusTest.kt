@@ -17,13 +17,14 @@ class ChangeBusTest {
     @Serializable
     private data class User(val id: String, val age: Int, val active: Boolean)
 
-    private fun document(key: String, storage: Storage, bus: ChangeBus): Document<User> =
-        DocumentImpl(key, User.serializer(), storage, DefaultCbor, bus)
+    private fun document(key: String, store: StoreRuntime): Document<User> =
+        DocumentImpl(key, User.serializer(), store, DefaultCbor)
 
     @Test
     fun setEmitsTheDocumentKeyAfterCommit() = runTest {
-        val bus = ChangeBus()
-        val doc = document("user", InMemoryStorage(), bus)
+        val store = StoreRuntime(InMemoryStorage())
+        val bus = store.changes
+        val doc = document("user", store)
 
         val emitted = async { bus.keys.first() }
         yield()
@@ -34,8 +35,9 @@ class ChangeBusTest {
 
     @Test
     fun deleteEmitsTheDocumentKey() = runTest {
-        val bus = ChangeBus()
-        val doc = document("user", InMemoryStorage(), bus)
+        val store = StoreRuntime(InMemoryStorage())
+        val bus = store.changes
+        val doc = document("user", store)
         doc.set(User("1", 30, true))
 
         val emitted = async { bus.keys.first() }
@@ -47,10 +49,10 @@ class ChangeBusTest {
 
     @Test
     fun writesToDifferentKeysEmitOnlyTheirOwnKey() = runTest {
-        val bus = ChangeBus()
-        val storage = InMemoryStorage()
-        val a = document("a", storage, bus)
-        val b = document("b", storage, bus)
+        val store = StoreRuntime(InMemoryStorage())
+        val bus = store.changes
+        val a = document("a", store)
+        val b = document("b", store)
 
         val collected = async { bus.keys.take(2).toList() }
         yield()
@@ -62,9 +64,10 @@ class ChangeBusTest {
 
     @Test
     fun emissionHappensAfterTheWriteIsCommitted() = runTest {
-        val bus = ChangeBus()
         val storage = InMemoryStorage()
-        val doc = document("user", storage, bus)
+        val store = StoreRuntime(storage)
+        val bus = store.changes
+        val doc = document("user", store)
 
         val seen = async {
             bus.keys.first()

@@ -22,16 +22,15 @@ class DocumentStateFlowTest {
 
     private fun document(
         key: String,
-        storage: Storage,
-        bus: ChangeBus,
+        store: StoreRuntime,
         dispatcher: CoroutineDispatcher,
     ): Document<User> =
-        DocumentImpl(key, User.serializer(), storage, DefaultCbor, bus, dispatcher)
+        DocumentImpl(key, User.serializer(), store, DefaultCbor, dispatcher)
 
     @Test
     fun stateFlowHoldsTheCurrentValueAsInitialState() = runTest {
-        val storage = InMemoryStorage()
-        val doc = document("user", storage, ChangeBus(), UnconfinedTestDispatcher(testScheduler))
+        val store = StoreRuntime(InMemoryStorage())
+        val doc = document("user", store, UnconfinedTestDispatcher(testScheduler))
         doc.set(User("1", 30, true))
 
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
@@ -43,7 +42,7 @@ class DocumentStateFlowTest {
 
     @Test
     fun stateFlowHoldsNullWhenTheDocumentIsAbsent() = runTest {
-        val doc = document("user", InMemoryStorage(), ChangeBus(), UnconfinedTestDispatcher(testScheduler))
+        val doc = document("user", StoreRuntime(InMemoryStorage()), UnconfinedTestDispatcher(testScheduler))
 
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         assertNull(doc.stateFlow(scope).value)
@@ -52,8 +51,8 @@ class DocumentStateFlowTest {
 
     @Test
     fun stateFlowUpdatesAfterACommittedWrite() = runTest {
-        val storage = InMemoryStorage()
-        val doc = document("user", storage, ChangeBus(), UnconfinedTestDispatcher(testScheduler))
+        val store = StoreRuntime(InMemoryStorage())
+        val doc = document("user", store, UnconfinedTestDispatcher(testScheduler))
 
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         val state = doc.stateFlow(scope)
@@ -68,8 +67,8 @@ class DocumentStateFlowTest {
 
     @Test
     fun stateFlowUpdatesToNullOnDelete() = runTest {
-        val storage = InMemoryStorage()
-        val doc = document("user", storage, ChangeBus(), UnconfinedTestDispatcher(testScheduler))
+        val store = StoreRuntime(InMemoryStorage())
+        val doc = document("user", store, UnconfinedTestDispatcher(testScheduler))
         doc.set(User("1", 7, true))
 
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))

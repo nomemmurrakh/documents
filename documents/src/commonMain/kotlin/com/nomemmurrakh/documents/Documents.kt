@@ -52,8 +52,10 @@ public class CollectionConfig internal constructor() {
  * a wipe-on-logout cache, per-user scoping, or an encryption boundary. For the common case, open
  * documents directly on the default store with [Documents.document].
  *
- * All documents from one collection share a change bus, so a write to one document does not
- * notify observers of another.
+ * Every instance opened on the same collection name shares one change bus and one set of write
+ * locks, including instances obtained through separate calls to [Documents.collection]. A write
+ * through one instance is observed by [Document.flow] on any other instance of the same
+ * document, and concurrent updates through different instances do not lose writes.
  *
  * **Single-process only.** The backing MMKV store is always opened in single-process mode.
  * Concurrent access to the same store from more than one OS process (a background service, an
@@ -97,8 +99,8 @@ public object Documents {
     ): Document<T> {
         ensureInitialized()
         val resolved = DocumentConfig().apply(config)
-        val storage = platformStorage(DEFAULT_STORE_ID)
-        return CollectionImpl(storage, DefaultCbor, resolved.dispatcher, emptyList()).document(key, serializer) {
+        val store = Runtime.store(DEFAULT_STORE_ID) { platformStorage(DEFAULT_STORE_ID) }
+        return CollectionImpl(store, DefaultCbor, resolved.dispatcher, emptyList()).document(key, serializer) {
             decorators = resolved.decorators
         }
     }
@@ -109,14 +111,15 @@ public object Documents {
     public fun collection(name: String, config: CollectionConfig.() -> Unit = {}): Collection {
         ensureInitialized()
         val resolved = CollectionConfig().apply(config)
-        return CollectionImpl(platformStorage(name), DefaultCbor, resolved.dispatcher, resolved.decorators)
+        val store = Runtime.store(name) { platformStorage(name) }
+        return CollectionImpl(store, DefaultCbor, resolved.dispatcher, resolved.decorators)
     }
 
     /**
      * Creates a non-persistent, in-memory [Collection]. Intended for tests.
      */
     public fun inMemory(): Collection =
-        CollectionImpl(InMemoryStorage(), DefaultCbor, Dispatchers.Default, emptyList())
+        CollectionImpl(StoreRuntime(InMemoryStorage()), DefaultCbor, Dispatchers.Default, emptyList())
 }
 
 /**
@@ -153,17 +156,15 @@ internal expect fun platformStorage(name: String): Storage
 
 @OptIn(ExperimentalSerializationApi::class)
 internal class CollectionImpl(
-    private val storage: Storage,
+    private val store: StoreRuntime,
     private val cbor: Cbor,
     private val dispatcher: CoroutineDispatcher,
     private val decorators: List<FieldDecorator>,
 ) : Collection {
 
-    private val changes = ChangeBus()
-
     override fun <T> document(key: String, serializer: KSerializer<T>, config: DocumentConfig.() -> Unit): Document<T> {
         Keys.prefix(key)
         val resolved = DocumentConfig().apply(config)
-        return DocumentImpl(key, serializer, storage, cbor, changes, dispatcher, decorators + resolved.decorators)
+        return DocumentImpl(key, serializer, store, cbor, dispatcher, decorators + resolved.decorators)
     }
 }

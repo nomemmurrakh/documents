@@ -1,6 +1,5 @@
 package com.nomemmurrakh.documents
 
-import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -83,14 +82,15 @@ public interface Document<T> {
 internal class DocumentImpl<T>(
     private val key: String,
     private val serializer: KSerializer<T>,
-    private val storage: Storage,
+    private val store: StoreRuntime,
     private val cbor: Cbor,
-    private val changes: ChangeBus = ChangeBus(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val decorators: List<FieldDecorator> = emptyList(),
 ) : Document<T> {
 
-    private val lock = reentrantLock()
+    private val storage: Storage = store.storage
+    private val changes: ChangeBus = store.changes
+    private val lock = store.lockFor(key)
 
     override fun get(): T? = lock.withLock {
         if (!exists()) return null

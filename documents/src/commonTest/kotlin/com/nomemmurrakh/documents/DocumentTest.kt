@@ -88,7 +88,7 @@ class DocumentTest {
     @Test
     fun setReplaceDeletesStaleKeysNotInNewValue() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("user", User.serializer(), storage, DefaultCbor)
+        val doc = DocumentImpl("user", User.serializer(), StoreRuntime(storage), DefaultCbor)
         doc.set(User("1", 1, true))
         storage.putBytes(
             Keys.field("user", "legacyField"),
@@ -147,7 +147,7 @@ class DocumentTest {
     @Test
     fun updateLeavesNoStaleKeyForOverwrittenField() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
+        val doc = DocumentImpl("prefs", Prefs.serializer(), StoreRuntime(storage), DefaultCbor)
         doc.set(Prefs(theme = Theme.DARK, fontScale = 200, nickname = "old"))
 
         doc.update { current -> current.copy(nickname = null) }
@@ -158,7 +158,7 @@ class DocumentTest {
     @Test
     fun corruptFieldBytesThrowDocumentDecodingExceptionNamingKeyAndField() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("user", User.serializer(), storage, DefaultCbor)
+        val doc = DocumentImpl("user", User.serializer(), StoreRuntime(storage), DefaultCbor)
         doc.set(User("1", 30, true))
         storage.putBytes(Keys.field("user", "age"), byteArrayOf(0x1A))
 
@@ -172,7 +172,7 @@ class DocumentTest {
     @Test
     fun missingRequiredFieldOnPresentDocumentThrowsDocumentDecodingException() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("user", User.serializer(), storage, DefaultCbor)
+        val doc = DocumentImpl("user", User.serializer(), StoreRuntime(storage), DefaultCbor)
         doc.set(User("1", 30, true))
         storage.remove(Keys.field("user", "age"))
 
@@ -192,7 +192,7 @@ class DocumentTest {
     @Test
     fun updateAcquiresTheWriteLockReentrantlyWithoutDeadlock() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
+        val doc = DocumentImpl("prefs", Prefs.serializer(), StoreRuntime(storage), DefaultCbor)
         doc.set(Prefs(theme = Theme.DARK, fontScale = 100, nickname = "x"))
 
         doc.update { current -> current.copy(fontScale = 150) }
@@ -203,7 +203,7 @@ class DocumentTest {
     @Test
     fun multiFieldUpdateCommitsAllFieldsTogether() {
         val storage = InMemoryStorage()
-        val doc = DocumentImpl("prefs", Prefs.serializer(), storage, DefaultCbor)
+        val doc = DocumentImpl("prefs", Prefs.serializer(), StoreRuntime(storage), DefaultCbor)
         doc.set(Prefs(theme = Theme.LIGHT, fontScale = 100, nickname = "old"))
 
         doc.update { current -> current.copy(theme = Theme.DARK, fontScale = 200, nickname = "new") }

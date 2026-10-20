@@ -21,10 +21,9 @@ class FieldDelegateTest {
     private fun document(
         key: String,
         storage: Storage,
-        bus: ChangeBus = ChangeBus(),
         dispatcher: CoroutineDispatcher = Dispatchers.Default,
     ): Document<Prefs> =
-        DocumentImpl(key, Prefs.serializer(), storage, DefaultCbor, bus, dispatcher)
+        DocumentImpl(key, Prefs.serializer(), StoreRuntime(storage), DefaultCbor, dispatcher)
 
     @Test
     fun readingANeverSetFieldReturnsItsDefault() {

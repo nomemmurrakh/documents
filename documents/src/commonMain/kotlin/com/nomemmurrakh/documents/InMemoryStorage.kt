@@ -16,9 +16,8 @@ internal class InMemoryStorage : Storage {
         map[key] = value.copyOf()
     }
 
-    override fun remove(key: String): Unit = lock.withLock {
-        map.remove(key)
-        Unit
+    override fun remove(key: String) {
+        lock.withLock { map.remove(key) }
     }
 
     override fun contains(key: String): Boolean = lock.withLock {

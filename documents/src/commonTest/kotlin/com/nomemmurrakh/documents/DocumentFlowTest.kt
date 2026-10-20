@@ -21,17 +21,15 @@ class DocumentFlowTest {
 
     private fun document(
         key: String,
-        storage: Storage,
-        bus: ChangeBus,
+        store: StoreRuntime,
         dispatcher: CoroutineDispatcher,
     ): Document<User> =
-        DocumentImpl(key, User.serializer(), storage, DefaultCbor, bus, dispatcher)
+        DocumentImpl(key, User.serializer(), store, DefaultCbor, dispatcher)
 
     @Test
     fun flowEmitsTheCurrentValueOnCollection() = runTest {
-        val bus = ChangeBus()
-        val storage = InMemoryStorage()
-        val doc = document("user", storage, bus, UnconfinedTestDispatcher(testScheduler))
+        val store = StoreRuntime(InMemoryStorage())
+        val doc = document("user", store, UnconfinedTestDispatcher(testScheduler))
         doc.set(User("1", 30, true))
 
         assertEquals(User("1", 30, true), doc.flow().first())
@@ -39,17 +37,15 @@ class DocumentFlowTest {
 
     @Test
     fun flowEmitsNullWhenTheDocumentIsAbsent() = runTest {
-        val bus = ChangeBus()
-        val doc = document("user", InMemoryStorage(), bus, UnconfinedTestDispatcher(testScheduler))
+        val doc = document("user", StoreRuntime(InMemoryStorage()), UnconfinedTestDispatcher(testScheduler))
 
         assertNull(doc.flow().first())
     }
 
     @Test
     fun flowEmitsTheNewValueAfterACommittedWrite() = runTest {
-        val bus = ChangeBus()
-        val storage = InMemoryStorage()
-        val doc = document("user", storage, bus, UnconfinedTestDispatcher(testScheduler))
+        val store = StoreRuntime(InMemoryStorage())
+        val doc = document("user", store, UnconfinedTestDispatcher(testScheduler))
 
         val seen = mutableListOf<User?>()
         val collector = launch(UnconfinedTestDispatcher(testScheduler)) { doc.flow().toList(seen) }
@@ -61,9 +57,8 @@ class DocumentFlowTest {
 
     @Test
     fun flowEmitsNullOnDelete() = runTest {
-        val bus = ChangeBus()
-        val storage = InMemoryStorage()
-        val doc = document("user", storage, bus, UnconfinedTestDispatcher(testScheduler))
+        val store = StoreRuntime(InMemoryStorage())
+        val doc = document("user", store, UnconfinedTestDispatcher(testScheduler))
         doc.set(User("1", 7, true))
 
         val seen = mutableListOf<User?>()
@@ -76,10 +71,9 @@ class DocumentFlowTest {
 
     @Test
     fun flowDoesNotEmitForAWriteToADifferentDocument() = runTest {
-        val bus = ChangeBus()
-        val storage = InMemoryStorage()
-        val watched = document("user", storage, bus, UnconfinedTestDispatcher(testScheduler))
-        val other = document("other", storage, bus, UnconfinedTestDispatcher(testScheduler))
+        val store = StoreRuntime(InMemoryStorage())
+        val watched = document("user", store, UnconfinedTestDispatcher(testScheduler))
+        val other = document("other", store, UnconfinedTestDispatcher(testScheduler))
 
         val seen = mutableListOf<User?>()
         val collector = launch(UnconfinedTestDispatcher(testScheduler)) { watched.flow().toList(seen) }

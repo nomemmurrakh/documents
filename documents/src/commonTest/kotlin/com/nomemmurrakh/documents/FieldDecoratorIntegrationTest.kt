@@ -52,7 +52,7 @@ class FieldDecoratorIntegrationTest {
         val doc = DocumentImpl(
             "prefs",
             Prefs.serializer(),
-            storage,
+            StoreRuntime(storage),
             DefaultCbor,
             decorators = listOf(TagFieldDecorator(tag = 7)),
         )
@@ -68,11 +68,11 @@ class FieldDecoratorIntegrationTest {
         val decorated = DocumentImpl(
             "prefs",
             Prefs.serializer(),
-            storage,
+            StoreRuntime(storage),
             DefaultCbor,
             decorators = listOf(TagFieldDecorator(tag = 7)),
         )
-        val plain = DocumentImpl("plain", Prefs.serializer(), InMemoryStorage(), DefaultCbor)
+        val plain = DocumentImpl("plain", Prefs.serializer(), StoreRuntime(InMemoryStorage()), DefaultCbor)
 
         decorated.set(Prefs())
         plain.set(Prefs())
@@ -88,7 +88,7 @@ class FieldDecoratorIntegrationTest {
         val doc = DocumentImpl(
             "prefs",
             Prefs.serializer(),
-            storage,
+            StoreRuntime(storage),
             DefaultCbor,
             decorators = listOf(TagFieldDecorator(tag = 3)),
         )
@@ -105,7 +105,7 @@ class FieldDecoratorIntegrationTest {
         val doc = DocumentImpl(
             "prefs",
             Prefs.serializer(),
-            storage,
+            StoreRuntime(storage),
             DefaultCbor,
             decorators = listOf(TagFieldDecorator(tag = 5)),
         )
@@ -171,7 +171,7 @@ class FieldDecoratorIntegrationTest {
         val doc = DocumentImpl(
             "prefs",
             Prefs.serializer(),
-            storage,
+            StoreRuntime(storage),
             DefaultCbor,
             decorators = listOf(ThrowingUnwrapDecorator()),
         )
@@ -189,7 +189,7 @@ class FieldDecoratorIntegrationTest {
         val doc = DocumentImpl(
             "prefs",
             Prefs.serializer(),
-            storage,
+            StoreRuntime(storage),
             DefaultCbor,
             decorators = listOf(ThrowingUnwrapDecorator()),
         )
@@ -205,6 +205,6 @@ class FieldDecoratorIntegrationTest {
 
     private fun collection(config: CollectionConfig.() -> Unit = {}): Collection {
         val resolved = CollectionConfig().apply(config)
-        return CollectionImpl(InMemoryStorage(), DefaultCbor, resolved.dispatcher, resolved.decorators)
+        return CollectionImpl(StoreRuntime(InMemoryStorage()), DefaultCbor, resolved.dispatcher, resolved.decorators)
     }
 }
