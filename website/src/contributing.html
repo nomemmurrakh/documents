@@ -1,21 +1,36 @@
 <h1>Contributing</h1>
 
-<p>Issues, pull requests, and stars all help — the project lives at
-<a href="https://github.com/nomemmurrakh/documents" target="_blank" rel="noopener">github.com/nomemmurrakh/documents</a>.
-It's licensed under the
+<p>Issues, pull requests, and stars all help. The project lives at
+<a href="https://github.com/nomemmurrakh/documents" target="_blank" rel="noopener">github.com/nomemmurrakh/documents</a>
+and is licensed under the
 <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.</p>
 
 <h2>What a pull request has to pass</h2>
-<p>Every PR runs through CI:</p>
+<p>Every pull request runs through CI, which checks three things:</p>
 <ul>
-  <li>A build-and-test matrix — <code>iosSimulatorArm64Test</code> on macOS,
-      <code>testAndroidHostTest</code> on Ubuntu.</li>
-  <li>An ABI check — <code>:documents:checkKotlinAbi</code>, guarding the public binary
+  <li><strong>Build and test.</strong> <code>iosSimulatorArm64Test</code> runs on macOS, and
+      <code>testAndroidHostTest</code> runs on Ubuntu.</li>
+  <li><strong>ABI check.</strong> <code>:documents:checkKotlinAbi</code> guards the public binary
       surface.</li>
-  <li><code>detekt</code>, Kotlin static analysis.</li>
+  <li><strong>Static analysis.</strong> <code>detekt</code> checks the Kotlin code.</li>
 </ul>
+
+<h2>Proposing a design change</h2>
+<p>Significant design decisions are recorded as Architecture Decision Records (ADRs) in
+<a href="https://github.com/nomemmurrakh/documents/tree/master/docs/adr" target="_blank" rel="noopener"><code>docs/adr</code></a>.
+To propose a new decision:</p>
+<ol>
+  <li>Open an issue or a pull request that describes the change and why it is needed.</li>
+  <li>Add an ADR file to <code>docs/adr</code>. Name it with the next number in the sequence and a
+      short title, for example <code>0023-short-title.md</code>.</li>
+  <li>Write it in the same shape as the existing ADRs, with a status, a date, the context, the
+      decision, its consequences, and the alternatives you considered.</li>
+  <li>Add a row for it to the table in <code>docs/adr/README.md</code>.</li>
+</ol>
+<p>ADRs are numbered in order and are never renumbered or deleted. If a new ADR replaces an older
+one, the older one stays where it is, and its status is updated to point to the new one.</p>
 
 <h2>Where to start</h2>
 <p>Read <a href="/guide/index.html">the Guide</a> and
-<a href="/design-decisions/index.html">Design Decisions</a> to get oriented in how the library is
-built and why, then open an issue or a PR on GitHub.</p>
+<a href="/design-decisions/index.html">Design Decisions</a> to see how the library is built and
+why. Then open an issue or a pull request on GitHub.</p>

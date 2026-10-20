@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -125,18 +125,22 @@
   </thead>
   <tbody>
     <tr><td>Android</td><td>✅</td><td>MMKV</td></tr>
-    <tr><td>iOS — <code>arm64</code> + <code>simulatorArm64</code></td><td>✅</td><td>MMKV (via CocoaPods)</td></tr>
+    <tr><td>iOS (<code>arm64</code> and <code>simulatorArm64</code>)</td><td>✅</td><td>MMKV</td></tr>
   </tbody>
 </table>
 
-<p>One public API across both platforms — it all lives in <code>commonMain</code>. MMKV is bound
-on Apple targets through the Kotlin CocoaPods plugin, and the library owns MMKV initialization on
-both platforms, so consumers never lift a finger on that front. There is no JVM/desktop or wasm
-target in this release.</p>
+<div class="callout callout--note">
+  <div class="callout__title">How the library is configured</div>
+  <p>On Apple targets, MMKV is bound through the Kotlin CocoaPods plugin.</p>
+</div>
+
+<p>Both platforms share one public API, and all of it lives in <code>commonMain</code>. On both
+platforms the library initializes MMKV itself, so you have nothing to set up for it.</p>
+
+<p>There is no JVM, desktop, or wasm target in this release.</p>
 
 <p>See <a href="/use-cases/shared-kmp-persistence.html">Shared KMP Persistence</a> for what this
-means in practice, and <a href="/concepts/storage-spi.html">Storage SPI</a> for how the platform-
-specific binding is isolated behind a minimal internal interface.</p>
+means in practice.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -153,8 +157,8 @@ specific binding is isolated behind a minimal internal interface.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

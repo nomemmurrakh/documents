@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,9 +119,10 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Benchmarks</h1>
 
-<p>Documents decomposes a value into one <code>{doc}::{field}</code> key per field and runs a CBOR
-encode/decode per field. These microbenchmarks measure that overhead against using raw MMKV
-directly — encoding the same 5-field value once with CBOR and calling MMKV's byte API.</p>
+<p>Documents splits a value into one <code>{doc}::{field}</code> key per field, and it runs a
+CBOR encode and decode for each field. These microbenchmarks measure the cost of that work
+against using raw MMKV directly. The raw baseline encodes the same 5-field value once with CBOR
+and calls MMKV's byte API.</p>
 
 <p>Sample type:</p>
 
@@ -135,16 +136,18 @@ directly — encoding the same 5-field value once with CBOR and calling MMKV's b
 )</code></pre>
 
 <h2>Methodology</h2>
-<p>Each raw-MMKV baseline does the <em>same underlying work</em> as the Documents call it's
-paired with — the same field keys, the same per-field CBOR encode/decode calls, the same
-existence prefix-scan before a read, and the same prefix-scan-then-remove on clear — by hand,
-with no library machinery (no lock, no change bus, no composite encoder). This isolates what the
-abstraction costs on top of doing the identical raw operations manually, rather than comparing
-Documents' per-field decomposition against a single whole-object blob, which would be a different,
-unfair comparison.</p>
-<p>The numbers are captured on-device — this is not a JVM-host benchmark, since MMKV is
-mmap-backed and needs a real device or simulator. They are device- and OS-specific, illustrative
-rather than authoritative, and are not run in CI.</p>
+<p>Each raw MMKV baseline does the <em>same underlying work</em> as the Documents call it is
+paired with. It uses the same field keys, the same per-field CBOR encode and decode calls, the
+same existence prefix scan before a read, and the same prefix scan and remove on clear. It does
+all of this by hand, with no library machinery: no lock, no change bus, and no composite encoder.
+That isolates what the abstraction costs on top of doing the identical raw operations manually.</p>
+
+<p>The comparison does not pit Documents' per-field storage against a single whole-object blob,
+because that would be an unfair comparison.</p>
+
+<p>The numbers are captured on a device or simulator. This is not a JVM host benchmark, because
+MMKV is memory-mapped and needs a real device or simulator. The numbers depend on the device and
+OS, they are illustrative and not authoritative, and they are not run in CI.</p>
 
 <h2>iOS</h2>
 <table>
@@ -160,25 +163,34 @@ rather than authoritative, and are not run in CI.</p>
     <tr><td>field delegate write (1 field)</td><td>5.2 µs</td><td>2.3 µs</td></tr>
   </tbody>
 </table>
-<p><em>Device: iPhone 17 Pro simulator · iOS 26.1 · median of 20k iterations, CBOR encoding. The
-whole-object <code>update { }</code> builder always does a full 5-field get followed by a full
-5-field set, even when only one field changed — it's the read-modify-write path, and the raw
-baseline replicates that same round trip rather than a hand-optimized single-key patch, so the
-pairing stays honest. <code>update(prop, value)</code> is the true single-key write with no read —
-it comes in even below field delegate write since it skips the <code>ReadWriteProperty</code>
-object the delegate allocates. <code>delete</code> measures set + delete. Absolute timings are
-simulator (host CPU), not real hardware — compare Documents vs raw MMKV within this table, not
-against other platforms.</em></p>
+
+<p><em>Device: iPhone 17 Pro simulator, iOS 26.1. Median of 20k iterations, CBOR encoding.</em></p>
+
+<p>How to read the table:</p>
+<ul>
+  <li><strong>Whole-object <code>update { }</code>.</strong> The builder always does a full
+      5-field get followed by a full 5-field set, even when only one field changed. This is the
+      read-modify-write path. The raw baseline repeats that same round trip instead of a
+      hand-tuned single-key patch, so the pairing stays honest.</li>
+  <li><strong><code>update(prop, value)</code>.</strong> This is a true single-key write with no
+      read. It is even cheaper than a field delegate write, because it skips the
+      <code>ReadWriteProperty</code> object that the delegate allocates.</li>
+  <li><strong><code>delete</code>.</strong> This measures a set followed by a delete.</li>
+  <li><strong>Absolute timings.</strong> They come from a simulator, so they reflect the host CPU
+      and not real hardware. Compare Documents with raw MMKV within this table, and not against
+      other platforms.</li>
+</ul>
 
 <h2>Android</h2>
-<p>Pending re-run. An instrumented harness already exists
-(<code>connectedAndroidDeviceTest</code>, same timing-harness shape as iOS); the numbers predate
-the CBOR switch and need a fresh on-device run before they can be published here.</p>
+<p>These numbers are pending a re-run. An instrumented harness already exists
+(<code>connectedAndroidDeviceTest</code>, with the same timing harness as iOS). The old numbers
+were measured before the switch to CBOR, so they need a fresh on-device run before they can be
+published here.</p>
 
 <p>See <a href="/concepts/field-decomposition.html">Field Decomposition</a> for why
 <code>update(prop, value)</code> and field delegates measure so much cheaper than a whole-object
-<code>update { }</code>, or <a href="/guide/read-and-write.html">Read &amp; Write</a> for when to
-reach for each call shape.</p>
+<code>update { }</code>. See <a href="/guide/read-and-write.html">Read &amp; Write</a> for when to
+use each call.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -195,8 +207,8 @@ reach for each call shape.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

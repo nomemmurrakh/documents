@@ -3,193 +3,205 @@
     "title": "Benchmarks",
     "href": "/benchmarks.html",
     "section": "Benchmarks",
-    "text": "Documents decomposes a value into one {doc}::{field} key per field and runs a CBOR encode/decode per field. These microbenchmarks measure that overhead against using raw MMKV directly — encoding the same 5-field value once with CBOR and calling MMKV's byte API. Sample type: @Serializable data class Profile ( val id: Long , val name: String , val email: String , val age: Int , val active: Boolean , )"
+    "text": "Documents splits a value into one {doc}::{field} key per field, and it runs a CBOR encode and decode for each field. These microbenchmarks measure the cost of that work against using raw MMKV directly. The raw baseline encodes the same 5-field value once with CBOR and calls MMKV's byte API. Sample type: @Serializable data class Profile ( val id: Long , val name: String , val email: String , val age: Int , val active: Boolean , )"
   },
   {
     "title": "Benchmarks",
     "href": "/benchmarks.html",
     "section": "Methodology",
-    "text": "Each raw-MMKV baseline does the same underlying work as the Documents call it's paired with — the same field keys, the same per-field CBOR encode/decode calls, the same existence prefix-scan before a read, and the same prefix-scan-then-remove on clear — by hand, with no library machinery (no lock, no change bus, no composite encoder). This isolates what the abstraction costs on top of doing the identical raw operations manually, rather than comparing Documents' per-field decomposition against a single whole-object blob, which would be a different, unfair comparison. The numbers are captured on-device — this is not a JVM-host benchmark, since MMKV is mmap-backed and needs a real device or simulator. They are device- and OS-specific, illustrative rather than authoritative, and are not run in CI."
+    "text": "Each raw MMKV baseline does the same underlying work as the Documents call it is paired with. It uses the same field keys, the same per-field CBOR encode and decode calls, the same existence prefix scan before a read, and the same prefix scan and remove on clear. It does all of this by hand, with no library machinery: no lock, no change bus, and no composite encoder. That isolates what the abstraction costs on top of doing the identical raw operations manually. The comparison does not pit Documents' per-field storage against a single whole-object blob, because that would be an unfair comparison. The numbers are captured on a device or simulator. This is not a JVM host benchmark, because MMKV is memory-mapped and needs a real device or simulator. The numbers depend on the device and OS, they are illustrative and not authoritative, and they are not run in CI."
   },
   {
     "title": "Benchmarks",
     "href": "/benchmarks.html",
     "section": "iOS",
-    "text": "Operation Documents Raw MMKV (same work, by hand) set(value) (5 field) 22.3 µs 18.8 µs get (5 field) 20.2 µs 9.1 µs update { } (whole-object, full get+set) 44.2 µs 28.9 µs update(prop, value) (1 field) 3.9 µs 2.3 µs delete (incl. set, 5 field) 23.5 µs 18.8 µs field delegate write (1 field) 5.2 µs 2.3 µs Device: iPhone 17 Pro simulator · iOS 26.1 · median of 20k iterations, CBOR encoding. The whole-object update { } builder always does a full 5-field get followed by a full 5-field set, even when only one field changed — it's the read-modify-write path, and the raw baseline replicates that same round trip rather than a hand-optimized single-key patch, so the pairing stays honest. update(prop, value) is the true single-key write with no read — it comes in even below field delegate write since it skips the ReadWriteProperty object the delegate allocates. delete measures set + delete. Absolute timings are simulator (host CPU), not real hardware — compare Documents vs raw MMKV within this table, not against other platforms."
+    "text": "Operation Documents Raw MMKV (same work, by hand) set(value) (5 field) 22.3 µs 18.8 µs get (5 field) 20.2 µs 9.1 µs update { } (whole-object, full get+set) 44.2 µs 28.9 µs update(prop, value) (1 field) 3.9 µs 2.3 µs delete (incl. set, 5 field) 23.5 µs 18.8 µs field delegate write (1 field) 5.2 µs 2.3 µs Device: iPhone 17 Pro simulator, iOS 26.1. Median of 20k iterations, CBOR encoding. How to read the table: Whole-object update { } . The builder always does a full 5-field get followed by a full 5-field set, even when only one field changed. This is the read-modify-write path. The raw baseline repeats that same round trip instead of a hand-tuned single-key patch, so the pairing stays honest. update(prop, value) . This is a true single-key write with no read. It is even cheaper than a field delegate write, because it skips the ReadWriteProperty object that the delegate allocates. delete . This measures a set followed by a delete. Absolute timings. They come from a simulator, so they reflect the host CPU and not real hardware. Compare Documents with raw MMKV within this table, and not against other platforms."
   },
   {
     "title": "Benchmarks",
     "href": "/benchmarks.html",
     "section": "Android",
-    "text": "Pending re-run. An instrumented harness already exists ( connectedAndroidDeviceTest , same timing-harness shape as iOS); the numbers predate the CBOR switch and need a fresh on-device run before they can be published here. See Field Decomposition for why update(prop, value) and field delegates measure so much cheaper than a whole-object update { } , or Read & Write for when to reach for each call shape."
+    "text": "These numbers are pending a re-run. An instrumented harness already exists ( connectedAndroidDeviceTest , with the same timing harness as iOS). The old numbers were measured before the switch to CBOR, so they need a fresh on-device run before they can be published here. See Field Decomposition for why update(prop, value) and field delegates measure so much cheaper than a whole-object update { } . See Read & Write for when to use each call."
   },
   {
     "title": "Concurrency",
     "href": "/concepts/concurrency.html",
     "section": "Concurrency",
-    "text": "The document API is fully synchronous and non-suspending . get() , set() , update() , delete() , exists() , and every field delegate are plain function calls — none of them are suspend functions, and none of them require a coroutine scope to call. MMKV is memory-mapped, so a read or write is a memory operation, not I/O — there is nothing to suspend for. // no coroutine scope needed for any of these: note. set ( Note (title = \"Pick up milk\" )) val current = note. get () note.update( Note ::done, true )"
+    "text": "The document API is synchronous and non-suspending . get() , set() , update() , delete() , exists() , and every field delegate are plain function calls. None of them are suspend functions, and none of them need a coroutine scope. MMKV is memory-mapped, so a read or a write is a memory operation and not disk I/O. There is nothing to wait for. // no coroutine scope needed for any of these: note. set ( Note (title = \"Pick up milk\" )) val current = note. get () note.update( Note ::done, true )"
   },
   {
     "title": "Concurrency",
     "href": "/concepts/concurrency.html",
     "section": "Writes are serialized per document",
-    "text": "Every write to a given document goes through a lightweight, non-suspending lock scoped to that document — not a coroutine Mutex . This is what makes a multi-field update { current -> ... } atomic from the caller's perspective: the read of the current value and the write of the new one happen as one uninterrupted unit, so a concurrent reader never observes a half-applied update. Because the lock is non-suspending, it composes safely with plain synchronous call sites — there's no risk of it blocking a coroutine dispatcher in a way that would starve other coroutines."
+    "text": "Every write to a document goes through a lightweight lock. The lock does not suspend, and it is not a coroutine Mutex . Because it never suspends, it works safely in plain synchronous code and cannot block a coroutine dispatcher in a way that starves other coroutines. The lock is what makes a multi-field update { current -> ... } atomic. Reading the current value and writing the new one happen as one uninterrupted step, so a concurrent reader never sees a half-applied update. The lock belongs to the document's store, not to the Document object you hold. All instances of the same document share it. If two instances update the same document at the same time, one update runs after the other, and neither is lost. Internally, each store has a fixed set of 64 locks. The library picks one by the document's key, and creates it only when it is first needed. Different documents normally get different locks and never wait for each other. Rarely, two unrelated documents map to the same lock, and then their writes take turns."
   },
   {
     "title": "Concurrency",
     "href": "/concepts/concurrency.html",
-    "section": "What is dispatcher-governed",
-    "text": "Only flow() and stateFlow() collection runs on a configurable dispatcher — Dispatchers.Default by default, since re-reading and decoding a value on each change bus emission is CPU-bound work (see Reactivity Model ). This dispatcher only affects how a Flow is collected; it has no bearing on the document operations themselves, which remain synchronous regardless of which dispatcher a caller happens to be on."
+    "section": "What the dispatcher controls",
+    "text": "Only the collection of flow() and stateFlow() runs on a configurable dispatcher. It is Dispatchers.Default unless you change it, because reading and decoding a value for each change is CPU work (see Reactivity Model ). The dispatcher only affects how a Flow is collected. The document operations themselves stay synchronous, whichever dispatcher your code is running on."
   },
   {
     "title": "Decorations",
     "href": "/concepts/decorations.html",
     "section": "Decorations",
-    "text": "A decoration is a bytes-in/bytes-out transform applied to one field's already-CBOR- encoded value, sitting between a Document<T> and the storage layer underneath it. This is the mechanism behind FieldDecorator — see Field Decorators for how to attach one."
+    "text": "A decoration is a transform from bytes to bytes. It is applied to one field's value after that value has been encoded as CBOR, and it sits between a Document<T> and the storage layer underneath it. It is the mechanism behind FieldDecorator . See Field Decorators for how to attach one."
   },
   {
     "title": "Decorations",
     "href": "/concepts/decorations.html",
     "section": "The interface",
-    "text": "interface FieldDecorator { fun wrap(fieldName: String , bytes: ByteArray ): ByteArray fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray } wrap runs on every write, immediately before the encoded bytes reach storage. unwrap runs on every read, immediately after the bytes come back from storage and before they're decoded. fieldName is the field's own name — \"title\" for Note::title — never a raw storage key, so a decorator can single out individual fields with if (fieldName == Note::title.name) ... ."
+    "text": "interface FieldDecorator { fun wrap(fieldName: String , bytes: ByteArray ): ByteArray fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray } wrap runs on every write, right before the encoded bytes reach storage. unwrap runs on every read, right after the bytes come back from storage and before they are decoded. fieldName is the field's own name, such as \"title\" for Note::title . It is never a raw storage key. A decorator can single out one field with a check like if (fieldName == Note::title.name) ... ."
   },
   {
     "title": "Decorations",
     "href": "/concepts/decorations.html",
-    "section": "Why fold in opposite directions",
-    "text": "When more than one decorator is configured, writes fold through the list left-to-right and reads fold right-to-left: decorators.fold(bytes) { acc, decorator -> decorator.wrap(fieldName, acc) } // write decorators.foldRight(bytes) { decorator, acc -> decorator.unwrap(fieldName, acc) } // read Think of each decorator as a layer wrapped around the bytes. The last decorator to wrap on write is the outermost layer, so it has to be the first one peeled off on read — reversing the list on the read side is what makes unwrap undo wrap correctly for any combination of decorators, not just a single one. This is also why order is a real design choice: listOf(Compress, Encrypt) compresses first and encrypts the compressed result, so decompression only ever has to run on something that decrypted cleanly — reversing the pair would try to compress already-encrypted, high-entropy bytes, which doesn't shrink them."
+    "section": "Why reads go in the opposite order",
+    "text": "When you configure more than one decorator, a write passes through the list from left to right, and a read passes through it from right to left: decorators.fold(bytes) { acc, decorator -> decorator.wrap(fieldName, acc) } // write decorators.foldRight(bytes) { decorator, acc -> decorator.unwrap(fieldName, acc) } // read Think of each decorator as a layer wrapped around the bytes. The last decorator to wrap on a write is the outermost layer, so it has to be the first one removed on a read. Reversing the list on the read side is what makes unwrap undo wrap correctly for any number of decorators. This also means the order you choose matters. With listOf(Compress, Encrypt) , the bytes are compressed first and the compressed result is encrypted. On a read, the data is decrypted first, and then decompressed. If you reversed the pair, the library would try to compress bytes that are already encrypted. Encrypted bytes look random, so they do not shrink."
   },
   {
     "title": "Decorations",
     "href": "/concepts/decorations.html",
     "section": "A sketch of encryption as a decoration",
-    "text": "Encryption is a natural fit for this shape: wrap encrypts the plaintext bytes, unwrap decrypts them back. A minimal sketch: class EncryptingDecorator ( private val cipher: Cipher ) : FieldDecorator { override fun wrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.encrypt(bytes, associatedData = fieldName.encodeToByteArray()) override fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.decrypt(bytes, associatedData = fieldName.encodeToByteArray()) } Passing fieldName as associated data binds each ciphertext to its own field, so a value copied from one field's storage key into another's fails to decrypt instead of silently succeeding with the wrong field's data. See Session & User State for a complete, working AES-GCM implementation."
+    "text": "Encryption fits this shape well. wrap encrypts the plaintext bytes, and unwrap decrypts them again. Here is a minimal sketch: class EncryptingDecorator ( private val cipher: Cipher ) : FieldDecorator { override fun wrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.encrypt(bytes, associatedData = fieldName.encodeToByteArray()) override fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.decrypt(bytes, associatedData = fieldName.encodeToByteArray()) } Passing fieldName as associated data ties each ciphertext to its own field. If a value is copied from one field's storage key to another's, it fails to decrypt. It does not silently succeed with the wrong field's data. See Session & User State for a complete, working AES-GCM implementation."
   },
   {
     "title": "Decorations",
     "href": "/concepts/decorations.html",
     "section": "Failure contract",
-    "text": "If unwrap throws SerializationException , IllegalStateException , or IllegalArgumentException , it surfaces as DocumentDecodingException — see Error Handling ."
+    "text": "If unwrap throws a SerializationException , an IllegalStateException , or an IllegalArgumentException , the failure surfaces as a DocumentDecodingException . See Error Handling ."
   },
   {
     "title": "Field Decomposition",
     "href": "/concepts/field-decomposition.html",
     "section": "Field Decomposition",
-    "text": "A document is never stored as one serialized blob. Instead, every top-level field becomes its own MMKV entry, keyed {document}::{field} : // Note(title = \"Pick up milk\", body = \"2%, not whole\", done = false) // stored as: note- 1 ::title -> bytes note- 1 ::body -> bytes note- 1 ::done -> bytes The :: separator is reserved for this purpose, which is why it's rejected in a document key — see Opening Documents ."
+    "text": "A document is never stored as one serialized blob. Each top-level field becomes its own MMKV entry, stored under a key of the form {document}::{field} : // Note(title = \"Pick up milk\", body = \"2%, not whole\", done = false) // stored as: note- 1 ::title -> bytes note- 1 ::body -> bytes note- 1 ::done -> bytes The :: separator is reserved for this purpose. That is why a document key that contains it is rejected. See Opening Documents ."
   },
   {
     "title": "Field Decomposition",
     "href": "/concepts/field-decomposition.html",
     "section": "Why decompose",
-    "text": "Decomposition is what makes field-level reactivity and truly cheap single-field writes possible. update(prop, value) and field delegates each touch exactly one decomposed key — a single putBytes or getBytes call, independent of how many other fields the document has, with no read or re-encoding of anything else. update { current -> ... } is a different story: it's a full read-modify-write of the whole document — every field is decoded on the read side, and every field is re-encoded and rewritten on the write side, even when the builder only changes one of them. See Read & Write for when to reach for each shape, and Benchmarks for the measured cost difference between the two."
+    "text": "Decomposition is what makes field-level reactivity and cheap single-field writes possible. update(prop, value) and field delegates each touch exactly one stored key. That is a single putBytes or getBytes call, no matter how many other fields the document has. Nothing else is read or encoded again. update { current -> ... } works differently. It reads and then writes the whole document. Every field is decoded on the read, and every field is encoded and written again on the write, even when the builder changes only one of them. See Read & Write for when to use each form, and Benchmarks for the measured cost difference between the two."
   },
   {
     "title": "Field Decomposition",
     "href": "/concepts/field-decomposition.html",
     "section": "Nested types",
-    "text": "A field whose type is itself a @Serializable object — like a nested Player inside a save file, or an address inside a user profile — is stored as a single serialized sub-blob under that one field's key, to any nesting depth. Nested types are not decomposed further in v1; only top-level fields get their own key."
+    "text": "A field whose type is itself a @Serializable object is stored as a single serialized value under that field's key. Examples are a Player inside a save file or an address inside a user profile. This holds at any nesting depth. In v1, nested types are not split up further. Only top-level fields get their own key."
   },
   {
     "title": "Field Decomposition",
     "href": "/concepts/field-decomposition.html",
     "section": "How fields are discovered",
-    "text": "The library walks each type's fields using kotlinx.serialization's SerialDescriptor — never reflection, which keeps this working identically on Kotlin/Native (iOS) as it does on the JVM. A custom encoder/decoder writes and reads each element to and from its own {doc}::{field} key instead of a single shared output buffer. Each decomposed field is also where a decoration attaches, if one is configured — one field's key, one wrap/unwrap pair."
+    "text": "The library finds each type's fields through kotlinx.serialization's SerialDescriptor , never through reflection. That keeps it working the same way on Kotlin/Native (iOS) as on the JVM. A custom encoder and decoder write and read each element under its own {doc}::{field} key, instead of using one shared output buffer. Each field is also where a decoration attaches, if one is configured. A field has one key and one wrap and unwrap pair."
   },
   {
     "title": "Reactivity Model",
     "href": "/concepts/reactivity-model.html",
     "section": "Reactivity Model",
-    "text": "MMKV has no native change-listener mechanism, so reactivity is entirely a process-local concern built on top of it."
+    "text": "MMKV has no built-in way to listen for changes, so reactivity in Documents is handled entirely inside your process, on top of MMKV."
   },
   {
     "title": "Reactivity Model",
     "href": "/concepts/reactivity-model.html",
     "section": "The change bus",
-    "text": "A single shared, process-local event stream acts as a change bus: after every committed write or delete, the affected document's key is emitted onto that bus. document.flow() filters the bus for its own key, then re-reads and emits the fresh value — conflated, so a burst of rapid writes doesn't queue up redundant emissions. The initial value is emitted the moment a collector starts collecting, before any new write has happened. note.flow().collect { current -> // fires once immediately with the current value, then again after every committed write } fieldFlow(prop) filters further, down to one field — a change to a sibling field never triggers it. See Field Delegates ."
+    "text": "Each store has one change bus. The default store has one, and so does every named collection. The bus is a stream of events that lives in memory inside your process. After every committed write or delete, the library puts the key of the affected document on the bus. A call to document.flow() listens to the bus and reacts only to events for its own key. When one arrives, it reads the document again and emits the fresh value. Emissions are conflated, which means a burst of quick writes does not pile up redundant emissions. The first value is emitted as soon as collection starts, before any new write has happened. note.flow().collect { current -> // runs once right away with the current value, then again after every committed write } fieldFlow(prop, default) narrows this down to a single field. A change to a sibling field never triggers it. See Field Delegates ."
+  },
+  {
+    "title": "Reactivity Model",
+    "href": "/concepts/reactivity-model.html",
+    "section": "Several instances of the same document",
+    "text": "The bus belongs to the store, not to the Document object you hold. Every instance opened on the same store uses the same bus. So a write through any instance reaches flow() , stateFlow() , and fieldFlow() on all the others. This works no matter how the instances were created. They can come from dependency injection, from repeated calls to Documents.document(...) , or from separate calls to Documents.collection(name) with the same name. val reader = Documents .document< Note >( \"note-1\" ) val writer = Documents .document< Note >( \"note-1\" ) reader.flow().collect { current -> // runs when the write below commits, even though it went through a different instance } writer. set ( Note (title = \"Pick up milk\" )) Collections are separate stores. The same document key in two collections with different names is two unrelated documents, and a write to one does not notify the other. Each call to Documents.inMemory() also creates its own isolated store."
   },
   {
     "title": "Reactivity Model",
     "href": "/concepts/reactivity-model.html",
     "section": "Not cross-process",
-    "text": "Because the change bus is process-local, cross-process change notification is not provided — a write made by another OS process will not show up as an emission on this bus. This is consistent with the single-process constraint that applies to storage generally: this library's reactivity, like its storage, is designed around a single owning process."
+    "text": "The change bus only exists inside one process, so changes made by another OS process are not detected. A write from another process never shows up as an emission on this bus. This matches the single-process rule that applies to storage in general. Both the storage and the reactivity are designed for one process that owns each store."
   },
   {
     "title": "Serialization (CBOR)",
     "href": "/concepts/serialization-cbor.html",
     "section": "Serialization (CBOR)",
-    "text": "A single internal CBOR format sits between the field-walker and the storage layer, encoding each field value directly to bytes — no JSON text detour, no intermediate string representation at all. // conceptually, per field: val bytes: ByteArray = cbor.encodeToByteArray(serializer, fieldValue) storage.putBytes( \"note-1::title\" , bytes)"
+    "text": "The library uses a single internal CBOR format. It sits between the field walker and the storage layer, and it encodes each field value directly to bytes. There is no JSON text and no intermediate string. // conceptually, per field: val bytes: ByteArray = cbor.encodeToByteArray(serializer, fieldValue) storage.putBytes( \"note-1::title\" , bytes)"
   },
   {
     "title": "Serialization (CBOR)",
     "href": "/concepts/serialization-cbor.html",
     "section": "Not a pluggable extension point",
-    "text": "This is an internal implementation detail, not a public knob — the on-disk format isn't configurable in v1. An earlier design considered a pluggable Codec<T> abstraction for swapping serialization strategies; that design was superseded before release in favor of a single internal CBOR format, which is simpler and removes an entire axis of configuration a caller never actually needed. If you've seen a Codec abstraction mentioned elsewhere, treat it as historical — it isn't part of the current public surface."
+    "text": "The format is an internal detail, not a setting you can change. The on-disk format is not configurable in v1."
   },
   {
     "title": "Serialization (CBOR)",
     "href": "/concepts/serialization-cbor.html",
     "section": "Why CBOR, not JSON",
-    "text": "CBOR encodes directly to compact binary — no text serialization, no parsing back out of a string — which keeps the format small and the encode/decode step cheap, on top of an already memory-mapped storage engine. Since each field is encoded independently (see Field Decomposition ), the format only ever needs to represent one field's value at a time, not a whole document. Any configured decoration runs immediately adjacent to this step — wrapping the encoded bytes right after this, unwrapping them right before."
+    "text": "CBOR encodes straight to compact binary. There is no text to produce and no string to parse back, so the format stays small and encoding and decoding stay cheap, on top of a storage engine that is already memory-mapped. Each field is encoded on its own (see Field Decomposition ), so the format only ever has to represent one field's value at a time, never a whole document. If you configure a decoration , it runs right next to this step. It wraps the encoded bytes just after encoding, and unwraps them just before decoding."
   },
   {
     "title": "Storage SPI",
     "href": "/concepts/storage-spi.html",
     "section": "Storage SPI",
-    "text": "Underneath the public API sits a minimal interface that makes the storage engine swappable — this is how it's built, not something a consumer of the library implements or configures directly. internal interface Storage { fun getBytes(key: String ): ByteArray ? fun putBytes(key: String , value: ByteArray ) fun remove(key: String ) fun contains(key: String ): Boolean fun keys(prefix: String ): List < String > } Every decomposed field key (see Field Decomposition ) is read and written through exactly these five operations. Two implementations exist: MmkvStorage — wraps a real Tencent MMKV instance. Used in production on both Android and iOS. InMemoryStorage — wraps a plain in-memory map, guarded for concurrent access. Backs Documents.inMemory() , used for unit tests with no real MMKV instance involved — see Collections & Testing . Everything above this interface — the public API, field decomposition, serialization, reactivity — lives in commonMain and has no idea which Storage implementation it's talking to. Only the concrete implementation is platform-specific, which is what keeps the entire public surface KMP-clean. See Shared KMP Persistence and Platform Support ."
+    "text": "Under the public API there is a small interface that makes the storage engine swappable. It describes how the library is built. It is not something you implement or configure yourself. internal interface Storage { fun getBytes(key: String ): ByteArray ? fun putBytes(key: String , value: ByteArray ) fun remove(key: String ) fun contains(key: String ): Boolean fun keys(prefix: String ): List < String > } Every stored field key (see Field Decomposition ) is read and written through these five operations. There are two implementations: MmkvStorage wraps a real Tencent MMKV instance. It is used in production on both Android and iOS. InMemoryStorage wraps a plain in-memory map that is safe for concurrent access. It backs Documents.inMemory() , which is used for unit tests that need no real MMKV instance. See Collections & Testing . Everything above this interface lives in commonMain . That includes the public API, field decomposition, serialization, and reactivity. None of it knows which Storage implementation it is talking to. Only the concrete implementation is platform-specific, and that is what keeps the public surface identical across platforms. See Shared KMP Persistence and Platform Support ."
   },
   {
     "title": "Contributing",
     "href": "/contributing.html",
     "section": "Contributing",
-    "text": "Issues, pull requests, and stars all help — the project lives at github.com/nomemmurrakh/documents . It's licensed under the Apache License 2.0 ."
+    "text": "Issues, pull requests, and stars all help. The project lives at github.com/nomemmurrakh/documents and is licensed under the Apache License 2.0 ."
   },
   {
     "title": "Contributing",
     "href": "/contributing.html",
     "section": "What a pull request has to pass",
-    "text": "Every PR runs through CI: A build-and-test matrix — iosSimulatorArm64Test on macOS, testAndroidHostTest on Ubuntu. An ABI check — :documents:checkKotlinAbi , guarding the public binary surface. detekt , Kotlin static analysis."
+    "text": "Every pull request runs through CI, which checks three things: Build and test. iosSimulatorArm64Test runs on macOS, and testAndroidHostTest runs on Ubuntu. ABI check. :documents:checkKotlinAbi guards the public binary surface. Static analysis. detekt checks the Kotlin code."
+  },
+  {
+    "title": "Contributing",
+    "href": "/contributing.html",
+    "section": "Proposing a design change",
+    "text": "Significant design decisions are recorded as Architecture Decision Records (ADRs) in docs/adr . To propose a new decision: Open an issue or a pull request that describes the change and why it is needed. Add an ADR file to docs/adr . Name it with the next number in the sequence and a short title, for example 0023-short-title.md . Write it in the same shape as the existing ADRs, with a status, a date, the context, the decision, its consequences, and the alternatives you considered. Add a row for it to the table in docs/adr/README.md . ADRs are numbered in order and are never renumbered or deleted. If a new ADR replaces an older one, the older one stays where it is, and its status is updated to point to the new one."
   },
   {
     "title": "Contributing",
     "href": "/contributing.html",
     "section": "Where to start",
-    "text": "Read the Guide and Design Decisions to get oriented in how the library is built and why, then open an issue or a PR on GitHub."
+    "text": "Read the Guide and Design Decisions to see how the library is built and why. Then open an issue or a pull request on GitHub."
   },
   {
     "title": "Design Decisions",
     "href": "/design-decisions/index.html",
     "section": "Design Decisions",
-    "text": "A curated index of the project's Architecture Decision Records — not all twenty reproduced here, just a grouped map of why each matters, linking out to the real ADR files."
+    "text": "This is a curated index of the project's Architecture Decision Records (ADRs). It does not reproduce every one. It groups them by topic and gives each a one-line summary, with a link to the full record."
   },
   {
     "title": "Design Decisions",
     "href": "/design-decisions/index.html",
     "section": "API shape",
-    "text": "ADR-0004 — settled on \"document\" as the user-facing noun. ADR-0007 — Superseded by ADR-0016 an earlier shape for the root factory. ADR-0008 — the update builder returns a new value via copy() , not a mutated receiver. ADR-0016 — Documents as the entry point, Collection as the named-file handle. ADR-0017 — dropped the MergeStrategy enum; the call shape carries the intent instead. ADR-0018 — update(builder) as the verb, plus update(prop, value) for single-field writes. ADR-0021 — FieldDecorator , a bytes-in/bytes-out extension point for per-field encryption, compression, or logging."
+    "text": "ADR-0004 : Settled on \"document\" as the user-facing noun. ADR-0007 : Superseded by ADR-0016 An earlier shape for the root factory. ADR-0008 : The update builder returns a new value through copy() instead of changing a receiver. ADR-0016 : Documents is the entry point, and Collection is the handle for a named file. ADR-0017 : Dropped the MergeStrategy enum. The shape of the call now carries the intent. ADR-0018 : update(builder) is the verb, and update(prop, value) writes a single field. ADR-0021 : FieldDecorator is a bytes-in, bytes-out extension point for per-field encryption, compression, or logging."
   },
   {
     "title": "Design Decisions",
     "href": "/design-decisions/index.html",
     "section": "Storage & serialization",
-    "text": "ADR-0001 — one MMKV key per top-level field. ADR-0003 — walk fields via SerialDescriptor , never reflection. ADR-0006 — Superseded by ADR-0015 the earlier per-type Codec design. ADR-0015 — a single internal CBOR format, replacing the pluggable Codec abstraction."
+    "text": "ADR-0001 : Each top-level field gets its own MMKV key. ADR-0003 : Fields are found through SerialDescriptor , never through reflection. ADR-0006 : Superseded by ADR-0015 The earlier per-type Codec design. ADR-0015 : One internal CBOR format replaces the pluggable Codec abstraction."
   },
   {
     "title": "Design Decisions",
     "href": "/design-decisions/index.html",
     "section": "Reactivity & concurrency",
-    "text": "ADR-0002 — an in-memory SharedFlow change bus for reactivity. ADR-0011 — a synchronous document API with a non-suspending write lock; only Flow collection is dispatcher-governed."
+    "text": "ADR-0002 : Reactivity is built on an in-memory SharedFlow change bus. ADR-0011 : The document API is synchronous with a non-suspending write lock. Only Flow collection is controlled by a dispatcher. ADR-0022 : A process-wide store runtime lets every instance of a document share one change bus and one write lock."
   },
   {
     "title": "Design Decisions",
     "href": "/design-decisions/index.html",
     "section": "Platform & publishing",
-    "text": "ADR-0005 — publish to Maven Central via macOS CI, not JitPack. ADR-0012 — the library owns MMKV initialization, zero-touch. ADR-0013 — bind MMKV on iOS via the Kotlin CocoaPods plugin. ADR-0019 — dropped multiProcess mode; storage is always single-process. ADR-0020 — aligned the Kotlin package with the Maven groupId."
+    "text": "ADR-0005 : Publish to Maven Central through macOS CI, not JitPack. ADR-0012 : The library initializes MMKV itself, so you do nothing. ADR-0013 : MMKV is bound on iOS through the Kotlin CocoaPods plugin. ADR-0019 : Dropped multiProcess mode. Storage is always single-process. ADR-0020 : The Kotlin package now matches the Maven groupId."
   },
   {
     "title": "Design Decisions",
     "href": "/design-decisions/index.html",
     "section": "Errors & testing",
-    "text": "ADR-0009 — decoding failures surface as DocumentDecodingException . ADR-0010 — field(prop, default) resolves its serializer via a reified inline extension. ADR-0014 — on-device, platform-native benchmark harnesses. For the full history behind any of these, see the complete ADR index on GitHub , or read Contributing for how to propose a new one."
+    "text": "ADR-0009 : Decoding failures surface as DocumentDecodingException . ADR-0010 : field(prop, default) finds its serializer through a reified inline extension. ADR-0014 : Benchmarks run on a device, with a harness native to each platform. For the full history behind any of these, see the complete ADR index on GitHub , or read Contributing to learn how to propose a new one."
   },
   {
     "title": "Collections & Testing",
@@ -201,271 +213,301 @@
     "title": "Collections & Testing",
     "href": "/guide/collections-and-testing.html",
     "section": "Collections",
-    "text": "A Collection is a named, separate MMKV file — reach for one when a set of documents needs its own lifecycle or access boundary: a wipe-on-logout cache, per-user scoping, or an encryption boundary. See Opening Documents for how to open one."
+    "text": "A Collection is a named, separate MMKV file. Use one when a group of documents needs its own lifecycle or boundary. Typical reasons are a cache that is wiped on logout, data scoped to one user, or an encryption boundary. See Opening Documents for how to open one."
   },
   {
     "title": "Collections & Testing",
     "href": "/guide/collections-and-testing.html",
     "section": "Testing with an in-memory backend",
-    "text": "Documents.inMemory() returns a Collection with identical semantics, backed by an in-memory map instead of a real MMKV file — no device, no simulator, no disk state to clean up between tests: val store = Documents .inMemory() val note = store.document< Note >( \"note-1\" ) note. set ( Note (title = \"Test note\" )) assertEquals( \"Test note\" , note. get ()?.title) Every store here — the default store, every named collection, and the in-memory backend alike — is single-process only; see Overview for the constraint that applies across all of them."
+    "text": "Documents.inMemory() returns a Collection that behaves the same way but keeps its data in memory instead of a real MMKV file. You need no device and no simulator, and there is no disk state to clean up between tests. Each call to Documents.inMemory() returns its own isolated store, so tests never leak state into each other: val store = Documents .inMemory() val note = store.document< Note >( \"note-1\" ) note. set ( Note (title = \"Test note\" )) assertEquals( \"Test note\" , note. get ()?.title)"
+  },
+  {
+    "title": "Collections & Testing",
+    "href": "/guide/collections-and-testing.html",
+    "section": "One process only",
+    "text": "Every store can only be used from one process. This applies to the default store, every named collection, and the in-memory backend. See the Overview for the details."
   },
   {
     "title": "Declaring Your Data Class",
     "href": "/guide/declaring-data-classes.html",
     "section": "Declaring Your Data Class",
-    "text": "Every Document<T> is backed by an @Serializable class you write. How you declare that class's properties — nullable or not, with a constructor default or without — decides what happens the first time update() runs against a document that hasn't been written yet. Get this wrong and the failure shows up as a runtime crash on a button tap, not a compile error."
+    "text": "Every Document<T> is backed by an @Serializable class that you write. Each property can be nullable or not, and can have a constructor default or not. Some combinations compile fine but crash at runtime, for example on a button tap. This page explains which ones and how to avoid them."
   },
   {
     "title": "Declaring Your Data Class",
     "href": "/guide/declaring-data-classes.html",
     "section": "The rule",
-    "text": "Documents never invents a value for a field. It only ever uses one of two sources: a value you already stored, or a default you already declared in the constructor. When neither exists, it fails loudly instead of guessing — there is no \"correct\" placeholder the library could make up for a field like title: String or count: Int . @Serializable data class Note ( val title: String = \"\" , val count: Int = 0 ) // safe: every field has a default Every field in a document type should have either a constructor default or a nullable type ( = null ). A field with neither is only safe once you're certain the document is always set() before it's ever update() -d."
+    "text": "Documents never invents a value for a field. It only uses one of two sources: a value you already stored, or a default you already declared in the constructor. If neither exists, it fails loudly instead of guessing. There is no correct placeholder the library could make up for a field such as title: String or count: Int . @Serializable data class Note ( val title: String = \"\" , val count: Int = 0 ) // safe: every field has a default Give every field in a document type either a constructor default or a nullable type ( = null ). A field with neither is only safe if you are certain the document is always written with set() before it is ever changed with update() ."
   },
   {
     "title": "Declaring Your Data Class",
     "href": "/guide/declaring-data-classes.html",
     "section": "Why this matters: update() on an absent document",
-    "text": "update { current -> ... } needs a baseline to run the builder against. If the document already exists, that baseline is the current value. If it doesn't exist yet — nothing has ever been set() for this key — the baseline comes from decoding the type as if every field were absent, which only works for fields that have somewhere to fall back to: Field has a constructor default ( val count: Int = 0 ) — the default is used. This works. Field is nullable with no default ( val nickname: String? ) — it resolves to null . This also works; nullability itself is a built-in fallback. Field is non-null with no default ( val title: String ) — there is nothing to fall back to. update() throws DocumentDecodingException . This is the same rule whether the missing field is a String , an Int , a nested @Serializable type, or an enum — the library has no way to know what value you consider \"correct\" for a required field, so it never guesses on your behalf."
+    "text": "update { current -> ... } needs a starting value to run the builder on. If the document already exists, that value is the current one. If nothing has ever been written for this key, the starting value is built by decoding the type as if every field were absent. That only works for fields that have something to fall back on: The field has a constructor default , for example val count: Int = 0 . The default is used. This works. The field is nullable and has no default , for example val nickname: String? . It becomes null . This also works, because being nullable is already a fallback. The field is non-null and has no default , for example val title: String . There is nothing to fall back on, so update() throws DocumentDecodingException . The rule is the same for a String , an Int , a nested @Serializable type, or an enum. The library cannot know which value you consider correct for a required field, so it never guesses."
   },
   {
     "title": "Declaring Your Data Class",
     "href": "/guide/declaring-data-classes.html",
     "section": "A first-run crash, concretely",
-    "text": "This type looks reasonable and compiles fine: @Serializable data class Note ( val title: String , val count: Int ) // no defaults, both non-null It works perfectly for set() and get() . But call update() on it before it's ever been written — for example, incrementing a counter on the very first button tap in a fresh app install — and it crashes: val document = Documents .document< Note >( \"note\" ) // Crashes if \"note\" was never set() before — there's no stored title // and no default to fall back to. document.update { it.copy(count = it.count + 1 ) } com.nomemmurrakh.documents.DocumentDecodingException: Failed to decode field 'title' of document 'note' Note That message is more generic than it should be — it reads identically to a genuinely corrupted field (see Error Handling ), even though this case has a distinct, knowable cause: a missing constructor default. A clearer, dedicated message for this specific case is planned; until then, if you see DocumentDecodingException the very first time you call update() on a document, suspect a missing default before suspecting corrupted data. The fix is either of: // Give every field a constructor default data class Note ( val title: String = \"\" , val count: Int = 0 ) // Or make the field nullable, which defaults to null data class Note ( val title: String ?, val count: Int = 0 ) // Or guarantee set() runs before update() ever does document. set ( Note (title = \"Untitled\" , count = 0 )) document.update { it.copy(count = it.count + 1 ) } // safe now"
+    "text": "This type looks reasonable and compiles fine: @Serializable data class Note ( val title: String , val count: Int ) // no defaults, both non-null It works perfectly with set() and get() . But if you call update() before the document has ever been written, it crashes. This can happen on the very first button tap in a fresh app install, when you increment a counter: val document = Documents .document< Note >( \"note\" ) // Crashes if \"note\" was never set() before: there is no stored title // and no default to fall back to. document.update { it.copy(count = it.count + 1 ) } com.nomemmurrakh.documents.DocumentDecodingException: Failed to decode field 'title' of document 'note' Note This message is more generic than it should be. It reads the same as the message for a genuinely corrupted field (see Error Handling ), even though this case has a known cause: a missing constructor default. A clearer message for this specific case is planned. Until then, if you see DocumentDecodingException the first time you call update() on a document, suspect a missing default before you suspect corrupted data."
   },
   {
     "title": "Declaring Your Data Class",
     "href": "/guide/declaring-data-classes.html",
-    "section": "What \"optional\" means here",
-    "text": "This has nothing to do with Kotlin's own optional-parameter syntax beyond the fact that it's what triggers it: a field only gets treated as having a fallback when the constructor supplies a default value expression. A type can be non-nullable and still be safe as long as it has a default; a type can be nullable and safe with no default at all, because null itself is a valid fallback. The two are independent — pick whichever reads better for the field's meaning. See Opening Documents for what else T can and can't be, and Read & Write for the full get / set / update picture."
+    "section": "How to fix it",
+    "text": "Use any one of these: // Give every field a constructor default data class Note ( val title: String = \"\" , val count: Int = 0 ) // Or make the field nullable, which defaults to null data class Note ( val title: String ?, val count: Int = 0 ) // Or guarantee set() runs before update() ever does document. set ( Note (title = \"Untitled\" , count = 0 )) document.update { it.copy(count = it.count + 1 ) } // safe now"
+  },
+  {
+    "title": "Declaring Your Data Class",
+    "href": "/guide/declaring-data-classes.html",
+    "section": "Defaults and nullability",
+    "text": "A field counts as having a fallback in two cases. Either the constructor gives it a default value, or its type is nullable, because null is then a valid fallback. These two options are independent. A non-null field is safe if it has a default, and a nullable field is safe even with no default. Pick whichever reads better for what the field means. See Opening Documents for what else T can and cannot be, and Read & Write for the full picture of get , set , and update ."
   },
   {
     "title": "Error Handling",
     "href": "/guide/error-handling.html",
     "section": "Error Handling",
-    "text": "get() and field reads throw DocumentDecodingException when a stored field can't be decoded — never a bare, low-level exception from the serialization layer. try { val current = note. get () } catch (e: DocumentDecodingException ) { log.warn( \"note-1 field '${e.field}' failed to decode\" , e.cause) } Note In practice this is rare — it only fires if a stored field is genuinely corrupted or was written by an incompatible old version of your app. You don't need a try / catch around every single get() call; reach for one at a boundary that already handles unexpected failures (a repository layer, a top-level error handler), not around every read in your codebase."
+    "text": "get() and field reads throw a DocumentDecodingException when a stored field cannot be decoded. You never get a bare, low-level exception from the serialization layer. try { val current = note. get () } catch (e: DocumentDecodingException ) { log.warn( \"note-1 field '${e.field}' failed to decode\" , e.cause) } Note In practice this is rare. It only happens if a stored field is genuinely corrupted, or was written by an incompatible older version of your app. You do not need a try / catch around every get() call. Catch it at a boundary that already handles unexpected failures, such as a repository layer or a top-level error handler."
   },
   {
     "title": "Error Handling",
     "href": "/guide/error-handling.html",
     "section": "What it wraps, and why",
-    "text": "Because a document is decomposed into one MMKV key per field (see Field Decomposition ), a single field can go bad — a corrupted byte range, a stale format from an old app version — while every other field in the same document stays perfectly healthy. DocumentDecodingException names the documentKey , the offending field when there is one, and wraps the underlying cause, which might otherwise have surfaced as a bare SerializationException , IllegalStateException , or IllegalArgumentException from the CBOR format. Your code catches one clean library exception type instead of reaching into the serialization layer's own error hierarchy. A configured field decorator that throws one of those same three exception types from unwrap — a wrong key, corrupted ciphertext, a failed integrity check — is wrapped the same way, indistinguishable from any other decode failure."
+    "text": "A document is stored as one MMKV key per field (see Field Decomposition ). So a single field can go bad, for example through a corrupted byte range or a stale format from an old app version, while every other field in the same document stays healthy. DocumentDecodingException tells you which document and field failed: documentKey is the key of the document. field is the field that failed, when there is one. cause is the underlying exception. Without it, the underlying cause would surface as a bare SerializationException , IllegalStateException , or IllegalArgumentException from the CBOR format. Wrapping them means your code catches one library exception type and does not need to know about the serialization layer's own errors. A configured field decorator can fail too. If its unwrap throws one of those three exception types, for example because of a wrong key, corrupted ciphertext, or a failed integrity check, the failure is wrapped in the same way. It looks like any other decode failure."
   },
   {
     "title": "Error Handling",
     "href": "/guide/error-handling.html",
-    "section": "What's not an error",
-    "text": "A document that was simply never written is not a decoding failure — get() returns null for that case, it never throws just because something is missing. See Read & Write ."
+    "section": "What is not an error",
+    "text": "A document that was simply never written is not a decoding failure. get() returns null in that case. See Read & Write ."
   },
   {
     "title": "Error Handling",
     "href": "/guide/error-handling.html",
-    "section": "A distinct case: update() on a never-written document",
-    "text": "update() can also throw DocumentDecodingException the very first time it runs against a document that's never been set() — but the cause there isn't corruption, it's a data class field with no constructor default and no nullability to fall back on. The exception message is identical to a genuine decode failure today, which makes it easy to mistake for one. See Declaring Data Classes for why this happens and how to avoid it."
+    "section": "A different case: update() on a never-written document",
+    "text": "update() can also throw DocumentDecodingException the first time it runs on a document that has never been written with set() . The cause here is not corruption. A field in your data class has no constructor default and is not nullable, so there is nothing to fall back on. Today the exception message is the same as for a real decode failure, which makes it easy to mistake for one. See Declaring Data Classes for why this happens and how to avoid it."
   },
   {
     "title": "Field Decorators",
     "href": "/guide/field-decorators.html",
     "section": "Field Decorators",
-    "text": "FieldDecorator lets you hook into a document's read/write path per field — wrap what's written before it reaches storage, unwrap it after it comes back. Use it for per-field encryption, compression, checksums, or logging."
+    "text": "A FieldDecorator lets you hook into the read and write path of a document, one field at a time. It can wrap a field's bytes before they reach storage, and unwrap them when they come back. Use it for per-field encryption, compression, checksums, or logging."
   },
   {
     "title": "Field Decorators",
     "href": "/guide/field-decorators.html",
     "section": "Attaching decorators",
-    "text": "Decorators can be configured at the collection level, the document level, or both: val notes = Documents .collection( \"notes\" ) { decorators = listOf( LoggingDecorator ()) } val note = notes.document< Note >( \"note-1\" ) { decorators = listOf( ChecksumDecorator ()) } // note's effective decorator list, in order: [LoggingDecorator(), ChecksumDecorator()] Collection-level decorators apply to every document opened in that collection; document-level decorators are appended after them for that one document."
+    "text": "You can configure decorators on a collection, on a document, or on both: val notes = Documents .collection( \"notes\" ) { decorators = listOf( LoggingDecorator ()) } val note = notes.document< Note >( \"note-1\" ) { decorators = listOf( ChecksumDecorator ()) } // note's effective decorator list, in order: [LoggingDecorator(), ChecksumDecorator()] Decorators on a collection apply to every document opened in that collection. Decorators on a document are added after them, for that document only."
   },
   {
     "title": "Field Decorators",
     "href": "/guide/field-decorators.html",
     "section": "Order matters",
-    "text": "Writes fold through the decorator list left-to-right; reads fold right-to-left. Whichever decorator ran last on write runs first on read, so each wrap is undone in the reverse order it was applied: // decorators = listOf(Compress, Encrypt) // write: bytes -> Compress.wrap -> Encrypt.wrap -> stored // read: stored -> Encrypt.unwrap -> Compress.unwrap -> bytes This is why compress-then-encrypt — not the reverse — is the order that actually works: encrypted bytes are high-entropy and don't meaningfully compress. See Decorations for why the library folds the list this way."
+    "text": "On a write, the bytes pass through the decorator list from left to right. On a read, they pass through it from right to left. The decorator that ran last on write runs first on read, so each wrap is undone in the reverse of the order it was applied: // decorators = listOf(Compress, Encrypt) // write: bytes -> Compress.wrap -> Encrypt.wrap -> stored // read: stored -> Encrypt.unwrap -> Compress.unwrap -> bytes This is why you should compress first and encrypt second, and not the other way around. Encrypted bytes look random, so they do not compress in any useful way. See Decorations for why the library applies the list in this order."
   },
   {
     "title": "Field Decorators",
     "href": "/guide/field-decorators.html",
-    "section": "Where else this applies",
-    "text": "Decorators also apply under field delegates — see Field Delegates — and sit immediately next to where CBOR encode/decode happens, see Serialization (CBOR) and Field Decomposition . A decorator's unwrap failing surfaces as DocumentDecodingException , the same as any other decode failure — see Error Handling ."
+    "section": "Related pages",
+    "text": "Decorators also apply to field delegates. See Field Delegates . Decorators run right next to where CBOR encoding and decoding happen. See Serialization (CBOR) and Field Decomposition . If a decorator's unwrap fails, the failure surfaces as a DocumentDecodingException , the same as any other decode failure. See Error Handling ."
   },
   {
     "title": "Field Delegates",
     "href": "/guide/field-delegates.html",
     "section": "Field Delegates",
-    "text": "Sometimes you don't want the whole document — just one field, read and written like an ordinary Kotlin property. Field delegates give you that without giving up typed, reactive storage. class NoteEditor { private val note = Documents .document< Note >( \"note-1\" ) var done: Boolean by note.field( Note ::done, default = false ) val doneFlow: Flow < Boolean > = note.fieldFlow( Note ::done, default = false ) }"
+    "text": "Sometimes you do not need the whole document. You only want one field, read and written like an ordinary Kotlin property. Field delegates give you that while keeping the storage typed and reactive. class NoteEditor { private val note = Documents .document< Note >( \"note-1\" ) var done: Boolean by note.field( Note ::done, default = false ) val doneFlow: Flow < Boolean > = note.fieldFlow( Note ::done, default = false ) }"
   },
   {
     "title": "Field Delegates",
     "href": "/guide/field-delegates.html",
     "section": "field(prop, default)",
-    "text": "field(prop, default) returns a ReadWriteProperty backed by a single decomposed key. Reading it returns default if the field was never set; writing it updates only that field's key — nothing else about the document is touched — and emits on the document's flow() too: editor.done = true // writes only the \"done\" field's key println(editor.done) // reads only that key"
+    "text": "field(prop, default) returns a ReadWriteProperty that is backed by a single stored key. Reading it returns default if the field was never set. Writing it updates only that field's key and leaves the rest of the document alone. A write also emits on the document's flow() : editor.done = true // writes only the \"done\" field's key println(editor.done) // reads only that key"
   },
   {
     "title": "Field Delegates",
     "href": "/guide/field-delegates.html",
-    "section": "Why the caller supplies default",
-    "text": "A field's declared default isn't recoverable from a KProperty at runtime, so field() and fieldFlow() both take default explicitly — there's no reflection-based way to ask \"what was the default value of this property in the data class?\" once you're holding a bare property reference."
+    "section": "Why you supply default",
+    "text": "A property's declared default value cannot be recovered from a KProperty at runtime. Once you hold a bare property reference, there is no way to ask what default the data class gave it. So field() and fieldFlow() both take default as an explicit argument."
   },
   {
     "title": "Field Delegates",
     "href": "/guide/field-delegates.html",
     "section": "fieldFlow(prop, default)",
-    "text": "Emits the current field value (or default , if never set) on collection, then a new value each time that field changes. A change to a sibling field stays quiet: note.fieldFlow( Note ::done, default = false ).collect { done -> checkbox.setChecked(done) }"
+    "text": "On collection, fieldFlow emits the current field value, or default if the field was never set. After that it emits a new value each time that field changes. A change to a sibling field does not trigger it: note.fieldFlow( Note ::done, default = false ).collect { done -> checkbox.setChecked(done) }"
   },
   {
     "title": "Field Delegates",
     "href": "/guide/field-delegates.html",
-    "section": "Not inside a class with a delegate? Use update(prop, value)",
-    "text": "For a one-off field write with no delegate to declare, plain note.update(Note::done, true) does the same single-key write directly — see Read & Write . It's the non-delegate sibling to field() , for code that doesn't own a var -backed property."
+    "section": "Without a delegate: update(prop, value)",
+    "text": "If you only need a one-off write to a field and have no property to declare, call note.update(Note::done, true) . It does the same single-key write directly. See Read & Write . Use it in code that does not own a var property backed by the field."
   },
   {
     "title": "Field Delegates",
     "href": "/guide/field-delegates.html",
     "section": "Decorators apply here too",
-    "text": "field() and fieldFlow() both call through readField / writeField internally — the same choke point update(prop, value) uses — so any configured FieldDecorator s run here as well. See Field Decorators ."
+    "text": "field() and fieldFlow() read and write through the same internal path as update(prop, value) , so any configured FieldDecorator s run here as well. See Field Decorators ."
   },
   {
     "title": "Field Delegates",
     "href": "/guide/field-delegates.html",
-    "section": "When to reach for this",
-    "text": "Field delegates suit settings-style usage — a screen with a handful of independent toggles or values, each bound directly to a property, with no need to read or write the rest of the document. See Settings & Preferences for a fuller example."
+    "section": "When to use this",
+    "text": "Field delegates suit settings-style code: a screen with a handful of independent toggles or values, each bound directly to a property, where you never need to read or write the rest of the document. See Settings & Preferences for a fuller example."
   },
   {
     "title": "Guide",
     "href": "/guide/index.html",
     "section": "Guide",
-    "text": "Task-oriented walkthroughs of the public API — start here if you want the full picture, not just the quick tour. Opening Documents — documents vs. collections, and why there's no setup step. Declaring Data Classes — nullability vs. constructor defaults, and the first-run crash to avoid. Read & Write — set , update , and single-field update , and when to reach for each. Reactivity — flow() and stateFlow() , including a Compose-ready snippet. Field Delegates — binding a single field with by , without touching the whole document. Collections & Testing — separate MMKV files, the in-memory backend for tests, and the single-process constraint. Error Handling — what happens when a stored field can't be decoded."
+    "text": "These guides walk through the public API one task at a time. Start here if you want the full picture and not just the quick tour. Opening Documents : documents and collections, opening the same document more than once, and why there is no setup step. Declaring Data Classes : when to use a nullable type or a constructor default, and a first-run crash to avoid. Read & Write : set , update , and single-field update , and when to use each. Reactivity : flow() and stateFlow() , with a snippet for Compose. Field Delegates : binding a single field with by , without touching the whole document. Field Decorators : transforming the bytes of a field, for example to encrypt or compress it. Collections & Testing : separate MMKV files, the in-memory backend for tests, and the one-process rule. Error Handling : what happens when a stored field cannot be decoded."
   },
   {
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
     "section": "Opening Documents",
-    "text": "Documents is the entry point. Open a document directly on the default store, or open a named Collection first when a set of documents needs its own MMKV file."
+    "text": "Documents is the entry point. You can open a document directly on the default store, or open a named Collection first when a group of documents needs its own MMKV file."
   },
   {
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
     "section": "The default store",
-    "text": "Documents.document<T>(key) is the common case — it opens (get-or-open, not \"create anew\") the document under key in the default store, with no config required: @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false ) val note = Documents .document< Note >( \"note-1\" ) A configuration block is optional and, today, only exposes dispatcher — the dispatcher used to collect flow() / stateFlow() (see Reactivity ): val note = Documents .document< Note >( \"note-1\" ) { dispatcher = Dispatchers . Default // this is already the default }"
+    "text": "Documents.document<T>(key) is the common case. It gives you the document stored under key in the default store, and it needs no configuration: @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false ) val note = Documents .document< Note >( \"note-1\" ) Opening a document does not write anything. It only gives you a handle to whatever is stored under that key, so note.get() returns null until something has been written. You can pass an optional configuration block. It has two settings: dispatcher is the dispatcher used to collect flow() and stateFlow() . See Reactivity . decorators is a list of FieldDecorator s applied to every field of this document. See Field Decorators . val note = Documents .document< Note >( \"note-1\" ) { dispatcher = Dispatchers . Default // this is already the default }"
   },
   {
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
-    "section": "Collections — a separate MMKV file",
-    "text": "Reach for Documents.collection(name) only when a set of documents needs its own file — a wipe-on-logout cache, per-user scoping, or an encryption boundary: val drafts = Documents .collection( \"drafts\" ) { dispatcher = Dispatchers . Default } val draft = drafts.document< Note >( \"draft-1\" ) See Collections & Testing for the single-process constraint that applies to every collection, including the default store."
+    "section": "Collections: a separate MMKV file",
+    "text": "Use Documents.collection(name) only when a group of documents needs its own file. Typical reasons are a cache that is wiped on logout, data scoped to one user, or an encryption boundary: val drafts = Documents .collection( \"drafts\" ) { dispatcher = Dispatchers . Default } val draft = drafts.document< Note >( \"draft-1\" ) Every collection, including the default store, can only be used from one process. See Collections & Testing for details."
+  },
+  {
+    "title": "Opening Documents",
+    "href": "/guide/opening-documents.html",
+    "section": "Opening the same document more than once",
+    "text": "Opening a document is cheap, and you can do it as often as you like. You do not need to keep one instance and pass it around. All instances of the same document on the same store behave as one document: A write through one instance shows up in flow() on the others. If two instances call update at the same moment, the changes are applied one after the other, so neither is lost. Dependency injection is still a good way to organize your code, but your data stays correct without it. The Reactivity Model explains how this works. Each instance has its own configuration. The dispatcher can differ between instances. Use the same decorators for every instance of a document, because the bytes written by one instance must be readable by the others."
   },
   {
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
     "section": "What T can be",
-    "text": "T must be a @Serializable class (or enum, or primitive) — not a top-level List or other collection type. Field decomposition (see Field Decomposition ) keys each stored value off the type's declared properties, which a bare list doesn't have; opening Documents.document<List<T>>(key) throws DocumentDecodingException immediately. A list works correctly as a field inside a class instead — wrap it: @Serializable data class QueueState ( val items: List < OfflineQueueItem > = emptyList()) val queue = Documents .document< QueueState >( \"pending-requests\" ) See Declaring Data Classes for the rules around which fields need a constructor default or a nullable type to stay safe under update() ."
+    "text": "T must be a @Serializable class, an enum, or a primitive. It cannot be a top-level List or another collection type. Each stored value is keyed by one of the type's declared properties (see Field Decomposition ), and a bare list has no properties. Opening Documents.document<List<T>>(key) throws DocumentDecodingException immediately. A list works correctly as a field inside a class, so wrap it: @Serializable data class QueueState ( val items: List < OfflineQueueItem > = emptyList()) val queue = Documents .document< QueueState >( \"pending-requests\" ) See Declaring Data Classes for which fields need a constructor default or a nullable type to stay safe under update() ."
   },
   {
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
     "section": "The reserved key separator",
-    "text": "Internally, every document is decomposed into one storage key per field, keyed {document}::{field} (see Field Decomposition ). Because :: is reserved for that purpose, a document key containing it is rejected with an IllegalArgumentException — choose ordinary identifiers like \"note-1\" or \"user\" ."
+    "text": "Internally, every document is split into one stored key per field, named {document}::{field} (see Field Decomposition ). Because :: is reserved for this, a document key that contains it is rejected with an IllegalArgumentException . Choose ordinary identifiers such as \"note-1\" or \"user\" ."
   },
   {
     "title": "Opening Documents",
     "href": "/guide/opening-documents.html",
-    "section": "No setup ceremony",
-    "text": "MMKV initializes itself the first time it's needed — on Android via androidx.startup , on iOS via an internal call using the in-process sandbox path. You never call MMKV.initialize() and never pass a Context ; the first Documents.document(...) or Documents.collection(...) call is enough. Note On Android, this relies on a <provider android:name=\"androidx.startup.InitializationProvider\"> entry merged into your app's manifest. Leave it alone — removing or overriding that merged entry (for example with a conflicting tools:node=\"remove\" ) stops MMKV from initializing, and document access will fail at runtime."
+    "section": "No setup needed",
+    "text": "MMKV initializes itself the first time it is needed. On Android this happens through androidx.startup , and on iOS through an internal call that uses the app's sandbox path. You never call MMKV.initialize() and never pass a Context . The first call to Documents.document(...) or Documents.collection(...) is enough. Note On Android, this relies on a <provider android:name=\"androidx.startup.InitializationProvider\"> entry that is merged into your app's manifest. Leave it alone. If you remove or override it, for example with a conflicting tools:node=\"remove\" , MMKV stops initializing and document access fails at runtime."
   },
   {
     "title": "Reactivity",
     "href": "/guide/reactivity.html",
     "section": "Reactivity",
-    "text": "A document exposes its changes as Flow , so a UI layer (or anything else) can react every time the stored value changes — no polling, no manual re-reads. note.flow(): Flow < Note ?> // cold; current value, then every committed write note.stateFlow(scope): StateFlow < Note ?> // hot; shared while there are subscribers"
+    "text": "A document exposes its changes as a Flow . Your UI, or any other code, can react every time the stored value changes. There is no polling and no need to read the value again yourself. note.flow(): Flow < Note ?> // cold: the current value, then every committed write note.stateFlow(scope): StateFlow < Note ?> // hot: shared while there are subscribers"
   },
   {
     "title": "Reactivity",
     "href": "/guide/reactivity.html",
     "section": "flow()",
-    "text": "flow() is cold: it hands you the current value the moment you collect, then a fresh value after each committed write. Emissions are conflated and fire only once a write is durably committed — writing a different document won't wake this one up. Deleting the document emits null : note.flow().collect { current -> editor.render(current) }"
+    "text": "flow() is cold, so nothing happens until you collect it. When you do, it gives you the current value straight away, and then a fresh value after each committed write. Rapid writes are conflated, so you may see only the latest value. A write to a different document does not wake this flow up. When the document is deleted, the flow emits null : note.flow().collect { current -> editor.render(current) }"
   },
   {
     "title": "Reactivity",
     "href": "/guide/reactivity.html",
     "section": "stateFlow(scope)",
-    "text": "stateFlow(scope) is hot — it needs a CoroutineScope and stays shared while there are subscribers, which suits a ViewModel-owned stream that outlives any single collector."
+    "text": "stateFlow(scope) is hot. It needs a CoroutineScope , and it holds the latest value so you can read it at any time. While at least one collector is subscribed, all of them share the same stream. This suits a stream owned by a ViewModel that should outlive any single collector."
   },
   {
     "title": "Reactivity",
     "href": "/guide/reactivity.html",
     "section": "Straight into Compose",
-    "text": "val current by note.flow().collectAsStateWithLifecycle(initialValue = note. get ()) current is nullable — null simply means the note hasn't been written yet."
+    "text": "val current by note.flow().collectAsStateWithLifecycle(initialValue = note. get ()) current is nullable. A value of null means the note has not been written yet."
   },
   {
     "title": "Reactivity",
     "href": "/guide/reactivity.html",
     "section": "How it works under the hood",
-    "text": "MMKV has no native change-listener mechanism, so reactivity is a process-local concern: a single change bus emits the affected document's key after every committed write or delete, and flow() filters that bus for its own key and re-reads. See Reactivity Model for the full mechanism, including the important consequence that cross-process change notification is not provided."
+    "text": "MMKV has no built-in way to listen for changes, so reactivity is handled inside your process. Every store has one change bus. After each committed write or delete, the library puts the affected document's key on that bus. flow() listens for its own key and reads the document again when it sees it. The bus belongs to the store, so separate instances of the same document stay in sync. See Reactivity Model for the full mechanism. It also explains why changes made by another process are not detected."
   },
   {
     "title": "Read & Write",
     "href": "/guide/read-and-write.html",
     "section": "Read & Write",
-    "text": "Three call shapes cover reading and writing a document, and each carries a distinct intent — knowing which one to reach for is the API's central nuance. note. get (): Note ? // current value, or null if absent note. set (value) // replace the whole document note.update { current -> ... } // update: build over the current value (or defaults) note.update( Note ::done, true ) // single-field update: writes just that key, no read note.delete() // remove the document and all its field keys note.exists(): Boolean // true if any field key is stored"
+    "text": "There are three ways to write a document, and each has a different purpose. Knowing which one to use is the main thing to learn about this API. note. get (): Note ? // current value, or null if absent note. set (value) // replace the whole document note.update { current -> ... } // build a new value from the current one (or the defaults) note.update( Note ::done, true ) // single-field update: writes just that key, no read note.delete() // remove the document and all its field keys note.exists(): Boolean // true if any field key is stored"
   },
   {
     "title": "Read & Write",
     "href": "/guide/read-and-write.html",
-    "section": "get() — never throws for \"missing\"",
-    "text": "get() returns the current value, or null if the document was never written. A missing document is not an error condition: val current: Note ? = note. get ()"
+    "section": "get() : read the document",
+    "text": "get() returns the current value, or null if the document has never been written. A missing document is not an error: val current: Note ? = note. get ()"
   },
   {
     "title": "Read & Write",
     "href": "/guide/read-and-write.html",
-    "section": "set(value) — replace",
-    "text": "Supply a complete object and it replaces the document outright — every field, whether it changed or not: note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" ))"
+    "section": "set(value) : replace the document",
+    "text": "Pass a complete object and it replaces the whole document, including every field whether it changed or not: note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" ))"
   },
   {
     "title": "Read & Write",
     "href": "/guide/read-and-write.html",
-    "section": "update { current -> ... } — update, several fields at once",
-    "text": "The builder receives the current value (or the type's defaults, if the document is absent) as an explicit current parameter and returns a new value via copy() — matching kotlinx.coroutines.flow.MutableStateFlow.update { current -> ... } 's shape. Untouched fields keep exactly the value they had: note.update { current -> current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } This is a read-modify-write that runs under the document's write lock, so a multi-field update is atomic from the caller's perspective — a concurrent reader never observes a half-applied write."
+    "section": "update { current -> ... } : change several fields",
+    "text": "The builder receives the current value as the current parameter and returns a new value built with copy() . If the document has not been written yet, current holds the type's defaults. This has the same shape as MutableStateFlow.update { current -> ... } in kotlinx.coroutines. Fields you do not touch keep the value they had: note.update { current -> current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } This reads and then writes while holding the document's write lock. A multi-field update is therefore atomic, and a concurrent reader never sees a half-applied write."
   },
   {
     "title": "Read & Write",
     "href": "/guide/read-and-write.html",
-    "section": "update(prop, value) — a single field, no read",
-    "text": "When only one field needs to change, update(prop, value) writes just that field's decomposed key directly — no read of the rest of the document: note.update( Note ::done, true ) Reach for update(prop, value) when you're changing exactly one field and don't need the current value to compute the new one; reach for update { current -> ... } when an edit touches more than one field together, or the new value depends on the current one."
+    "section": "update(prop, value) : change one field",
+    "text": "When only one field needs to change, update(prop, value) writes just that field directly. It does not read the rest of the document: note.update( Note ::done, true ) Choose between the two forms of update like this: Use update(prop, value) when you change exactly one field and the new value does not depend on the current one. Use update { current -> ... } when an edit touches more than one field together, or when the new value depends on the current one."
   },
   {
     "title": "Read & Write",
     "href": "/guide/read-and-write.html",
     "section": "delete() and exists()",
-    "text": "note.delete() // removes the document and all its field keys println(note.exists()) // false See Concurrency for exactly how the per-document write lock keeps a multi-field update atomic, or Field Delegates if you'd rather bind a single field as a property than call update(prop, value) directly. Every one of these operations passes through any configured FieldDecorator s — wrapping on the way to storage, unwrapping on the way back — see Field Decorators ."
+    "text": "note.delete() // removes the document and all its field keys println(note.exists()) // false"
+  },
+  {
+    "title": "Read & Write",
+    "href": "/guide/read-and-write.html",
+    "section": "Related reading",
+    "text": "Concurrency explains how the write lock keeps a multi-field update atomic. Field Delegates shows how to bind a single field as a property instead of calling update(prop, value) directly. Field Decorators covers how every operation on this page passes through any configured FieldDecorator s, which wrap the bytes on the way to storage and unwrap them on the way back."
   },
   {
     "title": "Documents",
     "href": "/index.html",
     "section": "Documents",
-    "text": "Typed, reactive documents on top of MMKV — fast and a joy to write. Define a data class, treat it as a document, and get typed reads, copy-style updates, and Flow reactivity — all riding on the fastest key-value engine on mobile. @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false ) val note = Documents .document< Note >( \"note-1\" ) // one call, you have a document note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" )) note.update( Note ::done, true ) // one field, no read note.update { current -> // several fields, one atomic write current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } note.flow().collect { editor.render(it) } // the editor reacts to every write"
+    "text": "What's new in v0.2.0 Version 0.2.0 makes it safe to open the same document in more than one place. In v0.1.0, a write was only seen by the instance that made it, so every part of an app had to share a single instance. That is no longer needed. Instances stay in sync. A write through one instance now reaches flow() , stateFlow() , and fieldFlow() on every other instance of the same document. This holds whether the instances come from dependency injection, from repeated Documents.document(...) calls, or from separate Documents.collection(name) calls. Updates are not lost. If two instances of the same document call update at the same time, both changes are applied one after the other. Nothing to change in your code. The public API is the same as in v0.1.0. To see how this works, read Opening Documents and the Reactivity Model ."
   },
   {
     "title": "Documents",
     "href": "/index.html",
-    "section": "Built for elegancy",
-    "text": "MMKV is ridiculously fast — memory-mapped, protobuf-backed, about as quick as anything else on the platform. But out of the box it hands you a bare cupboard: raw keys, primitives only. Every typed object means hand-rolling serialization and key management again, from scratch, every time. The typed and reactive alternatives buy their comfort back by giving up that speed, so you end up picking a side — fast, or pleasant to use. Documents refuses to pick a side. It's built for elegancy: a clean, idiomatic Kotlin surface — typed documents, property delegates, a copy() -style update DSL, Flow reactivity — sitting directly on top of MMKV, costing you a little CPU for serialization and never a single extra byte of I/O. Clean code on top, MMKV all the way down."
+    "section": "Overview",
+    "text": "Documents gives you typed, reactive documents on top of MMKV. You define a data class, treat it as a document, and get typed reads, copy-style updates, and Flow reactivity. It is fast, and it is pleasant to write. @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false ) val note = Documents .document< Note >( \"note-1\" ) // one call, you have a document note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" )) note.update( Note ::done, true ) // one field, no read note.update { current -> // several fields, one atomic write current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } note.flow().collect { editor.render(it) } // the editor reacts to every write"
+  },
+  {
+    "title": "Documents",
+    "href": "/index.html",
+    "section": "Built for elegance",
+    "text": "MMKV is extremely fast. It is memory-mapped and about as quick as anything on the platform. Out of the box, though, it only gives you raw keys and primitive values. Every typed object means writing your own serialization and key management again. The typed and reactive alternatives give up that speed in exchange for comfort, so you usually have to choose between fast and pleasant to use. Documents does not make you choose. It puts a clean, idiomatic Kotlin API directly on top of MMKV: typed documents, property delegates, a copy() -style update, and Flow reactivity. The cost is a little CPU for serialization and never any extra I/O. Clean code on top, MMKV all the way down."
   },
   {
     "title": "Documents",
     "href": "/index.html",
     "section": "The problem",
-    "text": "Android and Kotlin Multiplatform apps constantly need to persist a single record of structured data — a logged-in user, a settings object, a session, a draft — and none of the usual tools fit that shape well. SharedPreferences is key-value only, awkward for nested objects, and loads the whole file into memory. Jetpack DataStore is typed, but Proto demands schema files and Preferences is still flat key-value — heavy ceremony just to store one object. SQLite and Room are relational and table-oriented, overkill for a single document with no relations to speak of. And raw MMKV is blisteringly fast but offers no abstraction at all: you're on your own for serialization and key management. There was no library giving a document-oriented, typed, reactive API with MMKV's performance underneath — so Documents is that intersection."
+    "text": "Android and Kotlin Multiplatform apps often need to store one record of structured data, such as a logged-in user, a settings object, a session, or a draft. None of the usual tools fit this well: SharedPreferences is key-value only, awkward for nested objects, and loads the whole file into memory. Jetpack DataStore is typed, but Proto needs schema files and Preferences is still flat key-value. That is a lot of ceremony for one object. SQLite and Room are relational and table-oriented, which is overkill for a single document with no relations. Raw MMKV is very fast but has no abstraction. Serialization and key management are up to you. No library offered a document-oriented, typed, reactive API with MMKV's performance underneath. Documents is that library."
   },
   {
     "title": "Documents",
     "href": "/index.html",
     "section": "What it gives you",
-    "text": "A document-oriented public API — get , set , update , delete , exists , flow , stateFlow . Typed persistence of any @Serializable object, with no per-type boilerplate. Reactivity — observers are notified when a document or a single field changes. MMKV-class performance — the abstraction adds CPU/memory cost only, never extra I/O. A fully KMP-compatible public API living in commonMain , with only the storage engine binding per platform. Serialization handled internally via a compact CBOR format — zero schema, zero per-type boilerplate to babysit. A FieldDecorator hook for per-field encryption, compression, or logging — see Field Decorators ."
+    "text": "A document-oriented API: get , set , update , delete , exists , flow , and stateFlow . Typed persistence for any @Serializable class, with no per-type boilerplate. Reactivity. Observers are notified when a document or a single field changes. MMKV-class performance. The abstraction adds CPU and memory cost only, never extra I/O. A public API that lives entirely in commonMain , with only the storage engine bound per platform. Internal serialization to a compact CBOR format, with no schema to maintain. A FieldDecorator hook for per-field encryption, compression, or logging. See Field Decorators ."
   },
   {
     "title": "Documents",
     "href": "/index.html",
     "section": "Single-process only",
-    "text": "Every store — the default store, every named collection, and the in-memory test backend alike — is single-process. Concurrent access to the same store from more than one OS process is not supported and can corrupt it. A background service, an app extension, a second process spawned for any reason — none of these may open the same store as your main process at the same time. This is not a soft caveat or an edge case to work around: if your app needs to share a store across processes, this library is not the right fit for that store today. Design around a single-process owner for each store, or keep multi-process data out of Documents entirely."
+    "text": "Every store is single-process. This includes the default store, every named collection, and the in-memory test backend. Concurrent access to the same store from more than one OS process is not supported and can corrupt it. A background service, an app extension, or any second process must not open the same store as your main process at the same time. This is a firm limit, not an edge case. If your app needs to share a store across processes, this library is not the right fit for that store today. Either design around a single owning process for each store, or keep the multi-process data out of Documents ."
   },
   {
     "title": "Documents",
@@ -477,126 +519,156 @@
     "title": "Documents",
     "href": "/index.html",
     "section": "Where to next",
-    "text": "Installation — add the dependency, zero setup ceremony. Quick Start — the whole API in one short walkthrough. Guide — task-oriented walkthroughs of every part of the API."
+    "text": "Installation : add the dependency. No setup is needed. Quick Start : the whole API in one short walkthrough. Guide : task-oriented walkthroughs of every part of the API."
   },
   {
     "title": "Installation",
     "href": "/installation.html",
     "section": "Installation",
-    "text": "com.nomemmurrakh:documents is published on Maven Central. Add it to a KMP module's commonMain , or a plain Android module: // build.gradle.kts dependencies { implementation( \"com.nomemmurrakh:documents:0.1.0\" ) } iOS: linking MMKV On iOS, your app also needs MMKV added to its own target — via CocoaPods or Swift Package Manager — the same way as any other native dependency. See Troubleshooting for the link error this causes if it's missing."
+    "text": "com.nomemmurrakh:documents is published on Maven Central. Add it to the commonMain source set of a Kotlin Multiplatform module, or to a plain Android module: // build.gradle.kts dependencies { implementation( \"com.nomemmurrakh:documents:0.1.0\" ) } iOS: linking MMKV On iOS, your app also needs to add MMKV to its own target, through CocoaPods or Swift Package Manager, the same way as any other native dependency. If it is missing, the build fails with a link error. See Troubleshooting for details."
   },
   {
     "title": "Installation",
     "href": "/installation.html",
-    "section": "No setup ceremony",
-    "text": "The library initializes MMKV for you — on Android via androidx.startup , on iOS via an internal initializeMMKV call using the in-process sandbox path on first use. You never call MMKV.initialize() and never pass a Context . Add the dependency, call Documents.document(...) , and go. Note On Android, this works by merging a <provider android:name=\"androidx.startup.InitializationProvider\"> entry into your app's manifest. You don't need to add anything yourself — just don't remove or override that merged entry (for example with a conflicting tools:node=\"remove\" targeting InitializationProvider ), or MMKV won't initialize and document access will fail at runtime."
+    "section": "No setup needed",
+    "text": "The library initializes MMKV for you the first time it is used. On Android this happens through androidx.startup . On iOS it happens through an internal initializeMMKV call that uses the app's sandbox path. You never call MMKV.initialize() and never pass a Context . Add the dependency, call Documents.document(...) , and you are done. Note On Android, this works because a <provider android:name=\"androidx.startup.InitializationProvider\"> entry is merged into your app's manifest. You do not need to add anything yourself. Just do not remove or override that entry, for example with a conflicting tools:node=\"remove\" that targets InitializationProvider . If you do, MMKV does not initialize and document access fails at runtime."
   },
   {
     "title": "Installation",
     "href": "/installation.html",
     "section": "Supported platforms",
-    "text": "Android and iOS ( arm64 and simulatorArm64 ) today — see Platform Support for the full table and how MMKV is bound on each target."
-  },
-  {
-    "title": "Installation",
-    "href": "/installation.html",
-    "section": "Where it's published",
-    "text": "Maven Central, not JitPack — the standard Gradle dependency declaration above is all a consumer needs, no extra repository entries. Continue to Quick Start →"
+    "text": "Android and iOS ( arm64 and simulatorArm64 ) are supported today. See Platform Support for the full table and for how MMKV is bound on each target. Continue to Quick Start →"
   },
   {
     "title": "Platform Support",
     "href": "/platform-support.html",
     "section": "Platform Support",
-    "text": "Platform Status Storage engine Android ✅ MMKV iOS — arm64 + simulatorArm64 ✅ MMKV (via CocoaPods) One public API across both platforms — it all lives in commonMain . MMKV is bound on Apple targets through the Kotlin CocoaPods plugin, and the library owns MMKV initialization on both platforms, so consumers never lift a finger on that front. There is no JVM/desktop or wasm target in this release. See Shared KMP Persistence for what this means in practice, and Storage SPI for how the platform- specific binding is isolated behind a minimal internal interface."
+    "text": "Platform Status Storage engine Android ✅ MMKV iOS ( arm64 and simulatorArm64 ) ✅ MMKV How the library is configured On Apple targets, MMKV is bound through the Kotlin CocoaPods plugin. Both platforms share one public API, and all of it lives in commonMain . On both platforms the library initializes MMKV itself, so you have nothing to set up for it. There is no JVM, desktop, or wasm target in this release. See Shared KMP Persistence for what this means in practice."
   },
   {
     "title": "Quick Start",
     "href": "/quick-start.html",
     "section": "Quick Start",
-    "text": "Here's the whole story in one walkthrough — no schema, no DAO, no serialization plumbing to wire up by hand. The example is a single offline note — the kind of \"continue where you left off\" document this library is built for. Start with an @Serializable data class: import com.nomemmurrakh.documents. Documents import com.nomemmurrakh.documents.document import kotlinx.serialization. Serializable @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false , ) Open a document — one call, no config required: val note = Documents .document< Note >( \"note-1\" ) Write the whole object with set when you have a complete value — creating the note for the first time: note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" )) Flip a single field with update(prop, value) — it writes just that one key, no read of the rest of the note: note.update( Note ::done, true ) Edit more than one field at once with update { current -> ... } — the builder receives the current value and returns a new one via copy() , so untouched fields (here, done ) are left exactly as they were: note.update { current -> current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } println(note. get ()) // Note(title=Pick up oat milk, body=The barista-approved kind, done=true) note.delete() println(note.exists()) // false get() returns null if the document was never written — it never throws just because something is missing. The three shapes carry distinct intent: set(value) replaces the whole document, update(prop, value) writes a single field with no read, and update { current -> ... } reads the current value (or the type's defaults if absent) and writes back a new one, atomically, for edits that touch more than one field together."
+    "text": "This walkthrough covers the whole flow in one place. There is no schema, no DAO, and no serialization code to write by hand. The example is a single offline note, the kind of \"continue where you left off\" document this library is built for."
+  },
+  {
+    "title": "Quick Start",
+    "href": "/quick-start.html",
+    "section": "1. Declare a data class",
+    "text": "Start with an @Serializable data class: import com.nomemmurrakh.documents. Documents import com.nomemmurrakh.documents.document import kotlinx.serialization. Serializable @Serializable data class Note ( val title: String = \"\" , val body: String = \"\" , val done: Boolean = false , )"
+  },
+  {
+    "title": "Quick Start",
+    "href": "/quick-start.html",
+    "section": "2. Open a document",
+    "text": "Opening a document takes one call and no configuration: val note = Documents .document< Note >( \"note-1\" )"
+  },
+  {
+    "title": "Quick Start",
+    "href": "/quick-start.html",
+    "section": "3. Write the whole object",
+    "text": "Use set when you have a complete value, for example when you create the note for the first time: note. set ( Note (title = \"Pick up milk\" , body = \"2%, not whole\" ))"
+  },
+  {
+    "title": "Quick Start",
+    "href": "/quick-start.html",
+    "section": "4. Change one field",
+    "text": "Use update(prop, value) to change a single field. It writes only that one key and does not read the rest of the note: note.update( Note ::done, true )"
+  },
+  {
+    "title": "Quick Start",
+    "href": "/quick-start.html",
+    "section": "5. Change several fields",
+    "text": "Use update { current -> ... } to edit more than one field at once. The builder receives the current value and returns a new one with copy() . Fields you do not touch, such as done here, keep their values: note.update { current -> current.copy( title = \"Pick up oat milk\" , body = \"The barista-approved kind\" , ) } println(note. get ()) // Note(title=Pick up oat milk, body=The barista-approved kind, done=true) note.delete() println(note.exists()) // false"
+  },
+  {
+    "title": "Quick Start",
+    "href": "/quick-start.html",
+    "section": "Which write to use",
+    "text": "get() returns null if the document has never been written. The three ways to write have different purposes: set(value) replaces the whole document. update(prop, value) writes a single field and does not read anything first. update { current -> ... } reads the current value, or the type's defaults if nothing is stored, and writes back a new one. The read and the write happen atomically, so use it for edits that touch more than one field together."
   },
   {
     "title": "Quick Start",
     "href": "/quick-start.html",
     "section": "What's next",
-    "text": "Opening Documents — documents vs. collections, and the automatic MMKV setup. Read & Write — the full distinction between set , update , and single-field update . Reactivity — flow() and stateFlow() , including a Compose-ready snippet. Field Delegates — binding a single field without touching the whole document."
+    "text": "Opening Documents : documents and collections, and the automatic MMKV setup. Read & Write : the full difference between set , update , and single-field update . Reactivity : flow() and stateFlow() , with a snippet for Compose. Field Delegates : binding a single field without touching the whole document."
   },
   {
     "title": "Sample App",
     "href": "/sample-app.html",
     "section": "Sample App",
-    "text": "A runnable Compose Multiplatform sample lives in the repo's sample/ folder — sample/shared/ holds one shared UI and business logic for both platforms, sample/androidApp/ is a thin Android wrapper, and sample/iosApp/ is a real Xcode project that embeds the shared Kotlin framework (via Gradle's embedAndSignAppleFrameworkForXcode task — no CocoaPods on the sample's own side). It runs on both Android and iOS."
+    "text": "A runnable Compose Multiplatform sample lives in the repository's sample/ folder. It runs on both Android and iOS. It is made of three parts: sample/shared/ holds one shared UI and the business logic for both platforms. sample/androidApp/ is a thin Android wrapper. sample/iosApp/ is a real Xcode project that embeds the shared Kotlin framework through Gradle's embedAndSignAppleFrameworkForXcode task. The sample itself does not use CocoaPods."
   },
   {
     "title": "Sample App",
     "href": "/sample-app.html",
     "section": "What it does",
-    "text": "A home screen lists five use cases, each a real, working screen backed by the real Documents API: Settings & Preferences — typed, observable app settings. A SettingsRepository wraps Documents.document<AppSettings>(\"app-settings\") , using field() / fieldFlow() delegates for theme (SYSTEM/LIGHT/DARK) and locale ; changing either persists instantly and updates the screen's own reactive readout with no manual refresh. Session & User State — sign in/out, with an encrypted auth token. A SessionRepository opens Documents.collection(\"session\") configured with a real FieldDecorator ( AesGcmFieldDecorator , AES-GCM via cryptography-kotlin ) wrapping authToken . A \"Prove authToken is encrypted at rest\" action opens a second document with a different AES key and shows the decrypt failure — concrete proof the stored bytes are ciphertext, not the plaintext token. Caches & Drafts — a draft that survives relaunch, in its own store. A CacheRepository opens Documents.collection(\"cache\") holding SyncState and DraftPost ; the draft text field writes on a debounce and restores on screen entry. An isolation check on the same screen shows the Settings screen's theme value (a different collection) staying untouched when \"Clear cache\" runs. Reactive UI State — a simulated download driving a live progress bar. A coroutine ticker calls update(DownloadState::bytesDownloaded, bytesSoFar) repeatedly; a LinearProgressIndicator re-renders purely by collecting the document's flow() , with zero polling and zero coupling to where the write came from. Shared KMP Persistence — one offline queue, identical code on both platforms. A PendingRequestQueue wraps Documents.document<QueueState>(\"pending-requests\") (the queue's items live inside a small wrapper class, not as a bare List document root — see Opening Documents for why) with \"Enqueue mock request\" and \"Clear queue\" actions and a live list. This screen's own code is entirely commonMain — nothing platform-specific was written to make it work on both Android and iOS."
+    "text": "A home screen lists five use cases. Each one is a real, working screen backed by the real Documents API: Settings & Preferences. Typed, observable app settings. A SettingsRepository wraps Documents.document<AppSettings>(\"app-settings\") and uses the field() and fieldFlow() delegates for theme (SYSTEM, LIGHT, or DARK) and locale . Changing either one is saved instantly and updates the screen's own live readout, with no manual refresh. Session & User State. Signing in and out, with an encrypted auth token. A SessionRepository opens Documents.collection(\"session\") , which is configured with a real FieldDecorator ( AesGcmFieldDecorator , using AES-GCM from cryptography-kotlin ) that wraps authToken . The \"Prove authToken is encrypted at rest\" action opens a second document with a different AES key and shows the decrypt failure. This is concrete proof that the stored bytes are ciphertext and not the plaintext token. Caches & Drafts. A draft that survives a relaunch, kept in its own store. A CacheRepository opens Documents.collection(\"cache\") , which holds SyncState and DraftPost . The draft text field saves on a debounce and restores when you open the screen. A check on the same screen shows that the theme value from the Settings screen, which is in a different collection, stays untouched when \"Clear cache\" runs. Reactive UI State. A simulated download that drives a live progress bar. A coroutine ticker repeatedly calls update(DownloadState::bytesDownloaded, bytesSoFar) . A LinearProgressIndicator re-renders only because it collects the document's flow() . There is no polling, and the progress bar does not know where the write came from. Shared KMP Persistence. One offline queue, with identical code on both platforms. A PendingRequestQueue wraps Documents.document<QueueState>(\"pending-requests\") . The queue's items live inside a small wrapper class and not in a bare List document. See Opening Documents for why. The screen has \"Enqueue mock request\" and \"Clear queue\" actions and a live list. All of its code is in commonMain . Nothing platform-specific was written to make it work on both Android and iOS."
   },
   {
     "title": "Sample App",
     "href": "/sample-app.html",
     "section": "Run it",
-    "text": "Clone the repository. For Android, run the sample/androidApp module from Android Studio or via Gradle. For iOS, open sample/iosApp/iosApp.xcodeproj in Xcode and run. See Use Cases for the documented pattern each screen demonstrates."
+    "text": "Clone the repository, then follow the steps for your platform: Android. Run the sample/androidApp module from Android Studio or with Gradle. iOS. Open sample/iosApp/iosApp.xcodeproj in Xcode and run it. See Use Cases for the documented pattern that each screen demonstrates."
   },
   {
     "title": "Troubleshooting",
     "href": "/troubleshooting.html",
     "section": "Troubleshooting",
-    "text": "Common build and runtime errors, and what they usually mean."
+    "text": "This page lists common build and runtime errors, and what they usually mean."
   },
   {
     "title": "Troubleshooting",
     "href": "/troubleshooting.html",
     "section": "iOS: missing MMKV dependency",
-    "text": "Undefined symbol: _OBJC_CLASS_$_MMKV Your iOS app links the Documents framework but hasn't declared MMKV itself as a dependency of the app target. Documents depends on MMKV, but embedding the Documents framework doesn't automatically pull MMKV's native binary along with it — your app needs to add MMKV directly, via CocoaPods or Swift Package Manager, the same way it adds any other native dependency. See MMKV's own iOS setup guide for both paths."
+    "text": "Undefined symbol: _OBJC_CLASS_$_MMKV Cause. Your iOS app links the Documents framework, but it has not declared MMKV as a dependency of its own target. Documents depends on MMKV, but embedding the Documents framework does not bring MMKV's native binary along with it. Fix. Add MMKV directly to your app, through CocoaPods or Swift Package Manager, the same way you add any other native dependency. MMKV's own iOS setup guide covers both options."
   },
   {
     "title": "Troubleshooting",
     "href": "/troubleshooting.html",
     "section": "Crash on the first update() call: DocumentDecodingException",
-    "text": "DocumentDecodingException: Failed to decode field 'title' of document 'note' This is the single most common first-run surprise with this library, and it usually has nothing to do with corrupted data. It fires when update() runs against a document that has never been set() , and at least one field in your @Serializable data class is both non-nullable and has no constructor default — for example data class Note(val title: String, val count: Int) . With nothing stored yet and no default to fall back to, the library has no value to seed that field with, so it throws instead of guessing. The message is generic today — it reads exactly like a genuinely corrupted field would (see Error Handling ) — so it's easy to mistake for a data integrity bug rather than a missing default. A clearer, dedicated message for this specific case is planned. Fix it by giving every field either a constructor default or a nullable type: data class Note ( val title: String = \"\" , val count: Int = 0 ) See Declaring Data Classes for the full rule and more examples."
+    "text": "DocumentDecodingException: Failed to decode field 'title' of document 'note' Cause. This is the most common surprise the first time you run the library, and it usually has nothing to do with corrupted data. It happens when update() runs on a document that has never been written with set() , and at least one field in your @Serializable data class is both non-nullable and has no constructor default. An example is data class Note(val title: String, val count: Int) . Nothing is stored yet and there is no default to fall back on, so the library has no value to start that field with. It throws an exception instead of guessing. The message is generic today. It reads exactly like the message for a genuinely corrupted field (see Error Handling ), so it is easy to mistake for a data integrity problem when the real issue is a missing default. A clearer message for this specific case is planned. Fix. Give every field either a constructor default or a nullable type: data class Note ( val title: String = \"\" , val count: Int = 0 ) See Declaring Data Classes for the full rule and more examples."
   },
   {
     "title": "Caches & Drafts",
     "href": "/use-cases/caches-and-drafts.html",
     "section": "Caches & Drafts",
-    "text": "Last-synced payloads, an in-progress form, the \"continue where you left off\" blob — data that's useful but disposable, and should live apart from durable settings so it's easy to reason about (and to wipe) on its own. @Serializable data class SyncState ( val lastSyncedAtEpochMs: Long = 0 , val lastSyncedEtag: String = \"\" , ) @Serializable data class DraftPost ( val title: String = \"\" , val body: String = \"\" , ) val cache = Documents .collection( \"cache\" ) val syncState = cache.document< SyncState >( \"sync-state\" ) val draft = cache.document< DraftPost >( \"compose-draft\" ) The compose screen writes to draft on every keystroke debounce, and reads it back on next launch to restore exactly where the user left off: draft.update { current -> current.copy(body = textField.value) } // next launch val restored = draft. get () ?: DraftPost () Because cache is its own collection — its own MMKV file — clearing it out (a \"reset cache\" action, or a storage-pressure cleanup) never touches durable data living in the default store or another collection. See Collections & Testing for how collections isolate one set of documents from another."
+    "text": "Caches and drafts include the last synced payload, an in-progress form, and the \"continue where you left off\" data. This data is useful but disposable. Keep it apart from durable settings, so it is easy to reason about and easy to wipe on its own. @Serializable data class SyncState ( val lastSyncedAtEpochMs: Long = 0 , val lastSyncedEtag: String = \"\" , ) @Serializable data class DraftPost ( val title: String = \"\" , val body: String = \"\" , ) val cache = Documents .collection( \"cache\" ) val syncState = cache.document< SyncState >( \"sync-state\" ) val draft = cache.document< DraftPost >( \"compose-draft\" ) The compose screen writes to draft after each debounced keystroke. On the next launch it reads the draft back, so the user continues exactly where they left off: draft.update { current -> current.copy(body = textField.value) } // next launch val restored = draft. get () ?: DraftPost () cache is its own collection, which means it has its own MMKV file. If you reset it, for example from a \"reset cache\" action or a storage cleanup, by deleting its documents, the durable data in the default store or in another collection is not touched. See Collections & Testing for how collections keep one set of documents separate from another."
   },
   {
     "title": "Use Cases",
     "href": "/use-cases/index.html",
     "section": "Use Cases",
-    "text": "Five shapes of \"one typed, reactive document\" that come up constantly in real apps — each page sketches a realistic example and links back to the Guide pages that cover the mechanics. Settings & Preferences — the classic SharedPreferences / NSUserDefaults job, typed and observable. Session & User State — the signed-in user, auth tokens, the active profile. Caches & Drafts — last-synced payloads, in-progress form drafts, \"continue where you left off.\" Reactive UI State — anything Compose or SwiftUI should re-render on. Shared KMP Persistence — one storage API, Android and iOS reading the same documents."
+    "text": "These are five common situations where an app needs one typed, reactive document. Each page walks through a realistic example and links back to the Guide pages that cover the details. Settings & Preferences : the job that SharedPreferences and NSUserDefaults usually do, with typed values you can observe. Session & User State : the signed-in user, auth tokens, and the active profile. Caches & Drafts : the last synced payload, in-progress form drafts, and \"continue where you left off.\" Reactive UI State : any state that Compose or SwiftUI should re-render on. Shared KMP Persistence : one storage API in shared code that runs on both Android and iOS."
   },
   {
     "title": "Reactive UI State",
     "href": "/use-cases/reactive-ui-state.html",
     "section": "Reactive UI State",
-    "text": "Anything Compose or SwiftUI should re-render on when it changes — a document's flow() gives a UI layer exactly that, with no manual re-reads and no polling. @Serializable data class DownloadState ( val bytesDownloaded: Long = 0 , val totalBytes: Long = 0 , val isComplete: Boolean = false , ) val download = Documents .document< DownloadState >( \"active-download\" ) A background worker updates bytesDownloaded as chunks arrive. It's a single field, so update(prop, value) is the natural fit — one direct write to that key: download.update( DownloadState ::bytesDownloaded, bytesSoFar) A Compose screen collects the same document and redraws on every write, with zero coupling to where the write came from: @Composable fun DownloadProgressBar (download: Document < DownloadState >) { val state by download.flow().collectAsStateWithLifecycle(initialValue = download. get ()) val progress = state?.let { it.bytesDownloaded.toFloat() / it.totalBytes } ?: 0f LinearProgressIndicator (progress = progress) } The real sample app demonstrates this exact pattern end to end — a button press writes to a document, and a separate readout re-renders purely by collecting its flow() . See Reactivity for the full flow() / stateFlow() API."
+    "text": "Reactive UI state is any state that Compose or SwiftUI should re-render when it changes. A document's flow() gives your UI layer exactly that, with no manual re-reads and no polling. @Serializable data class DownloadState ( val bytesDownloaded: Long = 0 , val totalBytes: Long = 0 , val isComplete: Boolean = false , ) val download = Documents .document< DownloadState >( \"active-download\" ) A background worker updates bytesDownloaded as chunks arrive. This is a single field, so update(prop, value) is the natural fit. It makes one direct write to that key: download.update( DownloadState ::bytesDownloaded, bytesSoFar) A Compose screen collects the same document and redraws on every write. It does not need to know where the write came from. The screen can even hold a different instance of the document than the worker does, and it still sees every write: @Composable fun DownloadProgressBar (download: Document < DownloadState >) { val state by download.flow().collectAsStateWithLifecycle(initialValue = download. get ()) val progress = state?.let { it.bytesDownloaded.toFloat() / it.totalBytes } ?: 0f LinearProgressIndicator (progress = progress) } The sample app shows this pattern from start to finish. A button press writes to a document, and a separate readout re-renders only because it collects the document's flow() . See Reactivity for the full flow() and stateFlow() API."
   },
   {
     "title": "Session & User State",
     "href": "/use-cases/session-and-user-state.html",
     "section": "Session & User State",
-    "text": "The signed-in user, an auth token, the active profile — state that's scoped to a login session rather than the app's durable settings. Keeping it in its own collection keeps it separate from data that should survive a logout. @Serializable data class Session ( val userId: String , val displayName: String , val authToken: String , ) val sessionStore = Documents .collection( \"session\" ) val session = sessionStore.document< Session >( \"current\" ) // sign in session. set ( Session (userId = \"u_42\" , displayName = \"Mara\" , authToken = \"…\" )) // react to sign-in / sign-out anywhere in the UI session.flow().collect { current -> isSignedIn = current != null } Logging out deletes the session document — there is no separate \"clear the whole collection\" call in the public API, so sign-out is an explicit delete() on each document that should end with the session: fun signOut() { session.delete() }"
+    "text": "Session state is the signed-in user, an auth token, and the active profile. It belongs to a login session, not to the app's long-lived settings. Keep it in its own collection so it stays separate from data that should survive a logout. @Serializable data class Session ( val userId: String , val displayName: String , val authToken: String , ) val sessionStore = Documents .collection( \"session\" ) val session = sessionStore.document< Session >( \"current\" ) // sign in session. set ( Session (userId = \"u_42\" , displayName = \"Mara\" , authToken = \"…\" )) // react to sign-in / sign-out anywhere in the UI session.flow().collect { current -> isSignedIn = current != null } Signing out means deleting the session document. The public API has no \"clear the whole collection\" call, so sign-out is an explicit delete() on each document that should end with the session: fun signOut() { session.delete() }"
   },
   {
     "title": "Session & User State",
     "href": "/use-cases/session-and-user-state.html",
     "section": "Encrypting the auth token",
-    "text": "authToken is a realistic candidate for field-level encryption — the session collection is a natural encryption boundary. FieldDecorator is a complete extension point for this; the example below uses cryptography-kotlin ( dev.whyoleg.cryptography , v0.6.0), one library choice among several, and a dependency your app adds, not one Documents pulls in: // build.gradle.kts (your app/module, not Documents itself) implementation( \"dev.whyoleg.cryptography:cryptography-core:0.6.0\" ) implementation( \"dev.whyoleg.cryptography:cryptography-provider-optimal:0.6.0\" ) import dev.whyoleg.cryptography. CryptographyProvider import dev.whyoleg.cryptography.algorithms. AES class AesGcmFieldDecorator ( private val key: AES . GCM . Key , ) : FieldDecorator { private val cipher = key.cipher() override fun wrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.encryptBlocking( plaintext = bytes, associatedData = fieldName.encodeToByteArray(), ) override fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.decryptBlocking( ciphertext = bytes, associatedData = fieldName.encodeToByteArray(), ) } val provider = CryptographyProvider . Default val key = provider. get ( AES . GCM ).keyGenerator().generateKeyBlocking() val sessionStore = Documents .collection( \"session\" ) { decorators = listOf( AesGcmFieldDecorator (key)) } val session = sessionStore.document< Session >( \"current\" ) Note the Blocking suffix — encryptBlocking / decryptBlocking , not the suspending encrypt / decrypt — since FieldDecorator.wrap and unwrap are synchronous. encryptBlocking bundles the nonce and auth tag into the returned ByteArray , so AES-GCM's authentication catches a tampered or corrupted stored value instead of decoding it into garbage, and passing fieldName as associated data means a ciphertext copied from one field's key into another's fails to decrypt rather than silently succeeding with the wrong data. Key generation, storage, and rotation are your app's own responsibility — see the cryptography-kotlin docs for that part, and Decorations / Field Decorators for how the extension point itself works. See Opening Documents for when to reach for a named collection versus the default store, and keep in mind the single-process constraint that applies to every store, including this one."
+    "text": "The authToken is a good candidate for field-level encryption, and the session collection is a natural encryption boundary. FieldDecorator is the extension point for this. The example below uses cryptography-kotlin ( dev.whyoleg.cryptography , v0.6.0). It is one choice among several, and your app adds it as a dependency. Documents does not pull it in: // build.gradle.kts (your app/module, not Documents itself) implementation( \"dev.whyoleg.cryptography:cryptography-core:0.6.0\" ) implementation( \"dev.whyoleg.cryptography:cryptography-provider-optimal:0.6.0\" ) import dev.whyoleg.cryptography. CryptographyProvider import dev.whyoleg.cryptography.algorithms. AES class AesGcmFieldDecorator ( private val key: AES . GCM . Key , ) : FieldDecorator { private val cipher = key.cipher() override fun wrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.encryptBlocking( plaintext = bytes, associatedData = fieldName.encodeToByteArray(), ) override fun unwrap(fieldName: String , bytes: ByteArray ): ByteArray = cipher.decryptBlocking( ciphertext = bytes, associatedData = fieldName.encodeToByteArray(), ) } val provider = CryptographyProvider . Default val key = provider. get ( AES . GCM ).keyGenerator().generateKeyBlocking() val sessionStore = Documents .collection( \"session\" ) { decorators = listOf( AesGcmFieldDecorator (key)) } val session = sessionStore.document< Session >( \"current\" ) A few details in this example are worth knowing: Blocking calls. The example uses encryptBlocking and decryptBlocking , not the suspending encrypt and decrypt , because FieldDecorator.wrap and unwrap are synchronous. Tamper detection. encryptBlocking puts the nonce and the authentication tag into the returned ByteArray . If a stored value is tampered with or corrupted, AES-GCM detects it instead of decoding garbage. Associated data. Passing fieldName as associated data means a ciphertext copied from one field's key to another fails to decrypt. It does not silently succeed with the wrong data. Keys are your job. Your app is responsible for generating, storing, and rotating keys. The cryptography-kotlin docs cover that part. To see how the extension point itself works, read Decorations and Field Decorators . See Opening Documents for when to use a named collection instead of the default store. Also remember the single-process rule , which applies to every store, including this one."
   },
   {
     "title": "Settings & Preferences",
     "href": "/use-cases/settings-and-preferences.html",
     "section": "Settings & Preferences",
-    "text": "The classic SharedPreferences / NSUserDefaults job — theme, locale, feature flags, onboarding state — except typed and observable instead of a flat string-keyed bag. @Serializable enum class Theme { SYSTEM , LIGHT , DARK } @Serializable data class AppSettings ( val theme: Theme = Theme . SYSTEM , val locale: String = \"en-US\" , val hasCompletedOnboarding: Boolean = false , ) class SettingsRepository { private val doc = Documents .document< AppSettings >( \"app-settings\" ) var theme: Theme by doc.field( AppSettings ::theme, default = Theme . SYSTEM ) var locale: String by doc.field( AppSettings ::locale, default = \"en-US\" ) val themeFlow: Flow < Theme > = doc.fieldFlow( AppSettings ::theme, default = Theme . SYSTEM ) } Each setting reads and writes as an ordinary property — flipping theme touches only that field's key, and themeFlow lets a UI layer re-render the instant it changes, with no polling and no re-reading the rest of the settings object. See Field Delegates for the full mechanics of field() and fieldFlow() ."
+    "text": "Settings are the job that SharedPreferences and NSUserDefaults usually do: theme, locale, feature flags, and onboarding state. Here they are typed and observable, instead of a flat bag of string keys. @Serializable enum class Theme { SYSTEM , LIGHT , DARK } @Serializable data class AppSettings ( val theme: Theme = Theme . SYSTEM , val locale: String = \"en-US\" , val hasCompletedOnboarding: Boolean = false , ) class SettingsRepository { private val doc = Documents .document< AppSettings >( \"app-settings\" ) var theme: Theme by doc.field( AppSettings ::theme, default = Theme . SYSTEM ) var locale: String by doc.field( AppSettings ::locale, default = \"en-US\" ) val themeFlow: Flow < Theme > = doc.fieldFlow( AppSettings ::theme, default = Theme . SYSTEM ) } Each setting reads and writes like an ordinary property. Changing theme touches only that field's key. themeFlow lets your UI update as soon as the theme changes, with no polling and no need to read the rest of the settings object. See Field Delegates for how field() and fieldFlow() work."
   },
   {
     "title": "Shared KMP Persistence",
     "href": "/use-cases/shared-kmp-persistence.html",
     "section": "Shared KMP Persistence",
-    "text": "One storage API in commonMain — the same document code runs unchanged on Android and iOS, reading and writing through the same MMKV-backed store on both platforms. // commonMain @Serializable data class OfflineQueueItem ( val id: String , val endpoint: String , val payloadJson: String , val attempts: Int = 0 , ) @Serializable data class QueueState ( val items: List < OfflineQueueItem > = emptyList(), ) class PendingRequestQueue { private val doc = Documents .document< QueueState >( \"pending-requests\" ) fun enqueue(item: OfflineQueueItem ) { doc.update { current -> current.copy(items = current.items + item) } } fun observe(): Flow < List < OfflineQueueItem >> = doc.flow().map { it?.items ?: emptyList() } } Note the queue is wrapped in a QueueState class rather than opened as Documents.document<List<OfflineQueueItem>>(\"pending-requests\") directly — a top-level List is not a supported document root type today (field decomposition keys off a class's declared properties, which a bare list doesn't have); a list works correctly only as a field inside a @Serializable class, as shown here. See Opening Documents for the full constraint. PendingRequestQueue is written once, in commonMain , and used identically from an Android ViewModel and an iOS view model — there is no platform-specific persistence code to write or keep in sync, because the entire public API and its logic live in commonMain . Only the underlying Storage implementation differs per platform, and that's an internal detail the library owns. See Storage SPI and Platform Support for how each target is bound."
+    "text": "With one storage API in commonMain , the same document code runs unchanged on Android and iOS. Each platform keeps its own data in MMKV, and your shared code does not need to know which platform it is on. // commonMain @Serializable data class OfflineQueueItem ( val id: String , val endpoint: String , val payloadJson: String , val attempts: Int = 0 , ) @Serializable data class QueueState ( val items: List < OfflineQueueItem > = emptyList(), ) class PendingRequestQueue { private val doc = Documents .document< QueueState >( \"pending-requests\" ) fun enqueue(item: OfflineQueueItem ) { doc.update { current -> current.copy(items = current.items + item) } } fun observe(): Flow < List < OfflineQueueItem >> = doc.flow().map { it?.items ?: emptyList() } } The queue is wrapped in a QueueState class. It is not opened directly as Documents.document<List<OfflineQueueItem>>(\"pending-requests\") , because a top-level List is not supported as a document type today. Each stored value is keyed by one of the class's declared properties, and a bare list has none. A list works correctly as a field inside a @Serializable class, as shown here. See Opening Documents for the full rule. PendingRequestQueue is written once, in commonMain . An Android ViewModel and an iOS view model use it in exactly the same way. You write no platform-specific persistence code and have nothing to keep in sync, because the whole public API and its logic live in commonMain . Only the underlying Storage implementation differs per platform, and that is an internal detail the library handles. See Storage SPI and Platform Support for how each target is bound."
   }
 ]

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,12 +119,11 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Concurrency</h1>
 
-<p>The document API is fully <strong>synchronous and non-suspending</strong>.
-<code>get()</code>, <code>set()</code>, <code>update()</code>, <code>delete()</code>,
-<code>exists()</code>, and every field delegate are plain function calls — none of them are
-<code>suspend</code> functions, and none of them require a coroutine scope to call. MMKV is
-memory-mapped, so a read or write is a memory operation, not I/O — there is nothing to suspend
-for.</p>
+<p>The document API is <strong>synchronous and non-suspending</strong>. <code>get()</code>,
+<code>set()</code>, <code>update()</code>, <code>delete()</code>, <code>exists()</code>, and every
+field delegate are plain function calls. None of them are <code>suspend</code> functions, and
+none of them need a coroutine scope. MMKV is memory-mapped, so a read or a write is a memory
+operation and not disk I/O. There is nothing to wait for.</p>
 
 <pre><code class="language-kotlin"><span class="tok-comment">// no coroutine scope needed for any of these:</span>
 note.<span class="tok-keyword">set</span>(<span class="tok-type">Note</span>(title = <span class="tok-string">"Pick up milk"</span>))
@@ -132,21 +131,31 @@ note.<span class="tok-keyword">set</span>(<span class="tok-type">Note</span>(tit
 note.update(<span class="tok-type">Note</span>::done, <span class="tok-keyword">true</span>)</code></pre>
 
 <h2>Writes are serialized per document</h2>
-<p>Every write to a given document goes through a lightweight, non-suspending lock scoped to that
-document — not a coroutine <code>Mutex</code>. This is what makes a multi-field
-<code>update { current -> ... }</code> atomic from the caller's perspective: the read of the
-current value and the write of the new one happen as one uninterrupted unit, so a concurrent
-reader never observes a half-applied update. Because the lock is non-suspending, it composes
-safely with plain synchronous call sites — there's no risk of it blocking a coroutine dispatcher
-in a way that would starve other coroutines.</p>
+<p>Every write to a document goes through a lightweight lock. The lock does not suspend, and it is
+not a coroutine <code>Mutex</code>. Because it never suspends, it works safely in plain
+synchronous code and cannot block a coroutine dispatcher in a way that starves other
+coroutines.</p>
 
-<h2>What <em>is</em> dispatcher-governed</h2>
-<p>Only <code>flow()</code> and <code>stateFlow()</code> <em>collection</em> runs on a
-configurable dispatcher — <code>Dispatchers.Default</code> by default, since re-reading and
-decoding a value on each change bus emission is CPU-bound work (see
-<a href="/concepts/reactivity-model.html">Reactivity Model</a>). This dispatcher only affects how
-a <code>Flow</code> is collected; it has no bearing on the document operations themselves, which
-remain synchronous regardless of which dispatcher a caller happens to be on.</p>
+<p>The lock is what makes a multi-field <code>update { current -&gt; ... }</code> atomic. Reading the
+current value and writing the new one happen as one uninterrupted step, so a concurrent reader
+never sees a half-applied update.</p>
+
+<p>The lock belongs to the document's store, not to the <code>Document</code> object you hold. All
+instances of the same document share it. If two instances update the same document at the same
+time, one update runs after the other, and neither is lost.</p>
+
+<p>Internally, each store has a fixed set of 64 locks. The library picks one by the document's key,
+and creates it only when it is first needed. Different documents normally get different locks and
+never wait for each other. Rarely, two unrelated documents map to the same lock, and then their
+writes take turns.</p>
+
+<h2>What the dispatcher controls</h2>
+<p>Only the collection of <code>flow()</code> and <code>stateFlow()</code> runs on a configurable
+dispatcher. It is <code>Dispatchers.Default</code> unless you change it, because reading and
+decoding a value for each change is CPU work (see
+<a href="/concepts/reactivity-model.html">Reactivity Model</a>). The dispatcher only affects how a
+<code>Flow</code> is collected. The document operations themselves stay synchronous, whichever
+dispatcher your code is running on.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -163,8 +172,8 @@ remain synchronous regardless of which dispatcher a caller happens to be on.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

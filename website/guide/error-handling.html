@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,8 +119,9 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Error Handling</h1>
 
-<p><code>get()</code> and field reads throw <code>DocumentDecodingException</code> when a stored
-field can't be decoded — never a bare, low-level exception from the serialization layer.</p>
+<p><code>get()</code> and field reads throw a <code>DocumentDecodingException</code> when a stored
+field cannot be decoded. You never get a bare, low-level exception from the serialization
+layer.</p>
 
 <pre><code class="language-kotlin">try {
     <span class="tok-keyword">val</span> current = note.<span class="tok-keyword">get</span>()
@@ -130,40 +131,48 @@ field can't be decoded — never a bare, low-level exception from the serializat
 
 <div class="callout callout--note">
   <div class="callout__title">Note</div>
-  <p>In practice this is rare — it only fires if a stored field is genuinely corrupted or was
-  written by an incompatible old version of your app. You don't need a <code>try</code>/
-  <code>catch</code> around every single <code>get()</code> call; reach for one at a boundary
-  that already handles unexpected failures (a repository layer, a top-level error handler), not
-  around every read in your codebase.</p>
+  <p>In practice this is rare. It only happens if a stored field is genuinely corrupted, or was
+  written by an incompatible older version of your app. You do not need a
+  <code>try</code>/<code>catch</code> around every <code>get()</code> call. Catch it at a boundary
+  that already handles unexpected failures, such as a repository layer or a top-level error
+  handler.</p>
 </div>
 
 <h2>What it wraps, and why</h2>
-<p>Because a document is decomposed into one MMKV key per field (see
-<a href="/concepts/field-decomposition.html">Field Decomposition</a>), a single field can go bad
-— a corrupted byte range, a stale format from an old app version — while every other field in the
-same document stays perfectly healthy. <code>DocumentDecodingException</code> names the
-<code>documentKey</code>, the offending <code>field</code> when there is one, and wraps the
-underlying cause, which might otherwise have surfaced as a bare
-<code>SerializationException</code>, <code>IllegalStateException</code>, or
-<code>IllegalArgumentException</code> from the CBOR format. Your code catches one clean library
-exception type instead of reaching into the serialization layer's own error hierarchy.</p>
-<p>A configured <a href="/guide/field-decorators.html">field decorator</a> that throws one of
-those same three exception types from <code>unwrap</code> — a wrong key, corrupted ciphertext, a
-failed integrity check — is wrapped the same way, indistinguishable from any other decode
-failure.</p>
+<p>A document is stored as one MMKV key per field (see
+<a href="/concepts/field-decomposition.html">Field Decomposition</a>). So a single field can go
+bad, for example through a corrupted byte range or a stale format from an old app version, while
+every other field in the same document stays healthy.</p>
 
-<h2>What's <em>not</em> an error</h2>
-<p>A document that was simply never written is not a decoding failure — <code>get()</code>
-returns <code>null</code> for that case, it never throws just because something is missing. See
-<a href="/guide/read-and-write.html">Read &amp; Write</a>.</p>
+<p><code>DocumentDecodingException</code> tells you which document and field failed:</p>
+<ul>
+  <li><code>documentKey</code> is the key of the document.</li>
+  <li><code>field</code> is the field that failed, when there is one.</li>
+  <li><code>cause</code> is the underlying exception.</li>
+</ul>
 
-<h2>A distinct case: <code>update()</code> on a never-written document</h2>
-<p><code>update()</code> can also throw <code>DocumentDecodingException</code> the very first time
-it runs against a document that's never been <code>set()</code> — but the cause there isn't
-corruption, it's a data class field with no constructor default and no nullability to fall back on.
-The exception message is identical to a genuine decode failure today, which makes it easy to
-mistake for one. See <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for why
-this happens and how to avoid it.</p>
+<p>Without it, the underlying cause would surface as a bare <code>SerializationException</code>,
+<code>IllegalStateException</code>, or <code>IllegalArgumentException</code> from the CBOR format.
+Wrapping them means your code catches one library exception type and does not need to know about
+the serialization layer's own errors.</p>
+
+<p>A configured <a href="/guide/field-decorators.html">field decorator</a> can fail too. If its
+<code>unwrap</code> throws one of those three exception types, for example because of a wrong
+key, corrupted ciphertext, or a failed integrity check, the failure is wrapped in the same way.
+It looks like any other decode failure.</p>
+
+<h2>What is not an error</h2>
+<p>A document that was simply never written is not a decoding failure. <code>get()</code> returns
+<code>null</code> in that case. See <a href="/guide/read-and-write.html">Read &amp; Write</a>.</p>
+
+<h2>A different case: <code>update()</code> on a never-written document</h2>
+<p><code>update()</code> can also throw <code>DocumentDecodingException</code> the first time it
+runs on a document that has never been written with <code>set()</code>. The cause here is not
+corruption. A field in your data class has no constructor default and is not nullable, so there is
+nothing to fall back on. Today the exception message is the same as for a real decode failure,
+which makes it easy to mistake for one. See
+<a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for why this happens and
+how to avoid it.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -180,8 +189,8 @@ this happens and how to avoid it.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

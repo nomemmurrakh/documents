@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,9 +119,9 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Caches &amp; Drafts</h1>
 
-<p>Last-synced payloads, an in-progress form, the "continue where you left off" blob — data that's
-useful but disposable, and should live apart from durable settings so it's easy to reason about
-(and to wipe) on its own.</p>
+<p>Caches and drafts include the last synced payload, an in-progress form, and the "continue
+where you left off" data. This data is useful but disposable. Keep it apart from durable settings,
+so it is easy to reason about and easy to wipe on its own.</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">SyncState</span>(
@@ -140,8 +140,8 @@ useful but disposable, and should live apart from durable settings so it's easy 
 <span class="tok-keyword">val</span> syncState = cache.document&lt;<span class="tok-type">SyncState</span>&gt;(<span class="tok-string">"sync-state"</span>)
 <span class="tok-keyword">val</span> draft = cache.document&lt;<span class="tok-type">DraftPost</span>&gt;(<span class="tok-string">"compose-draft"</span>)</code></pre>
 
-<p>The compose screen writes to <code>draft</code> on every keystroke debounce, and reads it back
-on next launch to restore exactly where the user left off:</p>
+<p>The compose screen writes to <code>draft</code> after each debounced keystroke. On the next
+launch it reads the draft back, so the user continues exactly where they left off:</p>
 
 <pre><code class="language-kotlin">draft.update { current -&gt;
     current.copy(body = textField.value)
@@ -150,11 +150,11 @@ on next launch to restore exactly where the user left off:</p>
 <span class="tok-comment">// next launch</span>
 <span class="tok-keyword">val</span> restored = draft.<span class="tok-keyword">get</span>() ?: <span class="tok-type">DraftPost</span>()</code></pre>
 
-<p>Because <code>cache</code> is its own collection — its own MMKV file — clearing it out (a
-"reset cache" action, or a storage-pressure cleanup) never touches durable data living in the
-default store or another collection. See
+<p><code>cache</code> is its own collection, which means it has its own MMKV file. If you reset
+it, for example from a "reset cache" action or a storage cleanup, by deleting its documents, the
+durable data in the default store or in another collection is not touched. See
 <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for how collections
-isolate one set of documents from another.</p>
+keep one set of documents separate from another.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -171,8 +171,8 @@ isolate one set of documents from another.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,9 +119,9 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Field Delegates</h1>
 
-<p>Sometimes you don't want the whole document — just one field, read and written like an
-ordinary Kotlin property. Field delegates give you that without giving up typed, reactive
-storage.</p>
+<p>Sometimes you do not need the whole document. You only want one field, read and written like
+an ordinary Kotlin property. Field delegates give you that while keeping the storage typed and
+reactive.</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">class</span> <span class="tok-type">NoteEditor</span> {
     <span class="tok-keyword">private</span> <span class="tok-keyword">val</span> note = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note-1"</span>)
@@ -131,43 +131,43 @@ storage.</p>
 }</code></pre>
 
 <h2><code>field(prop, default)</code></h2>
-<p><code>field(prop, default)</code> returns a <code>ReadWriteProperty</code> backed by a single
-decomposed key. Reading it returns <code>default</code> if the field was never set; writing it
-updates only that field's key — nothing else about the document is touched — and emits on the
-document's <code>flow()</code> too:</p>
+<p><code>field(prop, default)</code> returns a <code>ReadWriteProperty</code> that is backed by a
+single stored key. Reading it returns <code>default</code> if the field was never set. Writing it
+updates only that field's key and leaves the rest of the document alone. A write also emits on
+the document's <code>flow()</code>:</p>
 
 <pre><code class="language-kotlin">editor.done = <span class="tok-keyword">true</span>   <span class="tok-comment">// writes only the "done" field's key</span>
 println(editor.done) <span class="tok-comment">// reads only that key</span></code></pre>
 
-<h2>Why the caller supplies <code>default</code></h2>
-<p>A field's declared default isn't recoverable from a <code>KProperty</code> at runtime, so
-<code>field()</code> and <code>fieldFlow()</code> both take <code>default</code> explicitly —
-there's no reflection-based way to ask "what was the default value of this property in the data
-class?" once you're holding a bare property reference.</p>
+<h2>Why you supply <code>default</code></h2>
+<p>A property's declared default value cannot be recovered from a <code>KProperty</code> at
+runtime. Once you hold a bare property reference, there is no way to ask what default the data
+class gave it. So <code>field()</code> and <code>fieldFlow()</code> both take <code>default</code>
+as an explicit argument.</p>
 
 <h2><code>fieldFlow(prop, default)</code></h2>
-<p>Emits the current field value (or <code>default</code>, if never set) on collection, then a
-new value each time <em>that</em> field changes. A change to a sibling field stays quiet:</p>
+<p>On collection, <code>fieldFlow</code> emits the current field value, or <code>default</code> if
+the field was never set. After that it emits a new value each time <em>that</em> field changes. A
+change to a sibling field does not trigger it:</p>
 
 <pre><code class="language-kotlin">note.fieldFlow(<span class="tok-type">Note</span>::done, default = <span class="tok-keyword">false</span>).collect { done -&gt;
     checkbox.setChecked(done)
 }</code></pre>
 
-<h2>Not inside a class with a delegate? Use <code>update(prop, value)</code></h2>
-<p>For a one-off field write with no delegate to declare, plain
-<code>note.update(Note::done, true)</code> does the same single-key write directly — see
-<a href="/guide/read-and-write.html">Read &amp; Write</a>. It's the non-delegate sibling to
-<code>field()</code>, for code that doesn't own a <code>var</code>-backed property.</p>
+<h2>Without a delegate: <code>update(prop, value)</code></h2>
+<p>If you only need a one-off write to a field and have no property to declare, call
+<code>note.update(Note::done, true)</code>. It does the same single-key write directly. See
+<a href="/guide/read-and-write.html">Read &amp; Write</a>. Use it in code that does not own a
+<code>var</code> property backed by the field.</p>
 
 <h2>Decorators apply here too</h2>
-<p><code>field()</code> and <code>fieldFlow()</code> both call through <code>readField</code>/
-<code>writeField</code> internally — the same choke point <code>update(prop, value)</code> uses —
-so any configured <code>FieldDecorator</code>s run here as well. See
-<a href="/guide/field-decorators.html">Field Decorators</a>.</p>
+<p><code>field()</code> and <code>fieldFlow()</code> read and write through the same internal path
+as <code>update(prop, value)</code>, so any configured <code>FieldDecorator</code>s run here as
+well. See <a href="/guide/field-decorators.html">Field Decorators</a>.</p>
 
-<h2>When to reach for this</h2>
-<p>Field delegates suit settings-style usage — a screen with a handful of independent toggles or
-values, each bound directly to a property, with no need to read or write the rest of the
+<h2>When to use this</h2>
+<p>Field delegates suit settings-style code: a screen with a handful of independent toggles or
+values, each bound directly to a property, where you never need to read or write the rest of the
 document. See <a href="/use-cases/settings-and-preferences.html">Settings &amp; Preferences</a>
 for a fuller example.</p>
 
@@ -186,8 +186,8 @@ for a fuller example.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

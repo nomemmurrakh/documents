@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,9 +119,9 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Settings &amp; Preferences</h1>
 
-<p>The classic <code>SharedPreferences</code>/<code>NSUserDefaults</code> job — theme, locale,
-feature flags, onboarding state — except typed and observable instead of a flat string-keyed
-bag.</p>
+<p>Settings are the job that <code>SharedPreferences</code> and <code>NSUserDefaults</code>
+usually do: theme, locale, feature flags, and onboarding state. Here they are typed and
+observable, instead of a flat bag of string keys.</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">enum</span> <span class="tok-keyword">class</span> <span class="tok-type">Theme</span> { <span class="tok-type">SYSTEM</span>, <span class="tok-type">LIGHT</span>, <span class="tok-type">DARK</span> }
@@ -142,11 +142,11 @@ bag.</p>
     <span class="tok-keyword">val</span> themeFlow: <span class="tok-type">Flow</span>&lt;<span class="tok-type">Theme</span>&gt; = doc.fieldFlow(<span class="tok-type">AppSettings</span>::theme, default = <span class="tok-type">Theme</span>.<span class="tok-type">SYSTEM</span>)
 }</code></pre>
 
-<p>Each setting reads and writes as an ordinary property — flipping <code>theme</code> touches
-only that field's key, and <code>themeFlow</code> lets a UI layer re-render the instant it
-changes, with no polling and no re-reading the rest of the settings object. See
-<a href="/guide/field-delegates.html">Field Delegates</a> for the full mechanics of
-<code>field()</code> and <code>fieldFlow()</code>.</p>
+<p>Each setting reads and writes like an ordinary property. Changing <code>theme</code> touches
+only that field's key. <code>themeFlow</code> lets your UI update as soon as the theme changes,
+with no polling and no need to read the rest of the settings object. See
+<a href="/guide/field-delegates.html">Field Delegates</a> for how <code>field()</code> and
+<code>fieldFlow()</code> work.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -163,8 +163,8 @@ changes, with no polling and no re-reading the rest of the settings object. See
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

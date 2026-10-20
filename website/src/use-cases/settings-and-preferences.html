@@ -1,8 +1,8 @@
 <h1>Settings &amp; Preferences</h1>
 
-<p>The classic <code>SharedPreferences</code>/<code>NSUserDefaults</code> job — theme, locale,
-feature flags, onboarding state — except typed and observable instead of a flat string-keyed
-bag.</p>
+<p>Settings are the job that <code>SharedPreferences</code> and <code>NSUserDefaults</code>
+usually do: theme, locale, feature flags, and onboarding state. Here they are typed and
+observable, instead of a flat bag of string keys.</p>
 
 <pre><code class="language-kotlin">@Serializable
 enum class Theme { SYSTEM, LIGHT, DARK }
@@ -23,8 +23,8 @@ class SettingsRepository {
     val themeFlow: Flow&lt;Theme&gt; = doc.fieldFlow(AppSettings::theme, default = Theme.SYSTEM)
 }</code></pre>
 
-<p>Each setting reads and writes as an ordinary property — flipping <code>theme</code> touches
-only that field's key, and <code>themeFlow</code> lets a UI layer re-render the instant it
-changes, with no polling and no re-reading the rest of the settings object. See
-<a href="/guide/field-delegates.html">Field Delegates</a> for the full mechanics of
-<code>field()</code> and <code>fieldFlow()</code>.</p>
+<p>Each setting reads and writes like an ordinary property. Changing <code>theme</code> touches
+only that field's key. <code>themeFlow</code> lets your UI update as soon as the theme changes,
+with no polling and no need to read the rest of the settings object. See
+<a href="/guide/field-delegates.html">Field Delegates</a> for how <code>field()</code> and
+<code>fieldFlow()</code> work.</p>

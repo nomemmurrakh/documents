@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,8 +119,9 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Reactive UI State</h1>
 
-<p>Anything Compose or SwiftUI should re-render on when it changes — a document's
-<code>flow()</code> gives a UI layer exactly that, with no manual re-reads and no polling.</p>
+<p>Reactive UI state is any state that Compose or SwiftUI should re-render when it changes. A
+document's <code>flow()</code> gives your UI layer exactly that, with no manual re-reads and no
+polling.</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">DownloadState</span>(
@@ -131,13 +132,15 @@
 
 <span class="tok-keyword">val</span> download = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">DownloadState</span>&gt;(<span class="tok-string">"active-download"</span>)</code></pre>
 
-<p>A background worker updates <code>bytesDownloaded</code> as chunks arrive. It's a single field,
-so <code>update(prop, value)</code> is the natural fit — one direct write to that key:</p>
+<p>A background worker updates <code>bytesDownloaded</code> as chunks arrive. This is a single
+field, so <code>update(prop, value)</code> is the natural fit. It makes one direct write to that
+key:</p>
 
 <pre><code class="language-kotlin">download.update(<span class="tok-type">DownloadState</span>::bytesDownloaded, bytesSoFar)</code></pre>
 
-<p>A Compose screen collects the same document and redraws on every write, with zero coupling to
-where the write came from:</p>
+<p>A Compose screen collects the same document and redraws on every write. It does not need to
+know where the write came from. The screen can even hold a different instance of the document
+than the worker does, and it still sees every write:</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Composable</span>
 <span class="tok-keyword">fun</span> <span class="tok-type">DownloadProgressBar</span>(download: <span class="tok-type">Document</span>&lt;<span class="tok-type">DownloadState</span>&gt;) {
@@ -147,10 +150,10 @@ where the write came from:</p>
     <span class="tok-type">LinearProgressIndicator</span>(progress = progress)
 }</code></pre>
 
-<p>The real <a href="/sample-app.html">sample app</a> demonstrates this exact pattern end to end —
-a button press writes to a document, and a separate readout re-renders purely by collecting its
-<code>flow()</code>. See <a href="/guide/reactivity.html">Reactivity</a> for the full
-<code>flow()</code>/<code>stateFlow()</code> API.</p>
+<p>The <a href="/sample-app.html">sample app</a> shows this pattern from start to finish. A
+button press writes to a document, and a separate readout re-renders only because it collects the
+document's <code>flow()</code>. See <a href="/guide/reactivity.html">Reactivity</a> for the full
+<code>flow()</code> and <code>stateFlow()</code> API.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -167,8 +170,8 @@ a button press writes to a document, and a separate readout re-renders purely by
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

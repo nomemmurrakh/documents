@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,44 +119,44 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Declaring Your Data Class</h1>
 
-<p>Every <code>Document&lt;T&gt;</code> is backed by an <code>@Serializable</code> class you write.
-How you declare that class's properties — nullable or not, with a constructor default or without
-— decides what happens the first time <code>update()</code> runs against a document that hasn't
-been written yet. Get this wrong and the failure shows up as a runtime crash on a button tap, not a
-compile error.</p>
+<p>Every <code>Document&lt;T&gt;</code> is backed by an <code>@Serializable</code> class that you
+write. Each property can be nullable or not, and can have a constructor default or not. Some
+combinations compile fine but crash at runtime, for example on a button tap. This page explains
+which ones and how to avoid them.</p>
 
 <h2>The rule</h2>
-<p><code>Documents</code> never invents a value for a field. It only ever uses one of two sources:
-a value you already stored, or a default you already declared in the constructor. When neither
-exists, it fails loudly instead of guessing — there is no "correct" placeholder the library could
-make up for a field like <code>title: String</code> or <code>count: Int</code>.</p>
+<p><code>Documents</code> never invents a value for a field. It only uses one of two sources: a
+value you already stored, or a default you already declared in the constructor. If neither
+exists, it fails loudly instead of guessing. There is no correct placeholder the library could
+make up for a field such as <code>title: String</code> or <code>count: Int</code>.</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> count: <span class="tok-type">Int</span> = <span class="tok-number">0</span>) <span class="tok-comment">// safe: every field has a default</span></code></pre>
 
-<p>Every field in a document type should have either a constructor default or a nullable type
-(<code>= null</code>). A field with neither is only safe once you're certain the document is
-always <code>set()</code> before it's ever <code>update()</code>-d.</p>
+<p>Give every field in a document type either a constructor default or a nullable type
+(<code>= null</code>). A field with neither is only safe if you are certain the document is always
+written with <code>set()</code> before it is ever changed with <code>update()</code>.</p>
 
 <h2>Why this matters: <code>update()</code> on an absent document</h2>
-<p><code>update { current -> ... }</code> needs a baseline to run the builder against. If the
-document already exists, that baseline is the current value. If it doesn't exist yet — nothing has
-ever been <code>set()</code> for this key — the baseline comes from decoding the type as if every
-field were absent, which only works for fields that have somewhere to fall back to:</p>
+<p><code>update { current -&gt; ... }</code> needs a starting value to run the builder on. If the
+document already exists, that value is the current one. If nothing has ever been written for this
+key, the starting value is built by decoding the type as if every field were absent. That only
+works for fields that have something to fall back on:</p>
 
 <ul>
-  <li><strong>Field has a constructor default</strong> (<code>val count: Int = 0</code>) — the
-  default is used. This works.</li>
-  <li><strong>Field is nullable with no default</strong> (<code>val nickname: String?</code>) — it
-  resolves to <code>null</code>. This also works; nullability itself is a built-in fallback.</li>
-  <li><strong>Field is non-null with no default</strong> (<code>val title: String</code>) — there
-  is nothing to fall back to. <code>update()</code> throws
-  <code>DocumentDecodingException</code>.</li>
+  <li><strong>The field has a constructor default</strong>, for example
+      <code>val count: Int = 0</code>. The default is used. This works.</li>
+  <li><strong>The field is nullable and has no default</strong>, for example
+      <code>val nickname: String?</code>. It becomes <code>null</code>. This also works, because
+      being nullable is already a fallback.</li>
+  <li><strong>The field is non-null and has no default</strong>, for example
+      <code>val title: String</code>. There is nothing to fall back on, so <code>update()</code>
+      throws <code>DocumentDecodingException</code>.</li>
 </ul>
 
-<p>This is the same rule whether the missing field is a <code>String</code>, an <code>Int</code>, a
-nested <code>@Serializable</code> type, or an enum — the library has no way to know what value you
-consider "correct" for a required field, so it never guesses on your behalf.</p>
+<p>The rule is the same for a <code>String</code>, an <code>Int</code>, a nested
+<code>@Serializable</code> type, or an enum. The library cannot know which value you consider
+correct for a required field, so it never guesses.</p>
 
 <h2>A first-run crash, concretely</h2>
 <p>This type looks reasonable and compiles fine:</p>
@@ -164,13 +164,13 @@ consider "correct" for a required field, so it never guesses on your behalf.</p>
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span>, <span class="tok-keyword">val</span> count: <span class="tok-type">Int</span>) <span class="tok-comment">// no defaults, both non-null</span></code></pre>
 
-<p>It works perfectly for <code>set()</code> and <code>get()</code>. But call <code>update()</code>
-on it before it's ever been written — for example, incrementing a counter on the very first button
-tap in a fresh app install — and it crashes:</p>
+<p>It works perfectly with <code>set()</code> and <code>get()</code>. But if you call
+<code>update()</code> before the document has ever been written, it crashes. This can happen on
+the very first button tap in a fresh app install, when you increment a counter:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">val</span> document = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note"</span>)
 
-<span class="tok-comment">// Crashes if "note" was never set() before — there's no stored title</span>
+<span class="tok-comment">// Crashes if "note" was never set() before: there is no stored title</span>
 <span class="tok-comment">// and no default to fall back to.</span>
 document.update { it.copy(count = it.count + <span class="tok-number">1</span>) }</code></pre>
 
@@ -178,15 +178,16 @@ document.update { it.copy(count = it.count + <span class="tok-number">1</span>) 
 
 <div class="callout callout--note">
   <div class="callout__title">Note</div>
-  <p>That message is more generic than it should be — it reads identically to a genuinely corrupted
-  field (see <a href="/guide/error-handling.html">Error Handling</a>), even though this case has a
-  distinct, knowable cause: a missing constructor default. A clearer, dedicated message for this
-  specific case is planned; until then, if you see <code>DocumentDecodingException</code> the very
-  first time you call <code>update()</code> on a document, suspect a missing default before
-  suspecting corrupted data.</p>
+  <p>This message is more generic than it should be. It reads the same as the message for a
+  genuinely corrupted field (see <a href="/guide/error-handling.html">Error Handling</a>), even
+  though this case has a known cause: a missing constructor default. A clearer message for this
+  specific case is planned. Until then, if you see <code>DocumentDecodingException</code> the
+  first time you call <code>update()</code> on a document, suspect a missing default before you
+  suspect corrupted data.</p>
 </div>
 
-<p>The fix is either of:</p>
+<h2>How to fix it</h2>
+<p>Use any one of these:</p>
 
 <pre><code class="language-kotlin"><span class="tok-comment">// Give every field a constructor default</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> count: <span class="tok-type">Int</span> = <span class="tok-number">0</span>)
@@ -198,16 +199,15 @@ document.update { it.copy(count = it.count + <span class="tok-number">1</span>) 
 document.<span class="tok-keyword">set</span>(<span class="tok-type">Note</span>(title = <span class="tok-string">"Untitled"</span>, count = <span class="tok-number">0</span>))
 document.update { it.copy(count = it.count + <span class="tok-number">1</span>) } <span class="tok-comment">// safe now</span></code></pre>
 
-<h2>What "optional" means here</h2>
-<p>This has nothing to do with Kotlin's own optional-parameter syntax beyond the fact that it's
-what triggers it: a field only gets treated as having a fallback when the constructor supplies a
-default value expression. A type can be non-nullable and still be safe as long as it has a default;
-a type can be nullable and safe with no default at all, because <code>null</code> itself is a valid
-fallback. The two are independent — pick whichever reads better for the field's meaning.</p>
+<h2>Defaults and nullability</h2>
+<p>A field counts as having a fallback in two cases. Either the constructor gives it a default
+value, or its type is nullable, because <code>null</code> is then a valid fallback. These two
+options are independent. A non-null field is safe if it has a default, and a nullable field is
+safe even with no default. Pick whichever reads better for what the field means.</p>
 
 <p>See <a href="/guide/opening-documents.html">Opening Documents</a> for what else <code>T</code>
-can and can't be, and <a href="/guide/read-and-write.html">Read &amp; Write</a> for the full
-<code>get</code>/<code>set</code>/<code>update</code> picture.</p>
+can and cannot be, and <a href="/guide/read-and-write.html">Read &amp; Write</a> for the full
+picture of <code>get</code>, <code>set</code>, and <code>update</code>.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -224,8 +224,8 @@ can and can't be, and <a href="/guide/read-and-write.html">Read &amp; Write</a> 
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

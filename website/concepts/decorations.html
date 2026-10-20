@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,9 +119,9 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Decorations</h1>
 
-<p>A <em>decoration</em> is a bytes-in/bytes-out transform applied to one field's already-CBOR-
-encoded value, sitting between a <code>Document&lt;T&gt;</code> and the storage layer underneath
-it. This is the mechanism behind <code>FieldDecorator</code> — see
+<p>A <em>decoration</em> is a transform from bytes to bytes. It is applied to one field's value
+after that value has been encoded as CBOR, and it sits between a <code>Document&lt;T&gt;</code>
+and the storage layer underneath it. It is the mechanism behind <code>FieldDecorator</code>. See
 <a href="/guide/field-decorators.html">Field Decorators</a> for how to attach one.</p>
 
 <h2>The interface</h2>
@@ -130,30 +130,34 @@ it. This is the mechanism behind <code>FieldDecorator</code> — see
     <span class="tok-keyword">fun</span> unwrap(fieldName: <span class="tok-type">String</span>, bytes: <span class="tok-type">ByteArray</span>): <span class="tok-type">ByteArray</span>
 }</code></pre>
 
-<p><code>wrap</code> runs on every write, immediately before the encoded bytes reach storage.
-<code>unwrap</code> runs on every read, immediately after the bytes come back from storage and
-before they're decoded. <code>fieldName</code> is the field's own name — <code>"title"</code> for
-<code>Note::title</code> — never a raw storage key, so a decorator can single out individual
-fields with <code>if (fieldName == Note::title.name) ...</code>.</p>
+<p><code>wrap</code> runs on every write, right before the encoded bytes reach storage.
+<code>unwrap</code> runs on every read, right after the bytes come back from storage and before
+they are decoded.</p>
 
-<h2>Why fold in opposite directions</h2>
-<p>When more than one decorator is configured, writes fold through the list left-to-right and
-reads fold right-to-left:</p>
+<p><code>fieldName</code> is the field's own name, such as <code>"title"</code> for
+<code>Note::title</code>. It is never a raw storage key. A decorator can single out one field with
+a check like <code>if (fieldName == Note::title.name) ...</code>.</p>
+
+<h2>Why reads go in the opposite order</h2>
+<p>When you configure more than one decorator, a write passes through the list from left to
+right, and a read passes through it from right to left:</p>
 
 <pre><code class="language-kotlin">decorators.fold(bytes) { acc, decorator -&gt; decorator.wrap(fieldName, acc) }        <span class="tok-comment">// write</span>
 decorators.foldRight(bytes) { decorator, acc -&gt; decorator.unwrap(fieldName, acc) } <span class="tok-comment">// read</span></code></pre>
 
-<p>Think of each decorator as a layer wrapped around the bytes. The last decorator to wrap on
-write is the outermost layer, so it has to be the first one peeled off on read — reversing the
-list on the read side is what makes <code>unwrap</code> undo <code>wrap</code> correctly for any
-combination of decorators, not just a single one. This is also why order is a real design choice:
-<code>listOf(Compress, Encrypt)</code> compresses first and encrypts the compressed result, so
-decompression only ever has to run on something that decrypted cleanly — reversing the pair would
-try to compress already-encrypted, high-entropy bytes, which doesn't shrink them.</p>
+<p>Think of each decorator as a layer wrapped around the bytes. The last decorator to wrap on a
+write is the outermost layer, so it has to be the first one removed on a read. Reversing the list
+on the read side is what makes <code>unwrap</code> undo <code>wrap</code> correctly for any
+number of decorators.</p>
+
+<p>This also means the order you choose matters. With <code>listOf(Compress, Encrypt)</code>, the
+bytes are compressed first and the compressed result is encrypted. On a read, the data is
+decrypted first, and then decompressed. If you reversed the pair, the library would try to
+compress bytes that are already encrypted. Encrypted bytes look random, so they do not shrink.</p>
 
 <h2>A sketch of encryption as a decoration</h2>
-<p>Encryption is a natural fit for this shape: <code>wrap</code> encrypts the plaintext bytes,
-<code>unwrap</code> decrypts them back. A minimal sketch:</p>
+<p>Encryption fits this shape well. <code>wrap</code> encrypts the plaintext bytes, and
+<code>unwrap</code> decrypts them again. Here is a minimal sketch:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">class</span> <span class="tok-type">EncryptingDecorator</span>(<span class="tok-keyword">private</span> <span class="tok-keyword">val</span> cipher: <span class="tok-type">Cipher</span>) : <span class="tok-type">FieldDecorator</span> {
     <span class="tok-keyword">override</span> <span class="tok-keyword">fun</span> wrap(fieldName: <span class="tok-type">String</span>, bytes: <span class="tok-type">ByteArray</span>): <span class="tok-type">ByteArray</span> =
@@ -163,17 +167,17 @@ try to compress already-encrypted, high-entropy bytes, which doesn't shrink them
         cipher.decrypt(bytes, associatedData = fieldName.encodeToByteArray())
 }</code></pre>
 
-<p>Passing <code>fieldName</code> as associated data binds each ciphertext to its own field, so a
-value copied from one field's storage key into another's fails to decrypt instead of silently
-succeeding with the wrong field's data. See
+<p>Passing <code>fieldName</code> as associated data ties each ciphertext to its own field. If a
+value is copied from one field's storage key to another's, it fails to decrypt. It does not
+silently succeed with the wrong field's data. See
 <a href="/use-cases/session-and-user-state.html">Session &amp; User State</a> for a complete,
 working AES-GCM implementation.</p>
 
 <h2>Failure contract</h2>
-<p>If <code>unwrap</code> throws <code>SerializationException</code>,
-<code>IllegalStateException</code>, or <code>IllegalArgumentException</code>, it surfaces as
-<code>DocumentDecodingException</code> — see <a href="/guide/error-handling.html">Error
-Handling</a>.</p>
+<p>If <code>unwrap</code> throws a <code>SerializationException</code>, an
+<code>IllegalStateException</code>, or an <code>IllegalArgumentException</code>, the failure
+surfaces as a <code>DocumentDecodingException</code>. See
+<a href="/guide/error-handling.html">Error Handling</a>.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -190,8 +194,8 @@ Handling</a>.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -118,9 +118,31 @@
 
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Documents</h1>
-<p>Typed, reactive documents on top of MMKV — fast <em>and</em> a joy to write. Define a data
-class, treat it as a document, and get typed reads, copy-style updates, and <code>Flow</code>
-reactivity — all riding on the fastest key-value engine on mobile.</p>
+
+<div class="callout callout--note">
+  <div class="callout__title">What's new in v0.2.0</div>
+  <p>Version 0.2.0 makes it safe to open the same document in more than one place. In v0.1.0, a
+  write was only seen by the instance that made it, so every part of an app had to share a single
+  instance. That is no longer needed.</p>
+  <ul>
+    <li><strong>Instances stay in sync.</strong> A write through one instance now reaches
+        <code>flow()</code>, <code>stateFlow()</code>, and <code>fieldFlow()</code> on every other
+        instance of the same document. This holds whether the instances come from dependency
+        injection, from repeated <code>Documents.document(...)</code> calls, or from separate
+        <code>Documents.collection(name)</code> calls.</li>
+    <li><strong>Updates are not lost.</strong> If two instances of the same document call
+        <code>update</code> at the same time, both changes are applied one after the other.</li>
+    <li><strong>Nothing to change in your code.</strong> The public API is the same as in
+        v0.1.0.</li>
+  </ul>
+  <p>To see how this works, read <a href="/guide/opening-documents.html">Opening Documents</a>
+  and the <a href="/concepts/reactivity-model.html">Reactivity Model</a>.</p>
+</div>
+
+<h2>Overview</h2>
+<p>Documents gives you typed, reactive documents on top of MMKV. You define a data class, treat it
+as a document, and get typed reads, copy-style updates, and <code>Flow</code> reactivity. It is
+fast, and it is pleasant to write.</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> body: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> done: <span class="tok-type">Boolean</span> = <span class="tok-keyword">false</span>)
@@ -137,53 +159,56 @@ note.update { current -&gt; <span class="tok-comment">// several fields, one ato
 }
 note.flow().collect { editor.render(it) } <span class="tok-comment">// the editor reacts to every write</span></code></pre>
 
-<h2>Built for elegancy</h2>
-<p>MMKV is ridiculously fast — memory-mapped, protobuf-backed, about as quick as anything else on
-the platform. But out of the box it hands you a bare cupboard: raw keys, primitives only. Every
-typed object means hand-rolling serialization and key management again, from scratch, every time.
-The typed and reactive alternatives buy their comfort back by giving up that speed, so you end up
-picking a side — fast, or pleasant to use.</p>
-<p><code>Documents</code> refuses to pick a side. It's built for elegancy: a clean, idiomatic
-Kotlin surface — typed documents, property delegates, a <code>copy()</code>-style update DSL,
-<code>Flow</code> reactivity — sitting directly on top of MMKV, costing you a little CPU for
-serialization and never a single extra byte of I/O. Clean code on top, MMKV all the way down.</p>
+<h2>Built for elegance</h2>
+<p>MMKV is extremely fast. It is memory-mapped and about as quick as anything on the platform.
+Out of the box, though, it only gives you raw keys and primitive values. Every typed object means
+writing your own serialization and key management again. The typed and reactive alternatives give
+up that speed in exchange for comfort, so you usually have to choose between fast and pleasant to
+use.</p>
+<p><code>Documents</code> does not make you choose. It puts a clean, idiomatic Kotlin API directly
+on top of MMKV: typed documents, property delegates, a <code>copy()</code>-style update, and
+<code>Flow</code> reactivity. The cost is a little CPU for serialization and never any extra I/O.
+Clean code on top, MMKV all the way down.</p>
 
 <h2>The problem</h2>
-<p>Android and Kotlin Multiplatform apps constantly need to persist a single record of structured
-data — a logged-in user, a settings object, a session, a draft — and none of the usual tools fit
-that shape well. <code>SharedPreferences</code> is key-value only, awkward for nested objects, and
-loads the whole file into memory. Jetpack DataStore is typed, but Proto demands schema files and
-Preferences is still flat key-value — heavy ceremony just to store one object. SQLite and Room are
-relational and table-oriented, overkill for a single document with no relations to speak of. And
-raw MMKV is blisteringly fast but offers no abstraction at all: you're on your own for
-serialization and key management. There was no library giving a document-oriented, typed,
-reactive API with MMKV's performance underneath — so <code>Documents</code> is that intersection.</p>
+<p>Android and Kotlin Multiplatform apps often need to store one record of structured data, such
+as a logged-in user, a settings object, a session, or a draft. None of the usual tools fit this
+well:</p>
+<ul>
+  <li><strong>SharedPreferences</strong> is key-value only, awkward for nested objects, and loads
+      the whole file into memory.</li>
+  <li><strong>Jetpack DataStore</strong> is typed, but Proto needs schema files and Preferences is
+      still flat key-value. That is a lot of ceremony for one object.</li>
+  <li><strong>SQLite and Room</strong> are relational and table-oriented, which is overkill for a
+      single document with no relations.</li>
+  <li><strong>Raw MMKV</strong> is very fast but has no abstraction. Serialization and key
+      management are up to you.</li>
+</ul>
+<p>No library offered a document-oriented, typed, reactive API with MMKV's performance underneath.
+<code>Documents</code> is that library.</p>
 
 <h2>What it gives you</h2>
 <ul>
-  <li>A document-oriented public API — <code>get</code>, <code>set</code>, <code>update</code>,
-      <code>delete</code>, <code>exists</code>, <code>flow</code>, <code>stateFlow</code>.</li>
-  <li>Typed persistence of any <code>@Serializable</code> object, with no per-type boilerplate.</li>
-  <li>Reactivity — observers are notified when a document or a single field changes.</li>
-  <li>MMKV-class performance — the abstraction adds CPU/memory cost only, never extra I/O.</li>
-  <li>A fully KMP-compatible public API living in <code>commonMain</code>, with only the storage
-      engine binding per platform.</li>
-  <li>Serialization handled internally via a compact CBOR format — zero schema, zero per-type
-      boilerplate to babysit.</li>
-  <li>A <code>FieldDecorator</code> hook for per-field encryption, compression, or logging — see
+  <li>A document-oriented API: <code>get</code>, <code>set</code>, <code>update</code>,
+      <code>delete</code>, <code>exists</code>, <code>flow</code>, and <code>stateFlow</code>.</li>
+  <li>Typed persistence for any <code>@Serializable</code> class, with no per-type boilerplate.</li>
+  <li>Reactivity. Observers are notified when a document or a single field changes.</li>
+  <li>MMKV-class performance. The abstraction adds CPU and memory cost only, never extra I/O.</li>
+  <li>A public API that lives entirely in <code>commonMain</code>, with only the storage engine
+      bound per platform.</li>
+  <li>Internal serialization to a compact CBOR format, with no schema to maintain.</li>
+  <li>A <code>FieldDecorator</code> hook for per-field encryption, compression, or logging. See
       <a href="/guide/field-decorators.html">Field Decorators</a>.</li>
 </ul>
 
 <h2>Single-process only</h2>
-<p>Every store — the default store, every named collection, and the in-memory test backend alike
-— is single-process. <strong>Concurrent access to the same store from more than one OS process is
-not supported and can corrupt it.</strong> A background service, an app extension, a second
-process spawned for any reason — none of these may open the same store as your main process at
-the same time.</p>
-<p>This is not a soft caveat or an edge case to work around: if your app needs to share a store
-across processes, this library is not the right fit for that store today. Design around a
-single-process owner for each store, or keep multi-process data out of <code>Documents</code>
-entirely.</p>
+<p>Every store is single-process. This includes the default store, every named collection, and
+the in-memory test backend. <strong>Concurrent access to the same store from more than one OS
+process is not supported and can corrupt it.</strong> A background service, an app extension, or
+any second process must not open the same store as your main process at the same time.</p>
+<p>This is a firm limit, not an edge case. If your app needs to share a store across processes,
+this library is not the right fit for that store today. Either design around a single owning
+process for each store, or keep the multi-process data out of <code>Documents</code>.</p>
 
 <section id="contributors-section">
   <h2>Built by</h2>
@@ -192,9 +217,9 @@ entirely.</p>
 
 <h2>Where to next</h2>
 <ul>
-  <li><a href="/installation.html">Installation</a> — add the dependency, zero setup ceremony.</li>
-  <li><a href="/quick-start.html">Quick Start</a> — the whole API in one short walkthrough.</li>
-  <li><a href="/guide/index.html">Guide</a> — task-oriented walkthroughs of every part of the API.</li>
+  <li><a href="/installation.html">Installation</a>: add the dependency. No setup is needed.</li>
+  <li><a href="/quick-start.html">Quick Start</a>: the whole API in one short walkthrough.</li>
+  <li><a href="/guide/index.html">Guide</a>: task-oriented walkthroughs of every part of the API.</li>
 </ul>
 
 </main>
@@ -212,8 +237,8 @@ entirely.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

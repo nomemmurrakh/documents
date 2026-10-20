@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,8 +119,9 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Installation</h1>
 
-<p><code>com.nomemmurrakh:documents</code> is published on Maven Central. Add it to a KMP module's
-<code>commonMain</code>, or a plain Android module:</p>
+<p><code>com.nomemmurrakh:documents</code> is published on Maven Central. Add it to the
+<code>commonMain</code> source set of a Kotlin Multiplatform module, or to a plain Android
+module:</p>
 
 <pre><code class="language-kotlin"><span class="tok-comment">// build.gradle.kts</span>
 dependencies {
@@ -129,36 +130,33 @@ dependencies {
 
 <div class="callout callout--note">
   <div class="callout__title">iOS: linking MMKV</div>
-  <p>On iOS, your app also needs MMKV added to its own target — via CocoaPods or Swift Package
-  Manager — the same way as any other native dependency. See
-  <a href="/troubleshooting.html#ios-missing-mmkv-dependency">Troubleshooting</a> for the link
-  error this causes if it's missing.</p>
+  <p>On iOS, your app also needs to add MMKV to its own target, through CocoaPods or Swift
+  Package Manager, the same way as any other native dependency. If it is missing, the build fails
+  with a link error. See <a href="/troubleshooting.html#ios-missing-mmkv-dependency">Troubleshooting</a>
+  for details.</p>
 </div>
 
-<h2>No setup ceremony</h2>
-<p>The library initializes MMKV for you — on Android via <code>androidx.startup</code>, on iOS via
-an internal <code>initializeMMKV</code> call using the in-process sandbox path on first use. You
-never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>. Add the
-dependency, call <code>Documents.document(...)</code>, and go.</p>
+<h2>No setup needed</h2>
+<p>The library initializes MMKV for you the first time it is used. On Android this happens through
+<code>androidx.startup</code>. On iOS it happens through an internal <code>initializeMMKV</code>
+call that uses the app's sandbox path. You never call <code>MMKV.initialize()</code> and never
+pass a <code>Context</code>. Add the dependency, call <code>Documents.document(...)</code>, and
+you are done.</p>
 
 <div class="callout callout--note">
   <div class="callout__title">Note</div>
-  <p>On Android, this works by merging a <code>&lt;provider
-  android:name="androidx.startup.InitializationProvider"&gt;</code> entry into your app's manifest.
-  You don't need to add anything yourself — just don't remove or override that merged entry (for
-  example with a conflicting <code>tools:node="remove"</code> targeting
-  <code>InitializationProvider</code>), or MMKV won't initialize and document access will fail at
-  runtime.</p>
+  <p>On Android, this works because a <code>&lt;provider
+  android:name="androidx.startup.InitializationProvider"&gt;</code> entry is merged into your
+  app's manifest. You do not need to add anything yourself. Just do not remove or override that
+  entry, for example with a conflicting <code>tools:node="remove"</code> that targets
+  <code>InitializationProvider</code>. If you do, MMKV does not initialize and document access
+  fails at runtime.</p>
 </div>
 
 <h2>Supported platforms</h2>
-<p>Android and iOS (<code>arm64</code> and <code>simulatorArm64</code>) today — see
-<a href="/platform-support.html">Platform Support</a> for the full table and how MMKV is bound on
-each target.</p>
-
-<h2>Where it's published</h2>
-<p>Maven Central, not JitPack — the standard Gradle dependency declaration above is all a consumer
-needs, no extra repository entries.</p>
+<p>Android and iOS (<code>arm64</code> and <code>simulatorArm64</code>) are supported today. See
+<a href="/platform-support.html">Platform Support</a> for the full table and for how MMKV is bound
+on each target.</p>
 
 <p><a href="/quick-start.html">Continue to Quick Start →</a></p>
 
@@ -177,8 +175,8 @@ needs, no extra repository entries.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

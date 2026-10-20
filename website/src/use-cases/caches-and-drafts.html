@@ -1,8 +1,8 @@
 <h1>Caches &amp; Drafts</h1>
 
-<p>Last-synced payloads, an in-progress form, the "continue where you left off" blob — data that's
-useful but disposable, and should live apart from durable settings so it's easy to reason about
-(and to wipe) on its own.</p>
+<p>Caches and drafts include the last synced payload, an in-progress form, and the "continue
+where you left off" data. This data is useful but disposable. Keep it apart from durable settings,
+so it is easy to reason about and easy to wipe on its own.</p>
 
 <pre><code class="language-kotlin">@Serializable
 data class SyncState(
@@ -21,8 +21,8 @@ val cache = Documents.collection("cache")
 val syncState = cache.document&lt;SyncState&gt;("sync-state")
 val draft = cache.document&lt;DraftPost&gt;("compose-draft")</code></pre>
 
-<p>The compose screen writes to <code>draft</code> on every keystroke debounce, and reads it back
-on next launch to restore exactly where the user left off:</p>
+<p>The compose screen writes to <code>draft</code> after each debounced keystroke. On the next
+launch it reads the draft back, so the user continues exactly where they left off:</p>
 
 <pre><code class="language-kotlin">draft.update { current -&gt;
     current.copy(body = textField.value)
@@ -31,8 +31,8 @@ on next launch to restore exactly where the user left off:</p>
 // next launch
 val restored = draft.get() ?: DraftPost()</code></pre>
 
-<p>Because <code>cache</code> is its own collection — its own MMKV file — clearing it out (a
-"reset cache" action, or a storage-pressure cleanup) never touches durable data living in the
-default store or another collection. See
+<p><code>cache</code> is its own collection, which means it has its own MMKV file. If you reset
+it, for example from a "reset cache" action or a storage cleanup, by deleting its documents, the
+durable data in the default store or in another collection is not touched. See
 <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for how collections
-isolate one set of documents from another.</p>
+keep one set of documents separate from another.</p>

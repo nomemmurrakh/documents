@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,30 +119,57 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Reactivity Model</h1>
 
-<p>MMKV has no native change-listener mechanism, so reactivity is entirely a process-local concern
-built on top of it.</p>
+<p>MMKV has no built-in way to listen for changes, so reactivity in <code>Documents</code> is
+handled entirely inside your process, on top of MMKV.</p>
 
 <h2>The change bus</h2>
-<p>A single shared, process-local event stream acts as a change bus: after every committed write
-or delete, the affected document's key is emitted onto that bus. <code>document.flow()</code>
-filters the bus for its own key, then re-reads and emits the fresh value — conflated, so a burst
-of rapid writes doesn't queue up redundant emissions. The initial value is emitted the moment a
-collector starts collecting, before any new write has happened.</p>
+<p>Each store has one change bus. The default store has one, and so does every named collection.
+The bus is a stream of events that lives in memory inside your process. After every committed
+write or delete, the library puts the key of the affected document on the bus.</p>
+
+<p>A call to <code>document.flow()</code> listens to the bus and reacts only to events for its own
+key. When one arrives, it reads the document again and emits the fresh value. Emissions are
+conflated, which means a burst of quick writes does not pile up redundant emissions. The first
+value is emitted as soon as collection starts, before any new write has happened.</p>
 
 <pre><code class="language-kotlin">note.flow().collect { current -&gt;
-    <span class="tok-comment">// fires once immediately with the current value, then again after every committed write</span>
+    <span class="tok-comment">// runs once right away with the current value, then again after every committed write</span>
 }</code></pre>
 
-<p><code>fieldFlow(prop)</code> filters further, down to one field — a change to a sibling field
-never triggers it. See <a href="/guide/field-delegates.html">Field Delegates</a>.</p>
+<p><code>fieldFlow(prop, default)</code> narrows this down to a single field. A change to a
+sibling field never triggers it. See <a href="/guide/field-delegates.html">Field Delegates</a>.</p>
+
+<h2>Several instances of the same document</h2>
+<p>The bus belongs to the store, not to the <code>Document</code> object you hold. Every instance
+opened on the same store uses the same bus. So a write through any instance reaches
+<code>flow()</code>, <code>stateFlow()</code>, and <code>fieldFlow()</code> on all the others.</p>
+
+<p>This works no matter how the instances were created. They can come from dependency injection,
+from repeated calls to <code>Documents.document(...)</code>, or from separate calls to
+<code>Documents.collection(name)</code> with the same name.</p>
+
+<pre><code class="language-kotlin"><span class="tok-keyword">val</span> reader = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note-1"</span>)
+<span class="tok-keyword">val</span> writer = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note-1"</span>)
+
+reader.flow().collect { current -&gt;
+    <span class="tok-comment">// runs when the write below commits, even though it went through a different instance</span>
+}
+
+writer.<span class="tok-keyword">set</span>(<span class="tok-type">Note</span>(title = <span class="tok-string">"Pick up milk"</span>))</code></pre>
+
+<p>Collections are separate stores. The same document key in two collections with different names
+is two unrelated documents, and a write to one does not notify the other. Each call to
+<code>Documents.inMemory()</code> also creates its own isolated store.</p>
 
 <h2>Not cross-process</h2>
-<p>Because the change bus is process-local, cross-process change notification is
-<strong>not</strong> provided — a write made by another OS process will not show up as an
-emission on this bus. This is consistent with the
-<a href="/index.html#single-process-only">single-process constraint</a> that applies to storage
-generally: this library's reactivity, like its storage, is designed around a single owning
-process.</p>
+<p>The change bus only exists inside one process, so changes made by another OS process are
+<strong>not</strong> detected. A write from another process never shows up as an emission on this
+bus.</p>
+
+<p>This matches the
+<a href="/index.html#single-process-only">single-process rule</a> that applies to storage in
+general. Both the storage and the reactivity are designed for one process that owns each
+store.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -159,8 +186,8 @@ process.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

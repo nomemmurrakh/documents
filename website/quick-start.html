@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,10 +119,11 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Quick Start</h1>
 
-<p>Here's the whole story in one walkthrough — no schema, no DAO, no serialization plumbing to
-wire up by hand. The example is a single offline note — the kind of "continue where you left off"
-document this library is built for.</p>
+<p>This walkthrough covers the whole flow in one place. There is no schema, no DAO, and no
+serialization code to write by hand. The example is a single offline note, the kind of "continue
+where you left off" document this library is built for.</p>
 
+<h2>1. Declare a data class</h2>
 <p>Start with an <code>@Serializable</code> data class:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">import</span> com.nomemmurrakh.documents.<span class="tok-type">Documents</span>
@@ -136,23 +137,27 @@ document this library is built for.</p>
     <span class="tok-keyword">val</span> done: <span class="tok-type">Boolean</span> = <span class="tok-keyword">false</span>,
 )</code></pre>
 
-<p>Open a document — one call, no config required:</p>
+<h2>2. Open a document</h2>
+<p>Opening a document takes one call and no configuration:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">val</span> note = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note-1"</span>)</code></pre>
 
-<p>Write the whole object with <code>set</code> when you have a complete value — creating the note
-for the first time:</p>
+<h2>3. Write the whole object</h2>
+<p>Use <code>set</code> when you have a complete value, for example when you create the note for
+the first time:</p>
 
 <pre><code class="language-kotlin">note.<span class="tok-keyword">set</span>(<span class="tok-type">Note</span>(title = <span class="tok-string">"Pick up milk"</span>, body = <span class="tok-string">"2%, not whole"</span>))</code></pre>
 
-<p>Flip a single field with <code>update(prop, value)</code> — it writes just that one key, no
-read of the rest of the note:</p>
+<h2>4. Change one field</h2>
+<p>Use <code>update(prop, value)</code> to change a single field. It writes only that one key and
+does not read the rest of the note:</p>
 
 <pre><code class="language-kotlin">note.update(<span class="tok-type">Note</span>::done, <span class="tok-keyword">true</span>)</code></pre>
 
-<p>Edit more than one field at once with <code>update { current -&gt; ... }</code> — the builder
-receives the current value and returns a new one via <code>copy()</code>, so untouched fields
-(here, <code>done</code>) are left exactly as they were:</p>
+<h2>5. Change several fields</h2>
+<p>Use <code>update { current -&gt; ... }</code> to edit more than one field at once. The builder
+receives the current value and returns a new one with <code>copy()</code>. Fields you do not touch,
+such as <code>done</code> here, keep their values:</p>
 
 <pre><code class="language-kotlin">note.update { current -&gt;
     current.copy(
@@ -165,22 +170,26 @@ println(note.<span class="tok-keyword">get</span>()) <span class="tok-comment">/
 note.delete()
 println(note.exists()) <span class="tok-comment">// false</span></code></pre>
 
-<p><code>get()</code> returns <code>null</code> if the document was never written — it never
-throws just because something is missing. The three shapes carry distinct intent:
-<code>set(value)</code> replaces the whole document, <code>update(prop, value)</code> writes a
-single field with no read, and <code>update { current -&gt; ... }</code> reads the current value (or
-the type's defaults if absent) and writes back a new one, atomically, for edits that touch more
-than one field together.</p>
+<h2>Which write to use</h2>
+<p><code>get()</code> returns <code>null</code> if the document has never been written. The three
+ways to write have different purposes:</p>
+<ul>
+  <li><code>set(value)</code> replaces the whole document.</li>
+  <li><code>update(prop, value)</code> writes a single field and does not read anything first.</li>
+  <li><code>update { current -&gt; ... }</code> reads the current value, or the type's defaults if
+      nothing is stored, and writes back a new one. The read and the write happen atomically, so
+      use it for edits that touch more than one field together.</li>
+</ul>
 
 <h2>What's next</h2>
 <ul>
-  <li><a href="/guide/opening-documents.html">Opening Documents</a> — documents vs. collections,
+  <li><a href="/guide/opening-documents.html">Opening Documents</a>: documents and collections,
       and the automatic MMKV setup.</li>
-  <li><a href="/guide/read-and-write.html">Read &amp; Write</a> — the full distinction between
+  <li><a href="/guide/read-and-write.html">Read &amp; Write</a>: the full difference between
       <code>set</code>, <code>update</code>, and single-field <code>update</code>.</li>
-  <li><a href="/guide/reactivity.html">Reactivity</a> — <code>flow()</code> and
-      <code>stateFlow()</code>, including a Compose-ready snippet.</li>
-  <li><a href="/guide/field-delegates.html">Field Delegates</a> — binding a single field without
+  <li><a href="/guide/reactivity.html">Reactivity</a>: <code>flow()</code> and
+      <code>stateFlow()</code>, with a snippet for Compose.</li>
+  <li><a href="/guide/field-delegates.html">Field Delegates</a>: binding a single field without
       touching the whole document.</li>
 </ul>
 
@@ -199,8 +208,8 @@ than one field together.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

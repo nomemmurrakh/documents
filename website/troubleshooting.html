@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,42 +119,45 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Troubleshooting</h1>
 
-<p>Common build and runtime errors, and what they usually mean.</p>
+<p>This page lists common build and runtime errors, and what they usually mean.</p>
 
 <h2>iOS: missing MMKV dependency</h2>
 
 <pre><code>Undefined symbol: _OBJC_CLASS_$_MMKV</code></pre>
 
-<p>Your iOS app links the <code>Documents</code> framework but hasn't declared MMKV itself as a
-dependency of the app target. <code>Documents</code> depends on MMKV, but embedding the
-<code>Documents</code> framework doesn't automatically pull MMKV's native binary along with it —
-your app needs to add MMKV directly, via CocoaPods or Swift Package Manager, the same way it adds
-any other native dependency. See MMKV's own
-<a href="https://github.com/Tencent/MMKV/wiki/iOS_setup">iOS setup guide</a> for both paths.</p>
+<p><strong>Cause.</strong> Your iOS app links the <code>Documents</code> framework, but it has not
+declared MMKV as a dependency of its own target. <code>Documents</code> depends on MMKV, but
+embedding the <code>Documents</code> framework does not bring MMKV's native binary along with
+it.</p>
+
+<p><strong>Fix.</strong> Add MMKV directly to your app, through CocoaPods or Swift Package Manager,
+the same way you add any other native dependency. MMKV's own
+<a href="https://github.com/Tencent/MMKV/wiki/iOS_setup">iOS setup guide</a> covers both
+options.</p>
 
 <h2>Crash on the first <code>update()</code> call: <code>DocumentDecodingException</code></h2>
 
 <pre><code>DocumentDecodingException: Failed to decode field 'title' of document 'note'</code></pre>
 
-<p>This is the single most common first-run surprise with this library, and it usually has nothing
-to do with corrupted data. It fires when <code>update()</code> runs against a document that has
-never been <code>set()</code>, and at least one field in your <code>@Serializable</code> data class
-is both non-nullable <em>and</em> has no constructor default — for example
-<code>data class Note(val title: String, val count: Int)</code>. With nothing stored yet and no
-default to fall back to, the library has no value to seed that field with, so it throws instead of
-guessing.</p>
+<p><strong>Cause.</strong> This is the most common surprise the first time you run the library,
+and it usually has nothing to do with corrupted data. It happens when <code>update()</code> runs
+on a document that has never been written with <code>set()</code>, and at least one field in your
+<code>@Serializable</code> data class is both non-nullable <em>and</em> has no constructor default.
+An example is <code>data class Note(val title: String, val count: Int)</code>. Nothing is stored
+yet and there is no default to fall back on, so the library has no value to start that field
+with. It throws an exception instead of guessing.</p>
 
-<p>The message is generic today — it reads exactly like a genuinely corrupted field would (see
-<a href="/guide/error-handling.html">Error Handling</a>) — so it's easy to mistake for a data
-integrity bug rather than a missing default. A clearer, dedicated message for this specific case is
-planned.</p>
+<p>The message is generic today. It reads exactly like the message for a genuinely corrupted
+field (see <a href="/guide/error-handling.html">Error Handling</a>), so it is easy to mistake for
+a data integrity problem when the real issue is a missing default. A clearer message for this
+specific case is planned.</p>
 
-<p>Fix it by giving every field either a constructor default or a nullable type:</p>
+<p><strong>Fix.</strong> Give every field either a constructor default or a nullable type:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> count: <span class="tok-type">Int</span> = <span class="tok-number">0</span>)</code></pre>
 
-<p>See <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for the full rule and
-more examples.</p>
+<p>See <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for the full rule
+and more examples.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -171,8 +174,8 @@ more examples.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

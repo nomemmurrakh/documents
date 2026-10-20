@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,77 +119,103 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Opening Documents</h1>
 
-<p><code>Documents</code> is the entry point. Open a document directly on the default store, or
-open a named <code>Collection</code> first when a set of documents needs its own MMKV file.</p>
+<p><code>Documents</code> is the entry point. You can open a document directly on the default
+store, or open a named <code>Collection</code> first when a group of documents needs its own MMKV
+file.</p>
 
 <h2>The default store</h2>
-<p><code>Documents.document&lt;T&gt;(key)</code> is the common case — it opens (get-or-open, not
-"create anew") the document under <code>key</code> in the default store, with no config
-required:</p>
+<p><code>Documents.document&lt;T&gt;(key)</code> is the common case. It gives you the document
+stored under <code>key</code> in the default store, and it needs no configuration:</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Note</span>(<span class="tok-keyword">val</span> title: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> body: <span class="tok-type">String</span> = <span class="tok-string">""</span>, <span class="tok-keyword">val</span> done: <span class="tok-type">Boolean</span> = <span class="tok-keyword">false</span>)
 
 <span class="tok-keyword">val</span> note = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note-1"</span>)</code></pre>
 
-<p>A configuration block is optional and, today, only exposes <code>dispatcher</code> — the
-dispatcher used to collect <code>flow()</code>/<code>stateFlow()</code> (see
-<a href="/guide/reactivity.html">Reactivity</a>):</p>
+<p>Opening a document does not write anything. It only gives you a handle to whatever is stored
+under that key, so <code>note.get()</code> returns <code>null</code> until something has been
+written.</p>
+
+<p>You can pass an optional configuration block. It has two settings:</p>
+<ul>
+  <li><code>dispatcher</code> is the dispatcher used to collect <code>flow()</code> and
+      <code>stateFlow()</code>. See <a href="/guide/reactivity.html">Reactivity</a>.</li>
+  <li><code>decorators</code> is a list of <code>FieldDecorator</code>s applied to every field of
+      this document. See <a href="/guide/field-decorators.html">Field Decorators</a>.</li>
+</ul>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">val</span> note = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note-1"</span>) {
     dispatcher = <span class="tok-type">Dispatchers</span>.<span class="tok-type">Default</span> <span class="tok-comment">// this is already the default</span>
 }</code></pre>
 
-<h2>Collections — a separate MMKV file</h2>
-<p>Reach for <code>Documents.collection(name)</code> only when a set of documents needs its own
-file — a wipe-on-logout cache, per-user scoping, or an encryption boundary:</p>
+<h2>Collections: a separate MMKV file</h2>
+<p>Use <code>Documents.collection(name)</code> only when a group of documents needs its own file.
+Typical reasons are a cache that is wiped on logout, data scoped to one user, or an encryption
+boundary:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">val</span> drafts = <span class="tok-type">Documents</span>.collection(<span class="tok-string">"drafts"</span>) {
     dispatcher = <span class="tok-type">Dispatchers</span>.<span class="tok-type">Default</span>
 }
 <span class="tok-keyword">val</span> draft = drafts.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"draft-1"</span>)</code></pre>
 
-<p>See <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for the
-single-process constraint that applies to every collection, including the default store.</p>
+<p>Every collection, including the default store, can only be used from one process. See
+<a href="/guide/collections-and-testing.html">Collections &amp; Testing</a> for details.</p>
+
+<h2>Opening the same document more than once</h2>
+<p>Opening a document is cheap, and you can do it as often as you like. You do not need to keep
+one instance and pass it around. All instances of the same document on the same store behave as
+one document:</p>
+<ul>
+  <li>A write through one instance shows up in <code>flow()</code> on the others.</li>
+  <li>If two instances call <code>update</code> at the same moment, the changes are applied one
+      after the other, so neither is lost.</li>
+</ul>
+<p>Dependency injection is still a good way to organize your code, but your data stays correct
+without it. The <a href="/concepts/reactivity-model.html">Reactivity Model</a> explains how this
+works.</p>
+<p>Each instance has its own configuration. The <code>dispatcher</code> can differ between
+instances. Use the same <code>decorators</code> for every instance of a document, because the
+bytes written by one instance must be readable by the others.</p>
 
 <h2>What <code>T</code> can be</h2>
-<p><code>T</code> must be a <code>@Serializable</code> class (or enum, or primitive) — not a
-top-level <code>List</code> or other collection type. Field decomposition (see
-<a href="/concepts/field-decomposition.html">Field Decomposition</a>) keys each stored value off
-the type's declared properties, which a bare list doesn't have; opening
-<code>Documents.document&lt;List&lt;T&gt;&gt;(key)</code> throws
+<p><code>T</code> must be a <code>@Serializable</code> class, an enum, or a primitive. It cannot
+be a top-level <code>List</code> or another collection type. Each stored value is keyed by one of
+the type's declared properties (see
+<a href="/concepts/field-decomposition.html">Field Decomposition</a>), and a bare list has no
+properties. Opening <code>Documents.document&lt;List&lt;T&gt;&gt;(key)</code> throws
 <code>DocumentDecodingException</code> immediately. A list works correctly as a field
-<em>inside</em> a class instead — wrap it:</p>
+<em>inside</em> a class, so wrap it:</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">QueueState</span>(<span class="tok-keyword">val</span> items: <span class="tok-type">List</span>&lt;<span class="tok-type">OfflineQueueItem</span>&gt; = emptyList())
 
 <span class="tok-keyword">val</span> queue = <span class="tok-type">Documents</span>.document&lt;<span class="tok-type">QueueState</span>&gt;(<span class="tok-string">"pending-requests"</span>)</code></pre>
 
-<p>See <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for the rules around
-which fields need a constructor default or a nullable type to stay safe under
-<code>update()</code>.</p>
+<p>See <a href="/guide/declaring-data-classes.html">Declaring Data Classes</a> for which fields
+need a constructor default or a nullable type to stay safe under <code>update()</code>.</p>
 
 <h2>The reserved key separator</h2>
-<p>Internally, every document is decomposed into one storage key per field, keyed
-<code>{document}::{field}</code> (see <a href="/concepts/field-decomposition.html">Field
-Decomposition</a>). Because <code>::</code> is reserved for that purpose, a document
-<code>key</code> containing it is rejected with an <code>IllegalArgumentException</code> —
-choose ordinary identifiers like <code>"note-1"</code> or <code>"user"</code>.</p>
+<p>Internally, every document is split into one stored key per field, named
+<code>{document}::{field}</code> (see
+<a href="/concepts/field-decomposition.html">Field Decomposition</a>). Because <code>::</code> is
+reserved for this, a document <code>key</code> that contains it is rejected with an
+<code>IllegalArgumentException</code>. Choose ordinary identifiers such as
+<code>"note-1"</code> or <code>"user"</code>.</p>
 
-<h2>No setup ceremony</h2>
-<p>MMKV initializes itself the first time it's needed — on Android via
-<code>androidx.startup</code>, on iOS via an internal call using the in-process sandbox path. You
-never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>; the first
-<code>Documents.document(...)</code> or <code>Documents.collection(...)</code> call is enough.</p>
+<h2>No setup needed</h2>
+<p>MMKV initializes itself the first time it is needed. On Android this happens through
+<code>androidx.startup</code>, and on iOS through an internal call that uses the app's sandbox
+path. You never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>. The
+first call to <code>Documents.document(...)</code> or <code>Documents.collection(...)</code> is
+enough.</p>
 
 <div class="callout callout--note">
   <div class="callout__title">Note</div>
   <p>On Android, this relies on a <code>&lt;provider
-  android:name="androidx.startup.InitializationProvider"&gt;</code> entry merged into your app's
-  manifest. Leave it alone — removing or overriding that merged entry (for example with a
-  conflicting <code>tools:node="remove"</code>) stops MMKV from initializing, and document access
-  will fail at runtime.</p>
+  android:name="androidx.startup.InitializationProvider"&gt;</code> entry that is merged into your
+  app's manifest. Leave it alone. If you remove or override it, for example with a conflicting
+  <code>tools:node="remove"</code>, MMKV stops initializing and document access fails at
+  runtime.</p>
 </div>
 
 </main>
@@ -207,8 +233,8 @@ never call <code>MMKV.initialize()</code> and never pass a <code>Context</code>;
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

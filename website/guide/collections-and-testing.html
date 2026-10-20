@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -120,15 +120,16 @@
 <h1>Collections &amp; Testing</h1>
 
 <h2>Collections</h2>
-<p>A <code>Collection</code> is a named, separate MMKV file — reach for one when a set of
-documents needs its own lifecycle or access boundary: a wipe-on-logout cache, per-user scoping,
-or an encryption boundary. See <a href="/guide/opening-documents.html">Opening Documents</a> for
-how to open one.</p>
+<p>A <code>Collection</code> is a named, separate MMKV file. Use one when a group of documents
+needs its own lifecycle or boundary. Typical reasons are a cache that is wiped on logout, data
+scoped to one user, or an encryption boundary. See
+<a href="/guide/opening-documents.html">Opening Documents</a> for how to open one.</p>
 
 <h2>Testing with an in-memory backend</h2>
-<p><code>Documents.inMemory()</code> returns a <code>Collection</code> with identical semantics,
-backed by an in-memory map instead of a real MMKV file — no device, no simulator, no disk state
-to clean up between tests:</p>
+<p><code>Documents.inMemory()</code> returns a <code>Collection</code> that behaves the same way
+but keeps its data in memory instead of a real MMKV file. You need no device and no simulator, and
+there is no disk state to clean up between tests. Each call to <code>Documents.inMemory()</code>
+returns its own isolated store, so tests never leak state into each other:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">val</span> store = <span class="tok-type">Documents</span>.inMemory()
 <span class="tok-keyword">val</span> note = store.document&lt;<span class="tok-type">Note</span>&gt;(<span class="tok-string">"note-1"</span>)
@@ -136,9 +137,10 @@ to clean up between tests:</p>
 note.<span class="tok-keyword">set</span>(<span class="tok-type">Note</span>(title = <span class="tok-string">"Test note"</span>))
 assertEquals(<span class="tok-string">"Test note"</span>, note.<span class="tok-keyword">get</span>()?.title)</code></pre>
 
-<p>Every store here — the default store, every named collection, and the in-memory backend alike
-— is single-process only; see <a href="/index.html#single-process-only">Overview</a> for the
-constraint that applies across all of them.</p>
+<h2>One process only</h2>
+<p>Every store can only be used from one process. This applies to the default store, every named
+collection, and the in-memory backend. See the
+<a href="/index.html#single-process-only">Overview</a> for the details.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -155,8 +157,8 @@ constraint that applies across all of them.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

@@ -1,26 +1,53 @@
 <h1>Reactivity Model</h1>
 
-<p>MMKV has no native change-listener mechanism, so reactivity is entirely a process-local concern
-built on top of it.</p>
+<p>MMKV has no built-in way to listen for changes, so reactivity in <code>Documents</code> is
+handled entirely inside your process, on top of MMKV.</p>
 
 <h2>The change bus</h2>
-<p>A single shared, process-local event stream acts as a change bus: after every committed write
-or delete, the affected document's key is emitted onto that bus. <code>document.flow()</code>
-filters the bus for its own key, then re-reads and emits the fresh value — conflated, so a burst
-of rapid writes doesn't queue up redundant emissions. The initial value is emitted the moment a
-collector starts collecting, before any new write has happened.</p>
+<p>Each store has one change bus. The default store has one, and so does every named collection.
+The bus is a stream of events that lives in memory inside your process. After every committed
+write or delete, the library puts the key of the affected document on the bus.</p>
+
+<p>A call to <code>document.flow()</code> listens to the bus and reacts only to events for its own
+key. When one arrives, it reads the document again and emits the fresh value. Emissions are
+conflated, which means a burst of quick writes does not pile up redundant emissions. The first
+value is emitted as soon as collection starts, before any new write has happened.</p>
 
 <pre><code class="language-kotlin">note.flow().collect { current -&gt;
-    // fires once immediately with the current value, then again after every committed write
+    // runs once right away with the current value, then again after every committed write
 }</code></pre>
 
-<p><code>fieldFlow(prop)</code> filters further, down to one field — a change to a sibling field
-never triggers it. See <a href="/guide/field-delegates.html">Field Delegates</a>.</p>
+<p><code>fieldFlow(prop, default)</code> narrows this down to a single field. A change to a
+sibling field never triggers it. See <a href="/guide/field-delegates.html">Field Delegates</a>.</p>
+
+<h2>Several instances of the same document</h2>
+<p>The bus belongs to the store, not to the <code>Document</code> object you hold. Every instance
+opened on the same store uses the same bus. So a write through any instance reaches
+<code>flow()</code>, <code>stateFlow()</code>, and <code>fieldFlow()</code> on all the others.</p>
+
+<p>This works no matter how the instances were created. They can come from dependency injection,
+from repeated calls to <code>Documents.document(...)</code>, or from separate calls to
+<code>Documents.collection(name)</code> with the same name.</p>
+
+<pre><code class="language-kotlin">val reader = Documents.document&lt;Note&gt;("note-1")
+val writer = Documents.document&lt;Note&gt;("note-1")
+
+reader.flow().collect { current -&gt;
+    // runs when the write below commits, even though it went through a different instance
+}
+
+writer.set(Note(title = "Pick up milk"))</code></pre>
+
+<p>Collections are separate stores. The same document key in two collections with different names
+is two unrelated documents, and a write to one does not notify the other. Each call to
+<code>Documents.inMemory()</code> also creates its own isolated store.</p>
 
 <h2>Not cross-process</h2>
-<p>Because the change bus is process-local, cross-process change notification is
-<strong>not</strong> provided — a write made by another OS process will not show up as an
-emission on this bus. This is consistent with the
-<a href="/index.html#single-process-only">single-process constraint</a> that applies to storage
-generally: this library's reactivity, like its storage, is designed around a single owning
-process.</p>
+<p>The change bus only exists inside one process, so changes made by another OS process are
+<strong>not</strong> detected. A write from another process never shows up as an emission on this
+bus.</p>
+
+<p>This matches the
+<a href="/index.html#single-process-only">single-process rule</a> that applies to storage in
+general. Both the storage and the reactivity are designed for one process that owns each
+store.</p>

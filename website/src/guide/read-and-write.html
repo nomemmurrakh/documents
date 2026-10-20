@@ -1,32 +1,33 @@
 <h1>Read &amp; Write</h1>
 
-<p>Three call shapes cover reading and writing a document, and each carries a distinct intent —
-knowing which one to reach for is the API's central nuance.</p>
+<p>There are three ways to write a document, and each has a different purpose. Knowing which one
+to use is the main thing to learn about this API.</p>
 
 <pre><code class="language-kotlin">note.get(): Note?                       // current value, or null if absent
 note.set(value)                         // replace the whole document
-note.update { current -&gt; ... }          // update: build over the current value (or defaults)
+note.update { current -&gt; ... }          // build a new value from the current one (or the defaults)
 note.update(Note::done, true)           // single-field update: writes just that key, no read
 note.delete()                           // remove the document and all its field keys
 note.exists(): Boolean                  // true if any field key is stored</code></pre>
 
-<h2><code>get()</code> — never throws for "missing"</h2>
-<p><code>get()</code> returns the current value, or <code>null</code> if the document was never
-written. A missing document is not an error condition:</p>
+<h2><code>get()</code>: read the document</h2>
+<p><code>get()</code> returns the current value, or <code>null</code> if the document has never
+been written. A missing document is not an error:</p>
 
 <pre><code class="language-kotlin">val current: Note? = note.get()</code></pre>
 
-<h2><code>set(value)</code> — replace</h2>
-<p>Supply a complete object and it replaces the document outright — every field, whether it
+<h2><code>set(value)</code>: replace the document</h2>
+<p>Pass a complete object and it replaces the whole document, including every field whether it
 changed or not:</p>
 
 <pre><code class="language-kotlin">note.set(Note(title = "Pick up milk", body = "2%, not whole"))</code></pre>
 
-<h2><code>update { current -> ... }</code> — update, several fields at once</h2>
-<p>The builder receives the current value (or the type's defaults, if the document is absent) as
-an explicit <code>current</code> parameter and returns a new value via <code>copy()</code> —
-matching <code>kotlinx.coroutines.flow.MutableStateFlow.update { current -> ... }</code>'s shape.
-Untouched fields keep exactly the value they had:</p>
+<h2><code>update { current -&gt; ... }</code>: change several fields</h2>
+<p>The builder receives the current value as the <code>current</code> parameter and returns a new
+value built with <code>copy()</code>. If the document has not been written yet, <code>current</code>
+holds the type's defaults. This has the same shape as
+<code>MutableStateFlow.update { current -&gt; ... }</code> in kotlinx.coroutines. Fields you do not
+touch keep the value they had:</p>
 
 <pre><code class="language-kotlin">note.update { current -&gt;
     current.copy(
@@ -35,29 +36,35 @@ Untouched fields keep exactly the value they had:</p>
     )
 }</code></pre>
 
-<p>This is a read-modify-write that runs under the document's write lock, so a multi-field
-<code>update</code> is atomic from the caller's perspective — a concurrent reader never observes
-a half-applied write.</p>
+<p>This reads and then writes while holding the document's write lock. A multi-field
+<code>update</code> is therefore atomic, and a concurrent reader never sees a half-applied
+write.</p>
 
-<h2><code>update(prop, value)</code> — a single field, no read</h2>
-<p>When only one field needs to change, <code>update(prop, value)</code> writes just that field's
-decomposed key directly — no read of the rest of the document:</p>
+<h2><code>update(prop, value)</code>: change one field</h2>
+<p>When only one field needs to change, <code>update(prop, value)</code> writes just that field
+directly. It does not read the rest of the document:</p>
 
 <pre><code class="language-kotlin">note.update(Note::done, true)</code></pre>
 
-<p>Reach for <code>update(prop, value)</code> when you're changing exactly one field and don't
-need the current value to compute the new one; reach for <code>update { current -> ... }</code>
-when an edit touches more than one field together, or the new value depends on the current one.</p>
+<p>Choose between the two forms of <code>update</code> like this:</p>
+<ul>
+  <li>Use <code>update(prop, value)</code> when you change exactly one field and the new value
+      does not depend on the current one.</li>
+  <li>Use <code>update { current -&gt; ... }</code> when an edit touches more than one field
+      together, or when the new value depends on the current one.</li>
+</ul>
 
 <h2><code>delete()</code> and <code>exists()</code></h2>
 <pre><code class="language-kotlin">note.delete()            // removes the document and all its field keys
 println(note.exists())   // false</code></pre>
 
-<p>See <a href="/concepts/concurrency.html">Concurrency</a> for exactly how the per-document write
-lock keeps a multi-field <code>update</code> atomic, or
-<a href="/guide/field-delegates.html">Field Delegates</a> if you'd rather bind a single field as a
-property than call <code>update(prop, value)</code> directly.</p>
-
-<p>Every one of these operations passes through any configured <code>FieldDecorator</code>s —
-wrapping on the way to storage, unwrapping on the way back — see
-<a href="/guide/field-decorators.html">Field Decorators</a>.</p>
+<h2>Related reading</h2>
+<ul>
+  <li><a href="/concepts/concurrency.html">Concurrency</a> explains how the write lock keeps a
+      multi-field <code>update</code> atomic.</li>
+  <li><a href="/guide/field-delegates.html">Field Delegates</a> shows how to bind a single field
+      as a property instead of calling <code>update(prop, value)</code> directly.</li>
+  <li><a href="/guide/field-decorators.html">Field Decorators</a> covers how every operation on
+      this page passes through any configured <code>FieldDecorator</code>s, which wrap the bytes on
+      the way to storage and unwrap them on the way back.</li>
+</ul>

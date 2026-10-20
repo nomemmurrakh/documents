@@ -1,52 +1,66 @@
 <h1>Sample App</h1>
 
-<p>A runnable Compose Multiplatform sample lives in the repo's <code>sample/</code> folder —
-<code>sample/shared/</code> holds one shared UI and business logic for both platforms,
-<code>sample/androidApp/</code> is a thin Android wrapper, and <code>sample/iosApp/</code> is a
-real Xcode project that embeds the shared Kotlin framework (via Gradle's
-<code>embedAndSignAppleFrameworkForXcode</code> task — no CocoaPods on the sample's own side). It
-runs on both Android and iOS.</p>
+<p>A runnable Compose Multiplatform sample lives in the repository's <code>sample/</code> folder.
+It runs on both Android and iOS. It is made of three parts:</p>
+
+<ul>
+  <li><code>sample/shared/</code> holds one shared UI and the business logic for both
+      platforms.</li>
+  <li><code>sample/androidApp/</code> is a thin Android wrapper.</li>
+  <li><code>sample/iosApp/</code> is a real Xcode project that embeds the shared Kotlin framework
+      through Gradle's <code>embedAndSignAppleFrameworkForXcode</code> task. The sample itself does
+      not use CocoaPods.</li>
+</ul>
 
 <h2>What it does</h2>
-<p>A home screen lists five use cases, each a real, working screen backed by the real
+<p>A home screen lists five use cases. Each one is a real, working screen backed by the real
 <code>Documents</code> API:</p>
 
 <ul>
-  <li><strong>Settings &amp; Preferences</strong> — typed, observable app settings. A
-      <code>SettingsRepository</code> wraps <code>Documents.document&lt;AppSettings&gt;("app-settings")</code>,
-      using <code>field()</code>/<code>fieldFlow()</code> delegates for <code>theme</code>
-      (SYSTEM/LIGHT/DARK) and <code>locale</code>; changing either persists instantly and updates
-      the screen's own reactive readout with no manual refresh.</li>
-  <li><strong>Session &amp; User State</strong> — sign in/out, with an encrypted auth token. A
-      <code>SessionRepository</code> opens <code>Documents.collection("session")</code> configured
-      with a real <code>FieldDecorator</code> (<code>AesGcmFieldDecorator</code>, AES-GCM via
-      <a href="https://github.com/whyoleg/cryptography-kotlin">cryptography-kotlin</a>) wrapping
-      <code>authToken</code>. A "Prove authToken is encrypted at rest" action opens a second
-      document with a different AES key and shows the decrypt failure — concrete proof the stored
-      bytes are ciphertext, not the plaintext token.</li>
-  <li><strong>Caches &amp; Drafts</strong> — a draft that survives relaunch, in its own store. A
-      <code>CacheRepository</code> opens <code>Documents.collection("cache")</code> holding
-      <code>SyncState</code> and <code>DraftPost</code>; the draft text field writes on a
-      debounce and restores on screen entry. An isolation check on the same screen shows the
-      Settings screen's <code>theme</code> value (a different collection) staying untouched when
-      "Clear cache" runs.</li>
-  <li><strong>Reactive UI State</strong> — a simulated download driving a live progress bar. A
-      coroutine ticker calls <code>update(DownloadState::bytesDownloaded, bytesSoFar)</code>
-      repeatedly; a <code>LinearProgressIndicator</code> re-renders purely by collecting the
-      document's <code>flow()</code>, with zero polling and zero coupling to where the write came
-      from.</li>
-  <li><strong>Shared KMP Persistence</strong> — one offline queue, identical code on both
+  <li><strong>Settings &amp; Preferences.</strong> Typed, observable app settings. A
+      <code>SettingsRepository</code> wraps
+      <code>Documents.document&lt;AppSettings&gt;("app-settings")</code> and uses the
+      <code>field()</code> and <code>fieldFlow()</code> delegates for <code>theme</code>
+      (SYSTEM, LIGHT, or DARK) and <code>locale</code>. Changing either one is saved instantly and
+      updates the screen's own live readout, with no manual refresh.</li>
+  <li><strong>Session &amp; User State.</strong> Signing in and out, with an encrypted auth token.
+      A <code>SessionRepository</code> opens <code>Documents.collection("session")</code>, which
+      is configured with a real <code>FieldDecorator</code> (<code>AesGcmFieldDecorator</code>,
+      using AES-GCM from
+      <a href="https://github.com/whyoleg/cryptography-kotlin">cryptography-kotlin</a>) that wraps
+      <code>authToken</code>. The "Prove authToken is encrypted at rest" action opens a second
+      document with a different AES key and shows the decrypt failure. This is concrete proof that
+      the stored bytes are ciphertext and not the plaintext token.</li>
+  <li><strong>Caches &amp; Drafts.</strong> A draft that survives a relaunch, kept in its own
+      store. A <code>CacheRepository</code> opens <code>Documents.collection("cache")</code>,
+      which holds <code>SyncState</code> and <code>DraftPost</code>. The draft text field saves on
+      a debounce and restores when you open the screen. A check on the same screen shows that the
+      <code>theme</code> value from the Settings screen, which is in a different collection, stays
+      untouched when "Clear cache" runs.</li>
+  <li><strong>Reactive UI State.</strong> A simulated download that drives a live progress bar. A
+      coroutine ticker repeatedly calls
+      <code>update(DownloadState::bytesDownloaded, bytesSoFar)</code>. A
+      <code>LinearProgressIndicator</code> re-renders only because it collects the document's
+      <code>flow()</code>. There is no polling, and the progress bar does not know where the write
+      came from.</li>
+  <li><strong>Shared KMP Persistence.</strong> One offline queue, with identical code on both
       platforms. A <code>PendingRequestQueue</code> wraps
-      <code>Documents.document&lt;QueueState&gt;("pending-requests")</code> (the queue's items live
-      inside a small wrapper class, not as a bare <code>List</code> document root — see
-      <a href="/guide/opening-documents.html">Opening Documents</a> for why) with "Enqueue mock
-      request" and "Clear queue" actions and a live list. This screen's own code is entirely
-      <code>commonMain</code> — nothing platform-specific was written to make it work on both
+      <code>Documents.document&lt;QueueState&gt;("pending-requests")</code>. The queue's items live
+      inside a small wrapper class and not in a bare <code>List</code> document. See
+      <a href="/guide/opening-documents.html">Opening Documents</a> for why. The screen has
+      "Enqueue mock request" and "Clear queue" actions and a live list. All of its code is in
+      <code>commonMain</code>. Nothing platform-specific was written to make it work on both
       Android and iOS.</li>
 </ul>
 
 <h2>Run it</h2>
-<p>Clone the repository. For Android, run the <code>sample/androidApp</code> module from Android
-Studio or via Gradle. For iOS, open
-<code>sample/iosApp/iosApp.xcodeproj</code> in Xcode and run. See
-<a href="/use-cases/index.html">Use Cases</a> for the documented pattern each screen demonstrates.</p>
+<p>Clone the repository, then follow the steps for your platform:</p>
+<ul>
+  <li><strong>Android.</strong> Run the <code>sample/androidApp</code> module from Android Studio
+      or with Gradle.</li>
+  <li><strong>iOS.</strong> Open <code>sample/iosApp/iosApp.xcodeproj</code> in Xcode and run
+      it.</li>
+</ul>
+
+<p>See <a href="/use-cases/index.html">Use Cases</a> for the documented pattern that each screen
+demonstrates.</p>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,12 +119,12 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Field Decorators</h1>
 
-<p><code>FieldDecorator</code> lets you hook into a document's read/write path per field — wrap
-what's written before it reaches storage, unwrap it after it comes back. Use it for per-field
-encryption, compression, checksums, or logging.</p>
+<p>A <code>FieldDecorator</code> lets you hook into the read and write path of a document, one
+field at a time. It can wrap a field's bytes before they reach storage, and unwrap them when they
+come back. Use it for per-field encryption, compression, checksums, or logging.</p>
 
 <h2>Attaching decorators</h2>
-<p>Decorators can be configured at the collection level, the document level, or both:</p>
+<p>You can configure decorators on a collection, on a document, or on both:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">val</span> notes = <span class="tok-type">Documents</span>.collection(<span class="tok-string">"notes"</span>) {
     decorators = listOf(<span class="tok-type">LoggingDecorator</span>())
@@ -135,29 +135,34 @@ encryption, compression, checksums, or logging.</p>
 }
 <span class="tok-comment">// note's effective decorator list, in order: [LoggingDecorator(), ChecksumDecorator()]</span></code></pre>
 
-<p>Collection-level decorators apply to every document opened in that collection; document-level
-decorators are appended after them for that one document.</p>
+<p>Decorators on a collection apply to every document opened in that collection. Decorators on a
+document are added after them, for that document only.</p>
 
 <h2>Order matters</h2>
-<p>Writes fold through the decorator list left-to-right; reads fold right-to-left. Whichever
-decorator ran <em>last</em> on write runs <em>first</em> on read, so each wrap is undone in the
-reverse order it was applied:</p>
+<p>On a write, the bytes pass through the decorator list from left to right. On a read, they pass
+through it from right to left. The decorator that ran last on write runs first on read, so each
+wrap is undone in the reverse of the order it was applied:</p>
 
 <pre><code class="language-kotlin"><span class="tok-comment">// decorators = listOf(Compress, Encrypt)</span>
 <span class="tok-comment">// write:  bytes  -&gt; Compress.wrap   -&gt; Encrypt.wrap   -&gt; stored</span>
 <span class="tok-comment">// read:   stored -&gt; Encrypt.unwrap  -&gt; Compress.unwrap -&gt; bytes</span></code></pre>
 
-<p>This is why compress-then-encrypt — not the reverse — is the order that actually works:
-encrypted bytes are high-entropy and don't meaningfully compress. See
-<a href="/concepts/decorations.html">Decorations</a> for why the library folds the list this way.</p>
+<p>This is why you should compress first and encrypt second, and not the other way around.
+Encrypted bytes look random, so they do not compress in any useful way. See
+<a href="/concepts/decorations.html">Decorations</a> for why the library applies the list in this
+order.</p>
 
-<h2>Where else this applies</h2>
-<p>Decorators also apply under field delegates — see
-<a href="/guide/field-delegates.html">Field Delegates</a> — and sit immediately next to where CBOR
-encode/decode happens, see <a href="/concepts/serialization-cbor.html">Serialization (CBOR)</a>
-and <a href="/concepts/field-decomposition.html">Field Decomposition</a>. A decorator's
-<code>unwrap</code> failing surfaces as <code>DocumentDecodingException</code>, the same as any
-other decode failure — see <a href="/guide/error-handling.html">Error Handling</a>.</p>
+<h2>Related pages</h2>
+<ul>
+  <li>Decorators also apply to field delegates. See
+      <a href="/guide/field-delegates.html">Field Delegates</a>.</li>
+  <li>Decorators run right next to where CBOR encoding and decoding happen. See
+      <a href="/concepts/serialization-cbor.html">Serialization (CBOR)</a> and
+      <a href="/concepts/field-decomposition.html">Field Decomposition</a>.</li>
+  <li>If a decorator's <code>unwrap</code> fails, the failure surfaces as a
+      <code>DocumentDecodingException</code>, the same as any other decode failure. See
+      <a href="/guide/error-handling.html">Error Handling</a>.</li>
+</ul>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -174,8 +179,8 @@ other decode failure — see <a href="/guide/error-handling.html">Error Handling
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

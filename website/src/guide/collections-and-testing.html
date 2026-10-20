@@ -1,15 +1,16 @@
 <h1>Collections &amp; Testing</h1>
 
 <h2>Collections</h2>
-<p>A <code>Collection</code> is a named, separate MMKV file — reach for one when a set of
-documents needs its own lifecycle or access boundary: a wipe-on-logout cache, per-user scoping,
-or an encryption boundary. See <a href="/guide/opening-documents.html">Opening Documents</a> for
-how to open one.</p>
+<p>A <code>Collection</code> is a named, separate MMKV file. Use one when a group of documents
+needs its own lifecycle or boundary. Typical reasons are a cache that is wiped on logout, data
+scoped to one user, or an encryption boundary. See
+<a href="/guide/opening-documents.html">Opening Documents</a> for how to open one.</p>
 
 <h2>Testing with an in-memory backend</h2>
-<p><code>Documents.inMemory()</code> returns a <code>Collection</code> with identical semantics,
-backed by an in-memory map instead of a real MMKV file — no device, no simulator, no disk state
-to clean up between tests:</p>
+<p><code>Documents.inMemory()</code> returns a <code>Collection</code> that behaves the same way
+but keeps its data in memory instead of a real MMKV file. You need no device and no simulator, and
+there is no disk state to clean up between tests. Each call to <code>Documents.inMemory()</code>
+returns its own isolated store, so tests never leak state into each other:</p>
 
 <pre><code class="language-kotlin">val store = Documents.inMemory()
 val note = store.document&lt;Note&gt;("note-1")
@@ -17,6 +18,7 @@ val note = store.document&lt;Note&gt;("note-1")
 note.set(Note(title = "Test note"))
 assertEquals("Test note", note.get()?.title)</code></pre>
 
-<p>Every store here — the default store, every named collection, and the in-memory backend alike
-— is single-process only; see <a href="/index.html#single-process-only">Overview</a> for the
-constraint that applies across all of them.</p>
+<h2>One process only</h2>
+<p>Every store can only be used from one process. This applies to the default store, every named
+collection, and the in-memory backend. See the
+<a href="/index.html#single-process-only">Overview</a> for the details.</p>

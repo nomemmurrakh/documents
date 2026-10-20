@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,9 +119,8 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Storage SPI</h1>
 
-<p>Underneath the public API sits a minimal interface that makes the storage engine swappable —
-this is how it's built, not something a consumer of the library implements or configures
-directly.</p>
+<p>Under the public API there is a small interface that makes the storage engine swappable. It
+describes how the library is built. It is not something you implement or configure yourself.</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">internal</span> <span class="tok-keyword">interface</span> <span class="tok-type">Storage</span> {
     <span class="tok-keyword">fun</span> getBytes(key: <span class="tok-type">String</span>): <span class="tok-type">ByteArray</span>?
@@ -131,23 +130,25 @@ directly.</p>
     <span class="tok-keyword">fun</span> keys(prefix: <span class="tok-type">String</span>): <span class="tok-type">List</span>&lt;<span class="tok-type">String</span>&gt;
 }</code></pre>
 
-<p>Every decomposed field key (see <a href="/concepts/field-decomposition.html">Field
-Decomposition</a>) is read and written through exactly these five operations. Two implementations
-exist:</p>
+<p>Every stored field key (see
+<a href="/concepts/field-decomposition.html">Field Decomposition</a>) is read and written through
+these five operations. There are two implementations:</p>
 
 <ul>
-  <li><strong><code>MmkvStorage</code></strong> — wraps a real Tencent MMKV instance. Used in
+  <li><strong><code>MmkvStorage</code></strong> wraps a real Tencent MMKV instance. It is used in
       production on both Android and iOS.</li>
-  <li><strong><code>InMemoryStorage</code></strong> — wraps a plain in-memory map, guarded for
-      concurrent access. Backs <code>Documents.inMemory()</code>, used for unit tests with no real
-      MMKV instance involved — see
+  <li><strong><code>InMemoryStorage</code></strong> wraps a plain in-memory map that is safe for
+      concurrent access. It backs <code>Documents.inMemory()</code>, which is used for unit tests
+      that need no real MMKV instance. See
       <a href="/guide/collections-and-testing.html">Collections &amp; Testing</a>.</li>
 </ul>
 
-<p>Everything above this interface — the public API, field decomposition, serialization,
-reactivity — lives in <code>commonMain</code> and has no idea which <code>Storage</code>
-implementation it's talking to. Only the concrete implementation is platform-specific, which is
-what keeps the entire public surface KMP-clean. See
+<p>Everything above this interface lives in <code>commonMain</code>. That includes the public API,
+field decomposition, serialization, and reactivity. None of it knows which <code>Storage</code>
+implementation it is talking to.</p>
+
+<p>Only the concrete implementation is platform-specific, and that is what keeps the public
+surface identical across platforms. See
 <a href="/use-cases/shared-kmp-persistence.html">Shared KMP Persistence</a> and
 <a href="/platform-support.html">Platform Support</a>.</p>
 
@@ -166,8 +167,8 @@ what keeps the entire public surface KMP-clean. See
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 

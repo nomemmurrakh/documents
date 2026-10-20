@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documents — a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
+<meta name="description" content="Documents: a document-oriented, typed, reactive Kotlin Multiplatform library backed by MMKV.">
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -119,9 +119,9 @@
 <main id="main-content" class="main-content" tabindex="-1">
 <h1>Session &amp; User State</h1>
 
-<p>The signed-in user, an auth token, the active profile — state that's scoped to a login session
-rather than the app's durable settings. Keeping it in its own <code>collection</code> keeps it
-separate from data that should survive a logout.</p>
+<p>Session state is the signed-in user, an auth token, and the active profile. It belongs to a
+login session, not to the app's long-lived settings. Keep it in its own <code>collection</code>
+so it stays separate from data that should survive a logout.</p>
 
 <pre><code class="language-kotlin"><span class="tok-annotation">@Serializable</span>
 <span class="tok-keyword">data</span> <span class="tok-keyword">class</span> <span class="tok-type">Session</span>(
@@ -141,21 +141,21 @@ session.flow().collect { current -&gt;
     isSignedIn = current != <span class="tok-keyword">null</span>
 }</code></pre>
 
-<p>Logging out deletes the session document — there is no separate "clear the whole collection"
-call in the public API, so sign-out is an explicit <code>delete()</code> on each document that
-should end with the session:</p>
+<p>Signing out means deleting the session document. The public API has no "clear the whole
+collection" call, so sign-out is an explicit <code>delete()</code> on each document that should
+end with the session:</p>
 
 <pre><code class="language-kotlin"><span class="tok-keyword">fun</span> signOut() {
     session.delete()
 }</code></pre>
 
 <h2>Encrypting the auth token</h2>
-<p><code>authToken</code> is a realistic candidate for field-level encryption — the session
-collection is a natural encryption boundary. <code>FieldDecorator</code> is a complete extension
-point for this; the example below uses
+<p>The <code>authToken</code> is a good candidate for field-level encryption, and the session
+collection is a natural encryption boundary. <code>FieldDecorator</code> is the extension point
+for this. The example below uses
 <a href="https://github.com/whyoleg/cryptography-kotlin">cryptography-kotlin</a>
-(<code>dev.whyoleg.cryptography</code>, v0.6.0), one library choice among several, and a
-dependency your app adds, not one <code>Documents</code> pulls in:</p>
+(<code>dev.whyoleg.cryptography</code>, v0.6.0). It is one choice among several, and your app adds
+it as a dependency. <code>Documents</code> does not pull it in:</p>
 
 <pre><code class="language-kotlin"><span class="tok-comment">// build.gradle.kts (your app/module, not Documents itself)</span>
 implementation(<span class="tok-string">"dev.whyoleg.cryptography:cryptography-core:0.6.0"</span>)
@@ -191,23 +191,32 @@ implementation(<span class="tok-string">"dev.whyoleg.cryptography:cryptography-p
 }
 <span class="tok-keyword">val</span> session = sessionStore.document&lt;<span class="tok-type">Session</span>&gt;(<span class="tok-string">"current"</span>)</code></pre>
 
-<p>Note the <code>Blocking</code> suffix — <code>encryptBlocking</code>/<code>decryptBlocking</code>,
-not the suspending <code>encrypt</code>/<code>decrypt</code> — since <code>FieldDecorator.wrap</code>
-and <code>unwrap</code> are synchronous. <code>encryptBlocking</code> bundles the nonce and auth
-tag into the returned <code>ByteArray</code>, so AES-GCM's authentication catches a tampered or
-corrupted stored value instead of decoding it into garbage, and passing <code>fieldName</code> as
-associated data means a ciphertext copied from one field's key into another's fails to decrypt
-rather than silently succeeding with the wrong data. Key generation, storage, and rotation are
-your app's own responsibility — see the
-<a href="https://github.com/whyoleg/cryptography-kotlin">cryptography-kotlin</a> docs for that
-part, and <a href="/concepts/decorations.html">Decorations</a> /
-<a href="/guide/field-decorators.html">Field Decorators</a> for how the extension point itself
-works.</p>
+<p>A few details in this example are worth knowing:</p>
+<ul>
+  <li><strong>Blocking calls.</strong> The example uses <code>encryptBlocking</code> and
+      <code>decryptBlocking</code>, not the suspending <code>encrypt</code> and
+      <code>decrypt</code>, because <code>FieldDecorator.wrap</code> and <code>unwrap</code> are
+      synchronous.</li>
+  <li><strong>Tamper detection.</strong> <code>encryptBlocking</code> puts the nonce and the
+      authentication tag into the returned <code>ByteArray</code>. If a stored value is tampered
+      with or corrupted, AES-GCM detects it instead of decoding garbage.</li>
+  <li><strong>Associated data.</strong> Passing <code>fieldName</code> as associated data means
+      a ciphertext copied from one field's key to another fails to decrypt. It does not silently
+      succeed with the wrong data.</li>
+  <li><strong>Keys are your job.</strong> Your app is responsible for generating, storing, and
+      rotating keys. The
+      <a href="https://github.com/whyoleg/cryptography-kotlin">cryptography-kotlin</a> docs cover
+      that part.</li>
+</ul>
 
-<p>See <a href="/guide/opening-documents.html">Opening Documents</a> for when to reach for a
-named collection versus the default store, and keep in mind the
-<a href="/index.html#single-process-only">single-process constraint</a> that applies to every
-store, including this one.</p>
+<p>To see how the extension point itself works, read
+<a href="/concepts/decorations.html">Decorations</a> and
+<a href="/guide/field-decorators.html">Field Decorators</a>.</p>
+
+<p>See <a href="/guide/opening-documents.html">Opening Documents</a> for when to use a named
+collection instead of the default store. Also remember the
+<a href="/index.html#single-process-only">single-process rule</a>, which applies to every store,
+including this one.</p>
 
 </main>
 <nav id="toc" class="toc" aria-label="On this page" hidden>
@@ -224,8 +233,8 @@ store, including this one.</p>
     <a href="https://github.com/nomemmurrakh/documents/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.
   </p>
   <p class="site-footer__cta">
-    Built for elegance, and better with your help —
-    <a href="/contributing.html">contribute on GitHub</a>.
+    Built for elegance, and better with your help.
+    <a href="/contributing.html">Contribute on GitHub</a>.
   </p>
 </footer>
 
