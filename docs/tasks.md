@@ -226,3 +226,31 @@ encryption itself, and does not promote NG2 (PRD) out of non-goal status — see
       design change. Follow-up: re-run on the exact original host to get a directly comparable
       absolute number, and apply the same treatment to Android (T9.2b) once that table is
       refreshed.
+
+## Phase 13 — Process-wide store runtime
+
+Moves the change bus and write locks from object instances to a process-wide, per-store
+runtime, so separate instances of the same document observe each other's writes and serialize
+their updates. Full design and rationale in
+[ADR-0022](adr/0022-process-wide-store-runtime.md). No public API change.
+
+- [x] **T13.1** Add internal `StoreRuntime` (storage, `ChangeBus`, lazily created striped locks,
+      64 stripes) and `Runtime.store(id, openStorage)`. Wire `Documents.document`,
+      `Documents.collection`, `CollectionImpl`, and `DocumentImpl` through it; `DocumentImpl`
+      takes the `StoreRuntime` and its lock from `store.lockFor(key)`; `inMemory()` builds an
+      unregistered `StoreRuntime`. Update existing tests that construct `DocumentImpl` or
+      `ChangeBus` directly. Tests: `lockFor` returns the same lock for the same key and a
+      non-negative stripe for any key (including keys with negative hash codes);
+      `Runtime.store` returns the same `StoreRuntime` for the same id and runs `openStorage`
+      once; `inMemory()` instances do not share state.
+- [x] **T13.2** *(depends on T13.1)* Cross-instance behavior tests, derived from
+      `docs/test-plan.md`: two separately opened instances of the same document — a write
+      through one is emitted by the other's `flow()`, `stateFlow()`, and `fieldFlow()`;
+      `update { }` on both from concurrent coroutines loses no write; documents with the same
+      key in different collections do not cross-notify; a write to one document does not
+      notify a collector of another document in the same store. Acceptance: `check` passes on
+      JVM and iOS simulator, and `checkKotlinAbi` passes with no `updateKotlinAbi` needed.
+- [x] **T13.3** *(depends on T13.1)* Update the `Collection` KDoc (documents opened on the same
+      store name share a change bus, including across separate `Documents.collection(name)`
+      calls), `architecture.md` (the runtime layer and the decisions log), and
+      `test-plan.md` (the cross-instance cases from T13.2).

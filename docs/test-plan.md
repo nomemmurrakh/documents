@@ -41,6 +41,11 @@
 - No emission occurs for a write to a *different* document key.
 - `fieldFlow(prop)` emits only when that specific field changes.
 - Emission happens only after the write is committed (never uncommitted state).
+- Two separately opened instances of the same document: a write through one is emitted by
+  `flow()`, `stateFlow()`, and `fieldFlow()` of the other, and a delete through one emits
+  `null` on the other.
+- Instances obtained through `Runtime.store(id)` for the same id share one bus.
+- The same document key in two different collections does not cross-notify.
 
 ## 6. Field delegates
 
@@ -67,6 +72,13 @@
 
 - Concurrent writes to the same document do not interleave field writes (mutex holds).
 - Concurrent reads during a write never observe a half-applied UPDATE.
+- Concurrent `update { }` calls through two separately opened instances of the same document
+  lose no write (probabilistic; verified to fail when instances stop sharing a lock).
+- `lockFor` returns the same lock for the same key, shares a lock between keys on the same
+  stripe, and maps any key (including one whose hash code is `Int.MIN_VALUE`) to a stripe in
+  range.
+- `Runtime.store` returns the same store for the same id and opens the underlying storage
+  once; `inMemory()` instances share no state.
 
 ## 9. Codec
 

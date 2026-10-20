@@ -1,7 +1,7 @@
 # Documents — Architecture
 
 **Status:** Draft v1.0
-**Last updated:** 2026-06-15
+**Last updated:** 2026-10-20
 
 > How the pieces fit. This is the decisions log that keeps the implementation from
 > drifting. If a decision here is reversed, update this file and add an ADR.
@@ -101,8 +101,11 @@ a public extension point — see [ADR-0015](adr/0015-cbor-internal-format.md) (w
 
 MMKV has no native change listeners, so reactivity is a process-local concern:
 
-- A single `MutableSharedFlow<String>` (replay 0, extraBuffer) acts as a change bus,
-  emitting the affected `documentKey` after every committed write/delete.
+- A `MutableSharedFlow<String>` (replay 0, extraBuffer) acts as a change bus,
+  emitting the affected `documentKey` after every committed write/delete. There is one bus
+  per store, shared by every instance opened on that store (see
+  [ADR-0022](adr/0022-process-wide-store-runtime.md)), so separate instances of the same
+  document observe each other's writes.
 - `document.flow()` filters the bus for its key, re-reads, and emits the new value
   (conflated). Initial value is emitted on collection.
 - `fieldFlow(prop)` filters further by field.
@@ -132,6 +135,25 @@ benchmarked, not assumed.
 
 ## 9. Concurrency
 
-- Writes are serialized per document via a lightweight per-key mutex to keep multi-field
-  `set(UPDATE)` atomic from the library's perspective.
+- Writes are serialized per document to keep multi-field `update { }` atomic from the
+  library's perspective. The lock is chosen by hashing the document key into 64 lazily created
+  striped locks per store, so every instance of one document shares a lock while unrelated
+  documents rarely contend. See [ADR-0022](adr/0022-process-wide-store-runtime.md).
 - The change bus emits only after all field writes for an operation commit.
+
+## 10. Process-wide store runtime
+
+Coordination state lives with the store, not with the objects that open it
+([ADR-0022](adr/0022-process-wide-store-runtime.md)):
+
+- An internal `Runtime` object holds one `StoreRuntime` per store id for the lifetime of the
+  process. A `StoreRuntime` owns the storage handle, the change bus, and the striped write
+  locks for that store.
+- `Documents.document` and `Documents.collection` resolve their store through `Runtime`, so
+  opening the same store or document twice never splits the bus or the locks.
+- `Runtime` initializes lazily on first access, after `ensureInitialized()`. Nothing runs at
+  app startup and there is no shutdown.
+- `Documents.inMemory()` builds a fresh, unregistered `StoreRuntime` per call, keeping tests
+  isolated.
+- Storage consistency is unaffected: MMKV already returns the same underlying store for the
+  same id. Only in-process notification and locking are shared by the runtime.
