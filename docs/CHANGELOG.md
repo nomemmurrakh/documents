@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-21
+
+The public API is unchanged. Existing code compiles and behaves as before.
+
+### Added
+- **Instances of the same document now share one change bus and one set of write locks**
+  ([ADR-0022](adr/0022-process-wide-store-runtime.md)). A write through one instance reaches
+  `flow()`, `stateFlow()`, and `fieldFlow()` on every other instance of the same document, whether
+  the instances come from dependency injection, repeated `Documents.document(...)` calls, or
+  separate `Documents.collection(name)` calls. Sharing a single instance is no longer required,
+  though it is still the recommended approach when it is practical.
+- **Concurrent updates through different instances are no longer lost.** Each document has its own
+  lock, striped over 64 locks that are created lazily, so unrelated documents do not wait for each
+  other.
+- **Distinct `DocumentDecodingException` messages for each cause**
+  ([ADR-0023](adr/0023-decoding-failure-messages.md)): updating a document that was never written
+  when a field has no default, a stored document missing a required field, a stored field that
+  cannot be read as its type, and a field decorator that failed to unwrap. Each message says what
+  went wrong and how to fix it. Messages name the cause's exception class and never its text, so a
+  stored value cannot reach a log.
+- A **Shared Instances** screen in the sample app that shows two instances of one document staying
+  in sync.
+
+### Changed
+- Clarified the single-process limit in the documentation. An ordinary Android `Service` runs in the
+  app's own process and is safe. A component with `android:process`, or an iOS app extension, runs
+  in a separate process and is not supported. Tested on an Android emulator: a service in a separate
+  process lost about 35 to 45 percent of updates to the same store.
+- Updated dependencies: Kotlin 2.4.21, Android Gradle Plugin 9.3.3, Gradle 9.5.0, MMKV 2.4.3,
+  kotlinx.serialization 1.12.0, Compose Multiplatform 1.12.2, and compile and target SDK 37.
+- Added the Android ABI reference dump (`documents/api/android/documents.api`) to API validation.
+- Rewrote the documentation site and README for v0.2.0.
+
+## [0.1.0] - 2026-07-05
+
 ### Added
 - Initial project scaffolding and design documentation (PRD, API design, architecture, ADRs,
   roadmap, task breakdown, test plan).
@@ -55,4 +90,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   configuration property. The serialization format is now a single internal CBOR instance with
   no public extension point ([ADR-0015](adr/0015-cbor-internal-format.md)).
 
-[Unreleased]: https://github.com/nomemmurrakh/documents/commits/master
+[Unreleased]: https://github.com/nomemmurrakh/documents/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/nomemmurrakh/documents/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/nomemmurrakh/documents/releases/tag/v0.1.0
