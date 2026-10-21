@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml/badge.svg?branch=master)](https://github.com/nomemmurrakh/documents/actions/workflows/gradle.yml)
 [![License](https://img.shields.io/github/license/nomemmurrakh/documents)](LICENSE)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.4.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.4.21-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-blue.svg)](https://documents.nomemmurrakh.com/platform-support.html)
 
 A document-oriented Kotlin Multiplatform storage library backed by
