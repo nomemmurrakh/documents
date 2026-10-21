@@ -525,7 +525,7 @@
     "title": "Installation",
     "href": "/installation.html",
     "section": "Installation",
-    "text": "com.nomemmurrakh:documents is published on Maven Central. Add it to the commonMain source set of a Kotlin Multiplatform module, or to a plain Android module: // build.gradle.kts dependencies { implementation( \"com.nomemmurrakh:documents:0.1.0\" ) } iOS: linking MMKV On iOS, your app also needs to add MMKV to its own target, through CocoaPods or Swift Package Manager, the same way as any other native dependency. If it is missing, the build fails with a link error. See Troubleshooting for details."
+    "text": "com.nomemmurrakh:documents is published on Maven Central. Add it to the commonMain source set of a Kotlin Multiplatform module, or to a plain Android module: // build.gradle.kts dependencies { implementation( \"com.nomemmurrakh:documents:0.2.0\" ) } iOS: linking MMKV On iOS, your app also needs to add MMKV to its own target, through CocoaPods or Swift Package Manager, the same way as any other native dependency. If it is missing, the build fails with a link error. See Troubleshooting for details."
   },
   {
     "title": "Installation",
