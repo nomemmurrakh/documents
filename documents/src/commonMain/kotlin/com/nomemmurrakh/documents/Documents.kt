@@ -58,9 +58,11 @@ public class CollectionConfig internal constructor() {
  * document, and concurrent updates through different instances do not lose writes.
  *
  * **Single-process only.** The backing MMKV store is always opened in single-process mode.
- * Concurrent access to the same store from more than one OS process (a background service, an
- * app extension, etc.) is not supported and can corrupt the store. There is no supported way to
- * share a store across processes with this library — MMKV's own cross-process mode exists, but its
+ * Concurrent access to the same store from more than one OS process is not supported and can
+ * lose updates or corrupt the store. On Android, a `Service` runs in the app's own process unless
+ * its manifest entry sets `android:process`, so an ordinary service is safe. A component with
+ * `android:process`, or an iOS app extension, runs in a separate process. There is no supported
+ * way to share a store across processes with this library — MMKV's own cross-process mode exists, but its
  * change notification is lazy/pull-based with no per-key granularity and no real-time guarantee on
  * either platform, so it is not exposed here.
  */

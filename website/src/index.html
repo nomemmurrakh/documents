@@ -90,8 +90,12 @@ well:</p>
 <h2>Single-process only</h2>
 <p>Every store is single-process. This includes the default store, every named collection, and
 the in-memory test backend. <strong>Concurrent access to the same store from more than one OS
-process is not supported and can corrupt it.</strong> A background service, an app extension, or
-any second process must not open the same store as your main process at the same time.</p>
+process is not supported and can corrupt it.</strong></p>
+<p>On Android, a <code>Service</code> runs in your app's own process unless its manifest entry sets
+<code>android:process</code>, so an ordinary service is safe. A component with
+<code>android:process</code>, or an iOS app extension such as a widget or a share extension, runs
+in a separate process. Documents does not set up MMKV there, and if two processes write the same
+store, updates can be silently lost.</p>
 <p>This is a firm limit, not an edge case. If your app needs to share a store across processes,
 this library is not the right fit for that store today. Either design around a single owning
 process for each store, or keep the multi-process data out of <code>Documents</code>.</p>

@@ -65,8 +65,16 @@ and in the README rather than half-supported behind a flag.
 - **Breaking API change** (pre-1.0): `CollectionConfig.multiProcess` no longer exists; any call
   site setting it fails to compile. No behavior change for existing single-process callers
   (the default was already `false`).
-- Apps that need a store shared across processes (a background service and the UI process on
-  Android; a host app and an app extension on iOS) cannot use this library for that store today.
+- Apps that need a store shared across processes (a component with `android:process` and the UI
+  process on Android; a host app and an app extension on iOS) cannot use this library for that
+  store today.
+
+> **Correction (v0.2.0).** The original wording named "a background service" as a multi-process
+> case. An ordinary Android `Service` runs in the app's own process and is safe. It was tested with
+> 40,000 concurrent updates from a service and the UI, with no lost updates. Only a component with
+> `android:process` runs in a second process. There, MMKV is not initialized (the initializer runs
+> only in the main process), and when it is initialized by hand, about 35 to 45 percent of updates
+> to the same store were silently lost.
 
 ## Alternatives considered
 
