@@ -1,0 +1,65 @@
+public abstract interface class com/nomemmurrakh/documents/Collection {
+	public abstract fun document (Ljava/lang/String;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function1;)Lcom/nomemmurrakh/documents/Document;
+	public static synthetic fun document$default (Lcom/nomemmurrakh/documents/Collection;Ljava/lang/String;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/nomemmurrakh/documents/Document;
+}
+
+public final class com/nomemmurrakh/documents/Collection$DefaultImpls {
+	public static synthetic fun document$default (Lcom/nomemmurrakh/documents/Collection;Ljava/lang/String;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/nomemmurrakh/documents/Document;
+}
+
+public final class com/nomemmurrakh/documents/CollectionConfig {
+	public final fun getDecorators ()Ljava/util/List;
+	public final fun getDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
+	public final fun setDecorators (Ljava/util/List;)V
+	public final fun setDispatcher (Lkotlinx/coroutines/CoroutineDispatcher;)V
+}
+
+public abstract interface class com/nomemmurrakh/documents/Document {
+	public abstract fun delete ()V
+	public abstract fun exists ()Z
+	public abstract fun flow ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun get ()Ljava/lang/Object;
+	public abstract fun set (Ljava/lang/Object;)V
+	public abstract fun stateFlow (Lkotlinx/coroutines/CoroutineScope;)Lkotlinx/coroutines/flow/StateFlow;
+	public abstract fun update (Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/nomemmurrakh/documents/DocumentConfig {
+	public final fun getDecorators ()Ljava/util/List;
+	public final fun getDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
+	public final fun setDecorators (Ljava/util/List;)V
+	public final fun setDispatcher (Lkotlinx/coroutines/CoroutineDispatcher;)V
+}
+
+public final class com/nomemmurrakh/documents/DocumentDecodingException : java/lang/RuntimeException {
+	public final fun getDocumentKey ()Ljava/lang/String;
+	public final fun getField ()Ljava/lang/String;
+}
+
+public final class com/nomemmurrakh/documents/Documents {
+	public static final field INSTANCE Lcom/nomemmurrakh/documents/Documents;
+	public final fun collection (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/nomemmurrakh/documents/Collection;
+	public static synthetic fun collection$default (Lcom/nomemmurrakh/documents/Documents;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/nomemmurrakh/documents/Collection;
+	public final fun document (Ljava/lang/String;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function1;)Lcom/nomemmurrakh/documents/Document;
+	public static synthetic fun document$default (Lcom/nomemmurrakh/documents/Documents;Ljava/lang/String;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/nomemmurrakh/documents/Document;
+	public final fun inMemory ()Lcom/nomemmurrakh/documents/Collection;
+}
+
+public final class com/nomemmurrakh/documents/DocumentsInitializer : androidx/startup/Initializer {
+	public fun <init> ()V
+	public synthetic fun create (Landroid/content/Context;)Ljava/lang/Object;
+	public fun create (Landroid/content/Context;)V
+	public fun dependencies ()Ljava/util/List;
+}
+
+public abstract interface class com/nomemmurrakh/documents/FieldDecorator {
+	public abstract fun unwrap (Ljava/lang/String;[B)[B
+	public abstract fun wrap (Ljava/lang/String;[B)[B
+}
+
+public final class com/nomemmurrakh/documents/FieldDelegateKt {
+	public static final fun fieldDelegate (Lcom/nomemmurrakh/documents/Document;Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/KSerializer;)Lkotlin/properties/ReadWriteProperty;
+	public static final fun fieldFlow (Lcom/nomemmurrakh/documents/Document;Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/KSerializer;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun updateField (Lcom/nomemmurrakh/documents/Document;Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/KSerializer;)V
+}
+

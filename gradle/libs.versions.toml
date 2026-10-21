@@ -1,10 +1,10 @@
 [versions]
-agp = "9.2.1"
-kotlin = "2.4.0"
+agp = "9.3.3"
+kotlin = "2.4.21"
 
 androidxActivityCompose = "1.13.0"
-androidxComposeBom = "2026.06.01"
-androidxCoreKtx = "1.19.0"
+androidxComposeBom = "2026.09.00"
+androidxCoreKtx = "1.19.1"
 androidxLifecycle = "2.11.0"
 androidxStartup = "1.2.0"
 
@@ -13,13 +13,13 @@ androidxTestExtJunit = "1.3.0"
 androidxTestRules = "1.7.0"
 androidxTestRunner = "1.7.0"
 
-androidCompileSdk = "36"
+androidCompileSdk = "37"
 androidMinSdk = "24"
-androidTargetSdk = "36"
+androidTargetSdk = "37"
 
-composeMultiplatform = "1.11.1"
-composeMultiplatformMaterial3 = "1.11.0-alpha07"
-jetbrainsLifecycle = "2.11.0-beta01"
+composeMultiplatform = "1.12.2"
+composeMultiplatformMaterial3 = "1.12.0-alpha03"
+jetbrainsLifecycle = "2.11.0"
 cryptographyKotlin = "0.6.0"
 
 detekt = "1.23.8"
@@ -28,9 +28,9 @@ vanniktechMavenPublish = "0.37.0"
 
 kotlinxAtomicfu = "0.33.0"
 kotlinxCoroutines = "1.11.0"
-kotlinxSerialization = "1.11.0"
+kotlinxSerialization = "1.12.0"
 
-mmkv = "2.4.0"
+mmkv = "2.4.3"
 
 [libraries]
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "androidxComposeBom" }
