@@ -132,7 +132,7 @@ It runs on both Android and iOS. It is made of three parts:</p>
 </ul>
 
 <h2>What it does</h2>
-<p>A home screen lists five use cases. Each one is a real, working screen backed by the real
+<p>A home screen lists six screens. Each one is a real, working screen backed by the real
 <code>Documents</code> API:</p>
 
 <ul>
@@ -170,6 +170,14 @@ It runs on both Android and iOS. It is made of three parts:</p>
       "Enqueue mock request" and "Clear queue" actions and a live list. All of its code is in
       <code>commonMain</code>. Nothing platform-specific was written to make it work on both
       Android and iOS.</li>
+  <li><strong>Shared Instances.</strong> Two instances of one document, kept in sync. The screen is
+      split into two sections. Each opens its own instance with
+      <code>Documents.document&lt;SharedNote&gt;("shared-note")</code> and collects its own
+      <code>flow()</code>. Pressing "+1" or setting the title in one section updates the other
+      right away. A line on the screen shows that the two instances are different objects
+      (<code>instanceA === instanceB</code> is <code>false</code>). "Add 100 from both" runs 100
+      updates on each instance at the same time, and the count goes up by exactly 200, so no update
+      is lost.</li>
 </ul>
 
 <h2>Run it</h2>

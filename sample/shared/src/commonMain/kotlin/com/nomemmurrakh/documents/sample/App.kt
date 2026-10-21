@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.nomemmurrakh.documents.sample.cache.CacheScreen
+import com.nomemmurrakh.documents.sample.instances.SharedInstancesScreen
 import com.nomemmurrakh.documents.sample.queue.QueueScreen
 import com.nomemmurrakh.documents.sample.reactive.ReactiveScreen
 import com.nomemmurrakh.documents.sample.session.SessionScreen
@@ -29,6 +30,7 @@ fun App() {
                 Screen.Cache -> CacheScreen(onBack = { screen = Screen.Home })
                 Screen.Reactive -> ReactiveScreen(onBack = { screen = Screen.Home })
                 Screen.SharedPersistence -> QueueScreen(onBack = { screen = Screen.Home })
+                Screen.SharedInstances -> SharedInstancesScreen(onBack = { screen = Screen.Home })
             }
         }
     }

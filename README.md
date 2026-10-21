@@ -78,7 +78,8 @@ iOS, and it is made of three parts:
 - [`sample/iosApp/`](sample/iosApp/): the iOS app.
 
 It has a screen for each documented
-[use case](https://documents.nomemmurrakh.com/use-cases/index.html):
+[use case](https://documents.nomemmurrakh.com/use-cases/index.html), plus one that shows two
+instances of a document staying in sync:
 
 - **Settings & Preferences:** typed, observable app settings.
 - **Session & User State:** signing in and out, with real field-level encryption for the auth
@@ -86,6 +87,7 @@ It has a screen for each documented
 - **Caches & Drafts:** a draft that survives a relaunch.
 - **Reactive UI State:** a simulated download that drives a live progress bar.
 - **Shared KMP Persistence:** an offline queue, with the same code on both platforms.
+- **Shared Instances:** two instances of one document, kept in sync.
 
 Clone the repository, run it, and tap through it on either platform.
 

@@ -6,8 +6,8 @@ This is a Kotlin Multiplatform sample app targeting Android and iOS, demonstrati
 
 * [/shared](./shared/src) holds the code shared across both platforms:
   - [commonMain](./shared/src/commonMain/kotlin) is the shared UI and business logic for all
-    5 use-case screens (settings, session/encryption, caches & drafts, reactive UI, shared KMP
-    persistence).
+    6 screens (settings, session/encryption, caches & drafts, reactive UI, shared KMP
+    persistence, shared instances).
   - [iosMain](./shared/src/iosMain/kotlin) has the iOS-specific entry point
     (`MainViewController`) that hosts the shared Compose UI.
 

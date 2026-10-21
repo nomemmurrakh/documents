@@ -33,6 +33,11 @@ sealed interface Screen {
         override val title: String = "Shared KMP Persistence"
         override val description: String = "One offline queue, identical code on both platforms."
     }
+
+    data object SharedInstances : Screen {
+        override val title: String = "Shared Instances"
+        override val description: String = "Two instances of one document, kept in sync."
+    }
 }
 
 val allUseCaseScreens: List<Screen> = listOf(
@@ -41,4 +46,5 @@ val allUseCaseScreens: List<Screen> = listOf(
     Screen.Cache,
     Screen.Reactive,
     Screen.SharedPersistence,
+    Screen.SharedInstances,
 )

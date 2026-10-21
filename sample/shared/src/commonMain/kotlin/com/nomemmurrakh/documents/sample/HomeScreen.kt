@@ -19,7 +19,7 @@ fun HomeScreen(onSelect: (Screen) -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Documents Sample", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Five use cases, each a real screen backed by the real Documents API.",
+            "Six use cases, each a real screen backed by the real Documents API.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
         )
